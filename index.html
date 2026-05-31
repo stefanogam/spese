@@ -13,7 +13,7 @@
     <header class="app-header">
       <div>
         <h1>Spese Mensili</h1>
-        <p><span id="currentMonthLabel"></span> · <span id="appVersion">v6</span></p>
+        <p><span id="currentMonthLabel"></span> · <span id="appVersion">v7</span></p>
       </div>
       <button id="installButton" class="secondary hidden">Installa</button>
     </header>
@@ -111,6 +111,12 @@
             <h2>Spese del mese</h2>
             <button id="exportCsvButton" class="secondary">CSV</button>
           </div>
+
+          <label class="expenses-month-selector">
+            Mese da visualizzare
+            <select id="expensesMonthSelect"></select>
+          </label>
+
           <div id="expensesList"></div>
         </div>
       </section>

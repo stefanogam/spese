@@ -13,6 +13,7 @@ const defaultCategories = [
 
 const initialState = {
   selectedMonth: getCurrentMonth(),
+  selectedExpensesMonth: getCurrentMonth(),
   selectedReportMonth: getCurrentMonth(),
   categories: [...defaultCategories],
   expenses: [],
@@ -60,6 +61,7 @@ function loadState() {
 function migrateState(rawState) {
   const migrated = {
     selectedMonth: rawState.selectedMonth || getCurrentMonth(),
+    selectedExpensesMonth: rawState.selectedExpensesMonth || rawState.selectedMonth || getCurrentMonth(),
     selectedReportMonth: rawState.selectedReportMonth || rawState.selectedMonth || getCurrentMonth(),
     categories: rawState.categories || [...defaultCategories],
     expenses: Array.isArray(rawState.expenses) ? rawState.expenses : [],
@@ -170,6 +172,19 @@ function ensureSelectedReportMonth() {
 
   if (!state.selectedReportMonth || !months.includes(state.selectedReportMonth)) {
     state.selectedReportMonth = months[0];
+  }
+}
+
+function ensureSelectedExpensesMonth() {
+  const months = getMonthsWithExpenses();
+
+  if (months.length === 0) {
+    state.selectedExpensesMonth = "";
+    return;
+  }
+
+  if (!state.selectedExpensesMonth || !months.includes(state.selectedExpensesMonth)) {
+    state.selectedExpensesMonth = months[0];
   }
 }
 
@@ -308,17 +323,59 @@ function renderExpenseRow(expense, showDelete = false) {
   `;
 }
 
-function renderExpensesList() {
-  const container = document.getElementById("expensesList");
-  const expenses = getMonthlyExpenses()
-    .sort((a, b) => new Date(b.date) - new Date(a.date));
+function renderExpensesMonthSelect() {
+  const select = document.getElementById("expensesMonthSelect");
+  const months = getMonthsWithExpenses();
 
-  if (expenses.length === 0) {
-    container.innerHTML = `<p class="empty">Nessuna spesa presente.</p>`;
+  if (!select) return;
+
+  ensureSelectedExpensesMonth();
+
+  if (months.length === 0) {
+    select.innerHTML = `<option value="">Nessuna spesa registrata</option>`;
+    select.disabled = true;
     return;
   }
 
-  container.innerHTML = expenses
+  select.disabled = false;
+  select.innerHTML = months
+    .map(month => `
+      <option value="${month}" ${month === state.selectedExpensesMonth ? "selected" : ""}>
+        ${getMonthLabel(month)}
+      </option>
+    `)
+    .join("");
+}
+
+function renderExpensesList() {
+  renderExpensesMonthSelect();
+
+  const container = document.getElementById("expensesList");
+  const selectedExpensesMonth = state.selectedExpensesMonth;
+
+  if (!selectedExpensesMonth) {
+    container.innerHTML = `<p class="empty">Non ci sono ancora spese registrate.</p>`;
+    return;
+  }
+
+  const expenses = getMonthlyExpenses(selectedExpensesMonth)
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  if (expenses.length === 0) {
+    container.innerHTML = `<p class="empty">Nessuna spesa presente per il mese selezionato.</p>`;
+    return;
+  }
+
+  const total = getTotal(expenses);
+
+  const summary = `
+    <div class="report-summary">
+      <span>Totale ${getMonthLabel(selectedExpensesMonth)}</span>
+      <strong>${formatCurrency(total)}</strong>
+    </div>
+  `;
+
+  container.innerHTML = summary + expenses
     .map(expense => renderExpenseRow(expense, true))
     .join("");
 }
@@ -641,10 +698,11 @@ function showView(viewId) {
 }
 
 function exportCsv() {
-  const expenses = getMonthlyExpenses();
+  const selectedExpensesMonth = state.selectedExpensesMonth;
+  const expenses = selectedExpensesMonth ? getMonthlyExpenses(selectedExpensesMonth) : [];
 
   if (expenses.length === 0) {
-    alert("Non ci sono spese da esportare.");
+    alert("Non ci sono spese da esportare per il mese selezionato.");
     return;
   }
 
@@ -679,7 +737,7 @@ function exportCsv() {
 
   const link = document.createElement("a");
   link.href = url;
-  link.download = `spese-${state.selectedMonth}.csv`;
+  link.download = `spese-${state.selectedExpensesMonth}.csv`;
   link.click();
 
   URL.revokeObjectURL(url);
@@ -815,6 +873,11 @@ document.getElementById("exportCsvButton").addEventListener("click", exportCsv);
 document.getElementById("resetDataButton").addEventListener("click", resetData);
 document.getElementById("exportJsonButton").addEventListener("click", exportJsonBackup);
 document.getElementById("importJsonInput").addEventListener("change", importJsonBackup);
+document.getElementById("expensesMonthSelect").addEventListener("change", event => {
+  state.selectedExpensesMonth = event.target.value;
+  saveState();
+  renderExpensesList();
+});
 document.getElementById("reportMonthSelect").addEventListener("change", event => {
   state.selectedReportMonth = event.target.value;
   saveState();

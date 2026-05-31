@@ -1,4 +1,4 @@
-# Spese Mensili - PWA locale v6
+# Spese Mensili - PWA locale v7
 
 Questa versione include:
 
@@ -66,3 +66,11 @@ Risultato:
 Questo impedisce qualsiasi slittamento contabile a luglio.
 
 È stato anche aggiornato il service worker con `skipWaiting()` e `clients.claim()` per ridurre il rischio che Android continui a usare una versione precedente in cache.
+
+
+## Modifica v7
+
+Aggiunto filtro mese anche nella sezione **Spese**.
+
+La tendina mostra solo i mesi in cui sono presenti spese registrate.
+La lista spese e l'esportazione CSV usano il mese selezionato in questa sezione.
