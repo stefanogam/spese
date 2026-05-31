@@ -352,3 +352,7 @@ button.small {
 .import-button input {
   display: none;
 }
+
+.report-month-selector {
+  margin-bottom: 16px;
+}

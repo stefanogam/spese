@@ -13,7 +13,7 @@
     <header class="app-header">
       <div>
         <h1>Spese Mensili</h1>
-        <p id="currentMonthLabel"></p>
+        <p><span id="currentMonthLabel"></span> · <span id="appVersion">v6</span></p>
       </div>
       <button id="installButton" class="secondary hidden">Installa</button>
     </header>
@@ -118,6 +118,12 @@
       <section id="reportView" class="view">
         <div class="card">
           <h2>Report per categoria</h2>
+
+          <label class="report-month-selector">
+            Mese da visualizzare
+            <select id="reportMonthSelect"></select>
+          </label>
+
           <div id="categoryReport"></div>
         </div>
       </section>

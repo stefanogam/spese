@@ -1,4 +1,4 @@
-const STORAGE_KEY = "spese-pwa-locale-v3";
+const STORAGE_KEY = "spese-pwa-locale-v4";
 
 const defaultCategories = [
   "Alimentari",
@@ -13,6 +13,7 @@ const defaultCategories = [
 
 const initialState = {
   selectedMonth: getCurrentMonth(),
+  selectedReportMonth: getCurrentMonth(),
   categories: [...defaultCategories],
   expenses: [],
   thresholds: {
@@ -36,7 +37,7 @@ function loadState() {
   const saved = localStorage.getItem(STORAGE_KEY);
 
   if (!saved) {
-    const oldSaved = localStorage.getItem("spese-pwa-locale-v2") || localStorage.getItem("spese-pwa-locale-v1");
+    const oldSaved = localStorage.getItem("spese-pwa-locale-v3") || localStorage.getItem("spese-pwa-locale-v2") || localStorage.getItem("spese-pwa-locale-v1");
     if (oldSaved) {
       try {
         const oldState = JSON.parse(oldSaved);
@@ -59,6 +60,7 @@ function loadState() {
 function migrateState(rawState) {
   const migrated = {
     selectedMonth: rawState.selectedMonth || getCurrentMonth(),
+    selectedReportMonth: rawState.selectedReportMonth || rawState.selectedMonth || getCurrentMonth(),
     categories: rawState.categories || [...defaultCategories],
     expenses: Array.isArray(rawState.expenses) ? rawState.expenses : [],
     thresholds: rawState.thresholds || structuredClone(initialState.thresholds)
@@ -104,14 +106,31 @@ function getMonthFromDate(date) {
   return date.slice(0, 7);
 }
 
-function addMonthsToDate(dateString, monthsToAdd) {
-  const [year, month, day] = dateString.split("-").map(Number);
-  const date = new Date(year, month - 1 + monthsToAdd, day);
-  const adjustedYear = date.getFullYear();
-  const adjustedMonth = String(date.getMonth() + 1).padStart(2, "0");
-  const adjustedDay = String(date.getDate()).padStart(2, "0");
-  return `${adjustedYear}-${adjustedMonth}-${adjustedDay}`;
+function getTargetYearMonth(dateString, monthsToAdd) {
+  const [year, month] = dateString.split("-").map(Number);
+  const zeroBasedTargetMonth = month - 1 + monthsToAdd;
+
+  const targetYear = year + Math.floor(zeroBasedTargetMonth / 12);
+  const targetMonthIndex = ((zeroBasedTargetMonth % 12) + 12) % 12;
+  const targetMonth = targetMonthIndex + 1;
+
+  return {
+    year: targetYear,
+    month: targetMonth,
+    monthKey: `${targetYear}-${String(targetMonth).padStart(2, "0")}`
+  };
 }
+
+function getInstallmentDate(dateString, monthsToAdd) {
+  const [, , originalDay] = dateString.split("-").map(Number);
+  const target = getTargetYearMonth(dateString, monthsToAdd);
+
+  const lastDayOfTargetMonth = new Date(target.year, target.month, 0).getDate();
+  const safeDay = Math.min(originalDay, lastDayOfTargetMonth);
+
+  return `${target.monthKey}-${String(safeDay).padStart(2, "0")}`;
+}
+
 
 function shiftSelectedMonth(delta) {
   const [year, month] = state.selectedMonth.split("-").map(Number);
@@ -133,6 +152,27 @@ function getMonthLabel(month) {
 function getMonthlyExpenses(month = state.selectedMonth) {
   return state.expenses.filter(expense => expense.month === month);
 }
+
+function getMonthsWithExpenses() {
+  return [...new Set(state.expenses.map(expense => expense.month))]
+    .filter(Boolean)
+    .sort()
+    .reverse();
+}
+
+function ensureSelectedReportMonth() {
+  const months = getMonthsWithExpenses();
+
+  if (months.length === 0) {
+    state.selectedReportMonth = "";
+    return;
+  }
+
+  if (!state.selectedReportMonth || !months.includes(state.selectedReportMonth)) {
+    state.selectedReportMonth = months[0];
+  }
+}
+
 
 function getTotal(expenses) {
   return expenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
@@ -283,12 +323,59 @@ function renderExpensesList() {
     .join("");
 }
 
-function renderReport() {
-  const container = document.getElementById("categoryReport");
-  const expenses = getMonthlyExpenses();
-  const totalsByCategory = getTotalsByCategory(expenses);
+function renderReportMonthSelect() {
+  const select = document.getElementById("reportMonthSelect");
+  const months = getMonthsWithExpenses();
 
-  container.innerHTML = state.categories
+  if (!select) return;
+
+  ensureSelectedReportMonth();
+
+  if (months.length === 0) {
+    select.innerHTML = `<option value="">Nessuna spesa registrata</option>`;
+    select.disabled = true;
+    return;
+  }
+
+  select.disabled = false;
+  select.innerHTML = months
+    .map(month => `
+      <option value="${month}" ${month === state.selectedReportMonth ? "selected" : ""}>
+        ${getMonthLabel(month)}
+      </option>
+    `)
+    .join("");
+}
+
+function renderReport() {
+  renderReportMonthSelect();
+
+  const container = document.getElementById("categoryReport");
+  const selectedReportMonth = state.selectedReportMonth;
+
+  if (!selectedReportMonth) {
+    container.innerHTML = `<p class="empty">Non ci sono ancora spese registrate.</p>`;
+    return;
+  }
+
+  const expenses = getMonthlyExpenses(selectedReportMonth);
+  const totalsByCategory = getTotalsByCategory(expenses);
+  const total = getTotal(expenses);
+
+  if (expenses.length === 0) {
+    container.innerHTML = `<p class="empty">Nessuna spesa presente per il mese selezionato.</p>`;
+    return;
+  }
+
+  const summary = `
+    <div class="report-summary">
+      <span>Totale ${getMonthLabel(selectedReportMonth)}</span>
+      <strong>${formatCurrency(total)}</strong>
+    </div>
+  `;
+
+  const rows = state.categories
+    .filter(category => (totalsByCategory[category] || 0) > 0 || (state.thresholds.categoryLimits[category] || 0) > 0)
     .map(category => {
       const spent = totalsByCategory[category] || 0;
       const limit = Number(state.thresholds.categoryLimits[category] || 0);
@@ -311,6 +398,8 @@ function renderReport() {
       `;
     })
     .join("");
+
+  container.innerHTML = summary + rows;
 }
 
 function renderThresholdForm() {
@@ -400,7 +489,8 @@ function addExpense(event) {
     amounts[numberOfMonths - 1] = roundToTwoDecimals(amounts[numberOfMonths - 1] + remainder);
 
     for (let i = 0; i < numberOfMonths; i++) {
-      const installmentDate = addMonthsToDate(date, i);
+      const installmentTarget = getTargetYearMonth(date, i);
+      const installmentDate = getInstallmentDate(date, i);
 
       state.expenses.push({
         id: crypto.randomUUID(),
@@ -409,7 +499,7 @@ function addExpense(event) {
         originalAmount: totalAmount,
         category,
         date: installmentDate,
-        month: getMonthFromDate(installmentDate),
+        month: installmentTarget.monthKey,
         paymentMethod,
         description: description || `Spesa plurimensile`,
         type: "multi",
@@ -725,6 +815,11 @@ document.getElementById("exportCsvButton").addEventListener("click", exportCsv);
 document.getElementById("resetDataButton").addEventListener("click", resetData);
 document.getElementById("exportJsonButton").addEventListener("click", exportJsonBackup);
 document.getElementById("importJsonInput").addEventListener("change", importJsonBackup);
+document.getElementById("reportMonthSelect").addEventListener("change", event => {
+  state.selectedReportMonth = event.target.value;
+  saveState();
+  renderReport();
+});
 document.getElementById("prevMonthButton").addEventListener("click", () => shiftSelectedMonth(-1));
 document.getElementById("nextMonthButton").addEventListener("click", () => shiftSelectedMonth(1));
 
@@ -732,6 +827,7 @@ document.getElementById("isMultiMonth").addEventListener("change", event => {
   document.getElementById("multiMonthOptions").classList.toggle("hidden", !event.target.checked);
 });
 
+document.getElementById("appVersion").textContent = APP_VERSION;
 setDefaultDate();
 renderAll();
 registerServiceWorker();
