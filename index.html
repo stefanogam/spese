@@ -13,17 +13,23 @@
     <header class="app-header">
       <div>
         <h1>Spese Mensili</h1>
-        <p><span id="currentMonthLabel"></span> · <span id="appVersion">v7</span></p>
+        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.13</span></p>
       </div>
       <button id="installButton" class="secondary hidden">Installa</button>
     </header>
 
     <main>
       <section id="dashboardView" class="view active">
-        <div class="month-selector card compact">
-          <button id="prevMonthButton" class="secondary">←</button>
-          <strong id="selectedMonthLabel"></strong>
-          <button id="nextMonthButton" class="secondary">→</button>
+        <div class="card compact">
+          <label class="home-month-selector">
+            Mese da visualizzare
+            <select id="homeMonthSelect"></select>
+          </label>
+        </div>
+
+        <div class="card compact version-card">
+          <span>Versione app</span>
+          <strong>V.13</strong>
         </div>
 
         <div class="card hero">
@@ -132,6 +138,43 @@
 
           <div id="categoryReport"></div>
         </div>
+
+        <div class="card">
+          <h2>Report plurimensile</h2>
+
+          <div class="multi-report-controls">
+            <label>
+              Mese di riferimento
+              <input id="multiReportReferenceMonth" type="month" />
+            </label>
+
+            <div class="multi-report-selectors">
+              <label>
+                Mesi precedenti
+                <select id="multiReportMonthsBefore"></select>
+              </label>
+
+              <label>
+                Mesi successivi
+                <select id="multiReportMonthsAfter"></select>
+              </label>
+            </div>
+
+            <button id="multiReportCurrentButton" type="button" class="secondary">Torna al mese corrente</button>
+          </div>
+
+          <p class="hint">
+            Puoi scegliere quanti mesi visualizzare prima e dopo il mese di riferimento, da 0 a 12.
+            Gli istogrammi rappresentano le spese per categoria/soglia; la linea rappresenta il totale mensile.
+          </p>
+
+          <div class="chart-wrapper">
+            <canvas id="multiReportChart" width="900" height="520"></canvas>
+          </div>
+
+          <div id="multiReportLegend" class="chart-legend"></div>
+          <div id="multiReportTable"></div>
+        </div>
       </section>
 
       <section id="settingsView" class="view">
@@ -140,7 +183,8 @@
           <form id="thresholdForm">
             <label>
               Budget mensile totale
-              <input id="totalLimit" type="number" step="0.01" min="0" />
+              <input id="totalLimit" type="number" step="0.01" min="0" readonly />
+              <span class="hint">Calcolato automaticamente come somma delle soglie delle categorie.</span>
             </label>
             <div id="categoryLimitsForm"></div>
             <button type="submit">Salva soglie</button>

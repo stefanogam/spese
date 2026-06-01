@@ -15,10 +15,13 @@ const initialState = {
   selectedMonth: getCurrentMonth(),
   selectedExpensesMonth: getCurrentMonth(),
   selectedReportMonth: getCurrentMonth(),
+  selectedMultiReportReferenceMonth: getCurrentMonth(),
+  selectedMultiReportMonthsBefore: 0,
+  selectedMultiReportMonthsAfter: 0,
   categories: [...defaultCategories],
   expenses: [],
   thresholds: {
-    totalLimit: 1200,
+    totalLimit: 1400,
     categoryLimits: {
       Alimentari: 350,
       Casa: 250,
@@ -63,6 +66,9 @@ function migrateState(rawState) {
     selectedMonth: rawState.selectedMonth || getCurrentMonth(),
     selectedExpensesMonth: rawState.selectedExpensesMonth || rawState.selectedMonth || getCurrentMonth(),
     selectedReportMonth: rawState.selectedReportMonth || rawState.selectedMonth || getCurrentMonth(),
+    selectedMultiReportReferenceMonth: rawState.selectedMultiReportReferenceMonth || getCurrentMonth(),
+    selectedMultiReportMonthsBefore: Number(rawState.selectedMultiReportMonthsBefore || 0),
+    selectedMultiReportMonthsAfter: Number(rawState.selectedMultiReportMonthsAfter || 0),
     categories: rawState.categories || [...defaultCategories],
     expenses: Array.isArray(rawState.expenses) ? rawState.expenses : [],
     thresholds: rawState.thresholds || structuredClone(initialState.thresholds)
@@ -83,6 +89,10 @@ function migrateState(rawState) {
     month: expense.month || getMonthFromDate(expense.date),
     type: expense.type || "single"
   }));
+
+  migrated.thresholds.totalLimit = migrated.categories.reduce((sum, category) => {
+    return sum + Number(migrated.thresholds.categoryLimits[category] || 0);
+  }, 0);
 
   return migrated;
 }
@@ -151,6 +161,20 @@ function getMonthLabel(month) {
   }).format(date);
 }
 
+function addMonthsToMonthKey(monthKey, delta) {
+  const [year, month] = monthKey.split("-").map(Number);
+  const date = new Date(year, month - 1 + delta, 1);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function getMonthRangeAround(referenceMonth, monthsBefore = 6, monthsAfter = 6) {
+  const months = [];
+  for (let offset = -monthsBefore; offset <= monthsAfter; offset++) {
+    months.push(addMonthsToMonthKey(referenceMonth, offset));
+  }
+  return months;
+}
+
 function getMonthlyExpenses(month = state.selectedMonth) {
   return state.expenses.filter(expense => expense.month === month);
 }
@@ -160,6 +184,12 @@ function getMonthsWithExpenses() {
     .filter(Boolean)
     .sort()
     .reverse();
+}
+
+function getHomeMonths() {
+  const months = new Set(getMonthsWithExpenses());
+  months.add(getCurrentMonth());
+  return [...months].filter(Boolean).sort().reverse();
 }
 
 function ensureSelectedReportMonth() {
@@ -193,6 +223,16 @@ function getTotal(expenses) {
   return expenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
 }
 
+function calculateTotalLimitFromCategories() {
+  return state.categories.reduce((sum, category) => {
+    return sum + Number(state.thresholds.categoryLimits[category] || 0);
+  }, 0);
+}
+
+function syncTotalLimitWithCategories() {
+  state.thresholds.totalLimit = calculateTotalLimitFromCategories();
+}
+
 function getTotalsByCategory(expenses) {
   return expenses.reduce((acc, expense) => {
     acc[expense.category] = (acc[expense.category] || 0) + Number(expense.amount);
@@ -222,8 +262,16 @@ function getThresholdStatus(spent, limit) {
   return { label: "OK", className: "ok", percentage };
 }
 
+function getTodayDateString() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function setDefaultDate() {
-  document.getElementById("date").value = new Date().toISOString().slice(0, 10);
+  document.getElementById("date").value = getTodayDateString();
 }
 
 function renderCategoryOptions() {
@@ -233,7 +281,29 @@ function renderCategoryOptions() {
     .join("");
 }
 
+function renderHomeMonthSelect() {
+  const select = document.getElementById("homeMonthSelect");
+  if (!select) return;
+
+  const months = getHomeMonths();
+
+  if (!state.selectedMonth || !months.includes(state.selectedMonth)) {
+    state.selectedMonth = getCurrentMonth();
+  }
+
+  select.innerHTML = months
+    .map(month => `
+      <option value="${month}" ${month === state.selectedMonth ? "selected" : ""}>
+        ${getMonthLabel(month)}
+      </option>
+    `)
+    .join("");
+}
+
 function renderDashboard() {
+  syncTotalLimitWithCategories();
+  renderHomeMonthSelect();
+
   const month = state.selectedMonth;
   const expenses = getMonthlyExpenses(month);
   const total = getTotal(expenses);
@@ -241,7 +311,10 @@ function renderDashboard() {
   const status = getThresholdStatus(total, limit);
 
   document.getElementById("currentMonthLabel").textContent = getMonthLabel(month);
-  document.getElementById("selectedMonthLabel").textContent = getMonthLabel(month);
+  const selectedMonthLabel = document.getElementById("selectedMonthLabel");
+  if (selectedMonthLabel) {
+    selectedMonthLabel.textContent = getMonthLabel(month);
+  }
   document.getElementById("monthlyTotal").textContent = formatCurrency(total);
   document.getElementById("monthlyBudget").textContent = formatCurrency(limit);
 
@@ -250,7 +323,7 @@ function renderDashboard() {
   document.getElementById("monthlyStatus").textContent =
     limit > 0
       ? `${Math.round(status.percentage)}% del budget utilizzato — ${status.label}`
-      : "Imposta un budget mensile nella sezione Soglie";
+      : "Imposta le soglie nella sezione Soglie";
 
   renderCriticalCategories(expenses);
   renderLatestExpenses(expenses);
@@ -412,6 +485,7 @@ function renderReport() {
 
   if (!selectedReportMonth) {
     container.innerHTML = `<p class="empty">Non ci sono ancora spese registrate.</p>`;
+    renderMultiReport();
     return;
   }
 
@@ -421,6 +495,7 @@ function renderReport() {
 
   if (expenses.length === 0) {
     container.innerHTML = `<p class="empty">Nessuna spesa presente per il mese selezionato.</p>`;
+    renderMultiReport();
     return;
   }
 
@@ -457,9 +532,237 @@ function renderReport() {
     .join("");
 
   container.innerHTML = summary + rows;
+  renderMultiReport();
+}
+
+function getCategoryColor(index) {
+  const colors = [
+    "#2563eb", "#16a34a", "#f97316", "#9333ea",
+    "#dc2626", "#0891b2", "#ca8a04", "#4b5563",
+    "#be185d", "#0f766e", "#7c3aed", "#65a30d"
+  ];
+  return colors[index % colors.length];
+}
+
+function getMultiReportData() {
+  const referenceMonth = state.selectedMultiReportReferenceMonth || getCurrentMonth();
+  const monthsBefore = Number(state.selectedMultiReportMonthsBefore || 0);
+  const monthsAfter = Number(state.selectedMultiReportMonthsAfter || 0);
+  const months = getMonthRangeAround(referenceMonth, monthsBefore, monthsAfter);
+
+  return months.map(month => {
+    const expenses = getMonthlyExpenses(month);
+    const totalsByCategory = getTotalsByCategory(expenses);
+    const total = getTotal(expenses);
+    return { month, total, totalsByCategory };
+  });
+}
+
+function renderMultiReportRangeSelectors() {
+  const beforeSelect = document.getElementById("multiReportMonthsBefore");
+  const afterSelect = document.getElementById("multiReportMonthsAfter");
+
+  if (!beforeSelect || !afterSelect) return;
+
+  const options = Array.from({ length: 13 }, (_, index) => {
+    return `<option value="${index}">${index}</option>`;
+  }).join("");
+
+  beforeSelect.innerHTML = options;
+  afterSelect.innerHTML = options;
+
+  beforeSelect.value = String(Number(state.selectedMultiReportMonthsBefore || 0));
+  afterSelect.value = String(Number(state.selectedMultiReportMonthsAfter || 0));
+}
+
+function renderMultiReport() {
+  syncTotalLimitWithCategories();
+
+  const input = document.getElementById("multiReportReferenceMonth");
+  if (!input) return;
+
+  if (!state.selectedMultiReportReferenceMonth) {
+    state.selectedMultiReportReferenceMonth = getCurrentMonth();
+  }
+
+  input.value = state.selectedMultiReportReferenceMonth;
+  renderMultiReportRangeSelectors();
+
+  const data = getMultiReportData();
+  drawMultiReportChart(data);
+  renderMultiReportLegend();
+  renderMultiReportTable(data);
+}
+
+function drawMultiReportChart(data) {
+  const canvas = document.getElementById("multiReportChart");
+  if (!canvas) return;
+
+  const ctx = canvas.getContext("2d");
+  const width = canvas.width;
+  const height = canvas.height;
+
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, width, height);
+
+  const padding = { top: 34, right: 46, bottom: 86, left: 70 };
+  const chartWidth = width - padding.left - padding.right;
+  const chartHeight = height - padding.top - padding.bottom;
+
+  const maxStack = Math.max(
+    ...data.map(item => state.categories.reduce((sum, category) => sum + Number(item.totalsByCategory[category] || 0), 0)),
+    ...data.map(item => item.total),
+    Number(state.thresholds.totalLimit || 0),
+    1
+  );
+
+  const niceMax = Math.ceil(maxStack / 100) * 100 || 100;
+
+  function yScale(value) {
+    return padding.top + chartHeight - (value / niceMax) * chartHeight;
+  }
+
+  ctx.strokeStyle = "#e5e7eb";
+  ctx.fillStyle = "#6b7280";
+  ctx.font = "12px system-ui";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+
+  for (let i = 0; i <= 5; i++) {
+    const value = (niceMax / 5) * i;
+    const y = yScale(value);
+    ctx.beginPath();
+    ctx.moveTo(padding.left, y);
+    ctx.lineTo(width - padding.right, y);
+    ctx.stroke();
+    ctx.fillText(formatCurrency(value).replace(",00", ""), padding.left - 8, y);
+  }
+
+  const groupWidth = chartWidth / data.length;
+  const barWidth = Math.min(42, groupWidth * 0.56);
+
+  data.forEach((item, index) => {
+    const x = padding.left + index * groupWidth + (groupWidth - barWidth) / 2;
+    let accumulated = 0;
+
+    state.categories.forEach((category, categoryIndex) => {
+      const value = Number(item.totalsByCategory[category] || 0);
+      if (value <= 0) return;
+
+      const yTop = yScale(accumulated + value);
+      const yBottom = yScale(accumulated);
+      const segmentHeight = yBottom - yTop;
+
+      ctx.fillStyle = getCategoryColor(categoryIndex);
+      ctx.fillRect(x, yTop, barWidth, Math.max(segmentHeight, 1));
+      accumulated += value;
+    });
+
+    const label = item.month.slice(5, 7) + "/" + item.month.slice(2, 4);
+    ctx.save();
+    ctx.translate(x + barWidth / 2, height - padding.bottom + 22);
+    ctx.rotate(-Math.PI / 4);
+    ctx.fillStyle = "#374151";
+    ctx.font = "12px system-ui";
+    ctx.textAlign = "right";
+    ctx.fillText(label, 0, 0);
+    ctx.restore();
+  });
+
+  ctx.strokeStyle = "#111827";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+
+  data.forEach((item, index) => {
+    const x = padding.left + index * groupWidth + groupWidth / 2;
+    const y = yScale(item.total);
+    if (index === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+
+  ctx.stroke();
+
+  data.forEach((item, index) => {
+    const x = padding.left + index * groupWidth + groupWidth / 2;
+    const y = yScale(item.total);
+
+    ctx.fillStyle = "#111827";
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (item.total > 0) {
+      ctx.fillStyle = "#111827";
+      ctx.font = "11px system-ui";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+      ctx.fillText(Math.round(item.total).toString(), x, y - 7);
+    }
+  });
+
+  ctx.fillStyle = "#111827";
+  ctx.font = "bold 15px system-ui";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  ctx.fillText("Spese per categoria e totale mensile", padding.left, 10);
+}
+
+function renderMultiReportLegend() {
+  const container = document.getElementById("multiReportLegend");
+  if (!container) return;
+
+  const categoryItems = state.categories.map((category, index) => `
+    <span class="legend-item">
+      <span class="legend-color" style="background:${getCategoryColor(index)}"></span>
+      ${escapeHtml(category)}
+    </span>
+  `).join("");
+
+  container.innerHTML = categoryItems + `
+    <span class="legend-item">
+      <span class="legend-line"></span>
+      Totale mensile
+    </span>
+  `;
+}
+
+function renderMultiReportTable(data) {
+  const container = document.getElementById("multiReportTable");
+  if (!container) return;
+
+  const rows = data.map(item => {
+    const categoryCells = state.categories.map(category => {
+      return `<td>${formatCurrency(item.totalsByCategory[category] || 0)}</td>`;
+    }).join("");
+
+    return `
+      <tr>
+        <td>${getMonthLabel(item.month)}</td>
+        ${categoryCells}
+        <td><strong>${formatCurrency(item.total)}</strong></td>
+      </tr>
+    `;
+  }).join("");
+
+  container.innerHTML = `
+    <div class="multi-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Mese</th>
+            ${state.categories.map(category => `<th>${escapeHtml(category)}</th>`).join("")}
+            <th>Totale</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
 }
 
 function renderThresholdForm() {
+  syncTotalLimitWithCategories();
   document.getElementById("totalLimit").value = state.thresholds.totalLimit || "";
 
   const container = document.getElementById("categoryLimitsForm");
@@ -596,13 +899,12 @@ function deleteExpense(id) {
 function saveThresholds(event) {
   event.preventDefault();
 
-  state.thresholds.totalLimit = Number(document.getElementById("totalLimit").value || 0);
-
   document.querySelectorAll("[data-category-limit]").forEach(input => {
     const category = input.dataset.categoryLimit;
     state.thresholds.categoryLimits[category] = Number(input.value || 0);
   });
 
+  syncTotalLimitWithCategories();
   saveState();
   showView("dashboardView");
   renderAll();
@@ -626,6 +928,7 @@ function addCategory(event) {
 
   state.categories.push(name);
   state.thresholds.categoryLimits[name] = 0;
+  syncTotalLimitWithCategories();
   input.value = "";
 
   saveState();
@@ -663,6 +966,7 @@ function renameCategory(oldName) {
     delete state.thresholds.categoryLimits[oldName];
   }
 
+  syncTotalLimitWithCategories();
   saveState();
   renderAll();
 }
@@ -680,22 +984,43 @@ function deleteCategory(categoryName) {
 
   state.categories = state.categories.filter(category => category !== categoryName);
   delete state.thresholds.categoryLimits[categoryName];
+  syncTotalLimitWithCategories();
 
   saveState();
   renderAll();
 }
 
 function showView(viewId) {
+  if (viewId === "dashboardView") {
+    state.selectedMonth = getCurrentMonth();
+  }
+
+  if (viewId === "addView") {
+    setDefaultDate();
+  }
+
   document.querySelectorAll(".view").forEach(view => {
     view.classList.remove("active");
   });
 
   document.getElementById(viewId).classList.add("active");
+  window.scrollTo({ top: 0, behavior: "instant" });
 
   document.querySelectorAll(".bottom-nav button").forEach(button => {
     button.classList.toggle("active", button.dataset.view === viewId);
   });
+
+  if (viewId === "dashboardView") {
+    renderDashboard();
+    saveState();
+  }
+
+  if (viewId === "reportView") {
+    renderReport();
+    renderMultiReport();
+  }
 }
+
 
 function exportCsv() {
   const selectedExpensesMonth = state.selectedExpensesMonth;
@@ -765,7 +1090,7 @@ function exportJsonBackup() {
 }
 
 function importJsonBackup(event) {
-  const file = event.target.files?.[0];
+  const file = event.target.files && event.target.files[0];
   if (!file) return;
 
   const reader = new FileReader();
@@ -873,6 +1198,50 @@ document.getElementById("exportCsvButton").addEventListener("click", exportCsv);
 document.getElementById("resetDataButton").addEventListener("click", resetData);
 document.getElementById("exportJsonButton").addEventListener("click", exportJsonBackup);
 document.getElementById("importJsonInput").addEventListener("change", importJsonBackup);
+const homeMonthSelect = document.getElementById("homeMonthSelect");
+if (homeMonthSelect) {
+  homeMonthSelect.addEventListener("change", event => {
+    state.selectedMonth = event.target.value;
+    saveState();
+    renderDashboard();
+  });
+}
+const multiReportReferenceMonth = document.getElementById("multiReportReferenceMonth");
+if (multiReportReferenceMonth) {
+  multiReportReferenceMonth.addEventListener("change", event => {
+    state.selectedMultiReportReferenceMonth = event.target.value || getCurrentMonth();
+    saveState();
+    renderMultiReport();
+  });
+}
+const multiReportMonthsBefore = document.getElementById("multiReportMonthsBefore");
+if (multiReportMonthsBefore) {
+  multiReportMonthsBefore.addEventListener("change", event => {
+    state.selectedMultiReportMonthsBefore = Number(event.target.value || 0);
+    saveState();
+    renderMultiReport();
+  });
+}
+
+const multiReportMonthsAfter = document.getElementById("multiReportMonthsAfter");
+if (multiReportMonthsAfter) {
+  multiReportMonthsAfter.addEventListener("change", event => {
+    state.selectedMultiReportMonthsAfter = Number(event.target.value || 0);
+    saveState();
+    renderMultiReport();
+  });
+}
+
+const multiReportCurrentButton = document.getElementById("multiReportCurrentButton");
+if (multiReportCurrentButton) {
+  multiReportCurrentButton.addEventListener("click", () => {
+    state.selectedMultiReportReferenceMonth = getCurrentMonth();
+    state.selectedMultiReportMonthsBefore = 0;
+    state.selectedMultiReportMonthsAfter = 0;
+    saveState();
+    renderMultiReport();
+  });
+}
 document.getElementById("expensesMonthSelect").addEventListener("change", event => {
   state.selectedExpensesMonth = event.target.value;
   saveState();
@@ -883,14 +1252,24 @@ document.getElementById("reportMonthSelect").addEventListener("change", event =>
   saveState();
   renderReport();
 });
-document.getElementById("prevMonthButton").addEventListener("click", () => shiftSelectedMonth(-1));
-document.getElementById("nextMonthButton").addEventListener("click", () => shiftSelectedMonth(1));
+const prevMonthButton = document.getElementById("prevMonthButton");
+if (prevMonthButton) {
+  prevMonthButton.addEventListener("click", () => shiftSelectedMonth(-1));
+}
+
+const nextMonthButton = document.getElementById("nextMonthButton");
+if (nextMonthButton) {
+  nextMonthButton.addEventListener("click", () => shiftSelectedMonth(1));
+}
 
 document.getElementById("isMultiMonth").addEventListener("change", event => {
   document.getElementById("multiMonthOptions").classList.toggle("hidden", !event.target.checked);
 });
 
 document.getElementById("appVersion").textContent = APP_VERSION;
+syncTotalLimitWithCategories();
+state.selectedMonth = getCurrentMonth();
 setDefaultDate();
 renderAll();
+renderMultiReport();
 registerServiceWorker();
