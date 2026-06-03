@@ -837,3 +837,62 @@ input[readonly] {
   background: #fff1f2;
   border-color: #fca5a5;
 }
+
+/* V.40 - menu azioni spese aperto verso sinistra per evitare spaginamento su smartphone */
+.expense-row {
+  overflow: visible;
+}
+
+.expense-action-menu {
+  position: relative;
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.expense-action-menu .menu-trigger {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+.action-menu-panel {
+  left: 0;
+  right: auto;
+  max-width: calc(100vw - 48px);
+  flex-wrap: nowrap;
+}
+
+@media (max-width: 520px) {
+  .expense-row > div:last-child {
+    align-items: flex-start;
+  }
+
+  .expense-row .amount {
+    text-align: left;
+  }
+
+  .expense-action-menu {
+    justify-content: flex-start;
+  }
+
+  .menu-trigger {
+    width: 54px;
+    max-width: 54px;
+    margin-left: 0;
+    margin-right: auto;
+  }
+
+  .action-menu-panel {
+    left: 0;
+    right: auto;
+    width: min(100%, calc(100vw - 40px));
+    justify-content: flex-start;
+    gap: 10px;
+  }
+
+  .action-menu-panel .icon-button {
+    flex: 0 0 50px;
+    width: 50px;
+    min-width: 50px;
+  }
+}
