@@ -740,3 +740,100 @@ input[readonly] {
 .reimbursement-row + .edit-expense-form {
   margin-top: 8px;
 }
+
+/* V.37 - menu azioni a scomparsa per singola spesa */
+.expense-action-menu {
+  position: relative;
+  display: inline-flex;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.expense-action-menu summary {
+  list-style: none;
+}
+
+.expense-action-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.menu-trigger {
+  margin-left: auto;
+  font-size: 1.7rem;
+  font-weight: 800;
+}
+
+.action-menu-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 20;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 18px;
+  padding: 10px;
+  box-shadow: 0 14px 35px rgba(15, 23, 42, 0.18);
+  display: flex;
+  gap: 10px;
+}
+
+.expense-action-menu:not([open]) .action-menu-panel {
+  display: none;
+}
+
+@media (max-width: 520px) {
+  .expense-action-menu {
+    align-self: stretch;
+  }
+
+  .menu-trigger {
+    width: 100%;
+    max-width: none;
+    height: 50px;
+  }
+
+  .action-menu-panel {
+    left: 0;
+    right: 0;
+    justify-content: space-between;
+  }
+
+  .action-menu-panel .icon-button {
+    flex: 1;
+  }
+}
+
+/* V.38 - icone Modifica e Ripeti con sfondo verde */
+.icon-button.action-green {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.icon-button.action-green:hover {
+  background: #bbf7d0;
+  border-color: #4ade80;
+}
+
+/* V.39 - rimozione sfondo verde e icona Ripeti/Duplica rossa */
+.icon-button.action-green {
+  background: #ffffff;
+  border-color: #d1d5db;
+  color: inherit;
+}
+
+.icon-button.action-green:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.icon-button.repeat-icon {
+  background: #ffffff;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+.icon-button.repeat-icon:hover {
+  background: #fff1f2;
+  border-color: #fca5a5;
+}
