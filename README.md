@@ -78,13 +78,13 @@ La lista spese e l'esportazione CSV usano il mese selezionato in questa sezione.
 
 ## Modifiche v8
 
-- La Home mostra chiaramente la versione **V.34**.
+- La Home mostra chiaramente la versione **V.35**.
 - All'apertura e quando si torna alla Home viene visualizzato il mese corrente.
 - Nella sezione Aggiungi, la data viene reimpostata automaticamente al giorno corrente.
 - Nella sezione Soglie, il budget mensile totale è calcolato automaticamente come somma delle soglie delle categorie.
 
 
-## Modifiche V.34
+## Modifiche V.35
 
 - In Home è stato aggiunto un selettore mese.
 - La Home si apre sempre sul mese corrente, ma consente di scegliere tutti i mesi in cui è presente almeno una spesa.
@@ -94,12 +94,12 @@ La lista spese e l'esportazione CSV usano il mese selezionato in questa sezione.
 - Il grafico mostra istogrammi impilati per categoria/soglia e una linea del totale mensile.
 
 
-## Correzione V.34
+## Correzione V.35
 
-Corretto un problema di navigazione dal menu basso: in V.34 lo script poteva interrompersi perché cercava i pulsanti `prevMonthButton` e `nextMonthButton`, rimossi dalla Home. Ora i listener sono protetti e il menu basso cambia correttamente sezione.
+Corretto un problema di navigazione dal menu basso: in V.35 lo script poteva interrompersi perché cercava i pulsanti `prevMonthButton` e `nextMonthButton`, rimossi dalla Home. Ora i listener sono protetti e il menu basso cambia correttamente sezione.
 
 
-## Correzione V.34
+## Correzione V.35
 
 Corretto l'errore JavaScript che bloccava l'app:
 
@@ -108,7 +108,7 @@ Corretto l'errore JavaScript che bloccava l'app:
 L'assegnazione con optional chaining non è valida in JavaScript. Ora il codice verifica prima l'esistenza dell'elemento e poi aggiorna il testo. Questo permette allo script di caricarsi correttamente e al menu basso di funzionare.
 
 
-## Modifiche V.34
+## Modifiche V.35
 
 Nel report plurimensile sono state aggiunte due combo box:
 
@@ -118,7 +118,7 @@ Nel report plurimensile sono state aggiunte due combo box:
 Il valore predefinito è 0 per entrambe. Il pulsante "Torna al mese corrente" riporta il mese di riferimento al mese corrente e reimposta entrambe le combo a 0.
 
 
-## Modifiche V.34
+## Modifiche V.35
 
 Ottimizzato il grafico plurimensile:
 
@@ -127,7 +127,7 @@ Ottimizzato il grafico plurimensile:
 - mantenuta la linea del totale mensile centrata sulle barre.
 
 
-## Modifiche V.34
+## Modifiche V.35
 
 Aggiunto il metodo di pagamento **Voucher**.
 
@@ -145,7 +145,7 @@ Logica introdotta:
 Esempio: 50 € di gasolio con metodo Voucher risultano nella categoria Trasporti, ma non riducono il budget disponibile.
 
 
-## Modifiche V.34
+## Modifiche V.35
 
 Aggiunta la possibilità di modificare le spese già inserite dalla sezione **Spese**.
 
@@ -165,7 +165,7 @@ La modifica permette di aggiornare:
 Per le spese plurimensili, la modifica riguarda la singola quota visualizzata.
 
 
-## Modifiche V.34
+## Modifiche V.35
 
 Migliorata la gestione delle spese plurimensili.
 
@@ -182,9 +182,9 @@ In fase di modifica di una quota plurimensile è ora possibile:
 Nota: la data resta specifica della singola quota. Per ripianificare tutte le date conviene eliminare e reinserire la spesa plurimensile.
 
 
-## Correzione V.34
+## Correzione V.35
 
-Versione ricostruita sulla base stabile V.34.
+Versione ricostruita sulla base stabile V.35.
 
 Correzioni principali:
 
@@ -194,32 +194,32 @@ Correzioni principali:
 - mantenute spese plurimensili, importo complessivo e modifica quote collegate;
 - mantenuta logica Voucher;
 - corretta generazione ID con fallback sicuro;
-- aggiunta migrazione da V.34/V.34 senza usare la logica instabile della V.34.
+- aggiunta migrazione da V.35/V.35 senza usare la logica instabile della V.35.
 
 
-## Correzione V.34
+## Correzione V.35
 
-Corretta la regressione della V.34:
+Corretta la regressione della V.35:
 
 - dichiarata correttamente la costante `APP_VERSION`;
 - riallineata la chiave di salvataggio a `spese-pwa-locale-v20`;
-- mantenuta la base stabile V.34/V.34;
+- mantenuta la base stabile V.35/V.35;
 - mantenuta la migrazione dalle versioni precedenti.
 
 
-## Correzione V.34
+## Correzione V.35
 
 Corretta la funzione mancante `renderExpensesMonthSelect()`, che bloccava l'app all'avvio e impediva il caricamento di categorie, spese e funzioni di modifica.
 
 
-## Correzione V.34
+## Correzione V.35
 
 Rimossa completamente la dipendenza dalla funzione `renderExpensesMonthSelect()`.
 
 La logica del filtro mese nella sezione Spese è ora integrata direttamente in `renderExpensesList()`, così l'app non può più bloccarsi all'avvio per quella funzione mancante.
 
 
-## Modifiche V.34
+## Modifiche V.35
 
 Nella Home la sintesi del mese è stata resa più chiara:
 
@@ -228,7 +228,7 @@ Nella Home la sintesi del mese è stata resa più chiara:
 - **Di cui voucher**: totale delle spese pagate con voucher.
 
 
-## Modifiche V.34
+## Modifiche V.35
 
 Nella Home sono ora visualizzate esplicitamente tre righe distinte:
 
@@ -239,7 +239,7 @@ Nella Home sono ora visualizzate esplicitamente tre righe distinte:
 Il valore principale della card resta "Spese escluse i voucher", cioè il totale che incide sul budget.
 
 
-## Modifiche V.34
+## Modifiche V.35
 
 Nella Home, la sezione **Ultime spese** è ora esplicitamente solo consultiva:
 
@@ -249,7 +249,7 @@ Nella Home, la sezione **Ultime spese** è ora esplicitamente solo consultiva:
 La modifica e l'eliminazione restano disponibili nella sezione **Spese**.
 
 
-## Modifiche V.34
+## Modifiche V.35
 
 Aggiunta la gestione dei **rimborsi generici per categoria**.
 
@@ -264,7 +264,7 @@ Il rimborso generico:
 - viene considerato in Home, Report mensile, Report plurimensile ed export CSV.
 
 
-## Modifiche V.34
+## Modifiche V.35
 
 La gestione dei rimborsi generici è stata integrata direttamente in **Aggiungi spesa**.
 
@@ -285,7 +285,7 @@ Se il flag è spento:
 - è disponibile il campo **Rimborso totale** per rimborsi collegati alla singola spesa.
 
 
-## Modifiche V.34
+## Modifiche V.35
 
 Riorganizzata la gestione dei rimborsi.
 
@@ -302,7 +302,7 @@ Modifiche principali:
 La modifica/eliminazione delle spese resta disponibile solo nella sezione **Spese**, non nella Home.
 
 
-## Modifiche V.34
+## Modifiche V.35
 
 Corretto il pulsante **Rimborso** nella sezione **Spese**.
 
@@ -314,7 +314,7 @@ Ora, quando si clicca su **Rimborso** da una spesa esistente:
 - categoria e descrizione restano precompilate dalla spesa selezionata.
 
 
-## Modifiche V.34
+## Modifiche V.35
 
 Migliorata la sezione **Spese**.
 
@@ -327,7 +327,7 @@ Migliorata la sezione **Spese**.
 - Il filtro viene applicato anche ai rimborsi generici del mese e all'export CSV del mese selezionato.
 
 
-## Modifiche V.34
+## Modifiche V.35
 
 Migliorato il filtro **Categorie da visualizzare** nella sezione **Spese**.
 
@@ -336,15 +336,25 @@ Migliorato il filtro **Categorie da visualizzare** nella sezione **Spese**.
 - Nel riepilogo della sezione viene mostrato se sono visibili **Tutte**, **Nessuna** oppure quante categorie sono selezionate.
 
 
-## Correzione V.34
+## Correzione V.35
 
 Corretto il pulsante **Nessuna** nel filtro **Categorie da visualizzare**.
 
 Ora il flag viene tolto realmente da tutte le categorie e la lista viene aggiornata mostrando "Nessuna categoria selezionata".
 
 
-## Correzione V.34
+## Correzione V.35
 
 La sezione **Categorie da visualizzare** nella pagina **Spese** viene impostata di default su **Tutte** ogni volta che si apre la sezione Spese.
 
 In questo modo, anche se in precedenza era stato selezionato **Nessuna** o solo alcune categorie, entrando nella sezione Spese il filtro riparte da **Tutte**.
+
+
+## Modifiche V.35
+
+Migliorata l'usabilità delle icone nella sezione **Spese** su smartphone.
+
+- Icone più grandi.
+- Pulsanti più larghi e più alti.
+- Maggiore distanza tra le icone.
+- Su schermi piccoli le tre icone occupano tutta la larghezza disponibile, così sono più facili da selezionare.

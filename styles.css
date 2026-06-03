@@ -685,3 +685,54 @@ input[readonly] {
   gap: 8px;
   margin: 8px 0 10px;
 }
+
+/* V.35 - icone azione più comode su smartphone */
+.icon-actions {
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.icon-button {
+  width: 46px;
+  height: 46px;
+  min-width: 46px;
+  min-height: 46px;
+  font-size: 1.35rem;
+  border-radius: 16px;
+}
+
+.expense-row > div:last-child {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+@media (max-width: 520px) {
+  .expense-row {
+    grid-template-columns: 1fr;
+  }
+
+  .expense-row > div:last-child {
+    align-items: stretch;
+  }
+
+  .expense-row .amount {
+    text-align: right;
+    font-size: 1.05rem;
+  }
+
+  .icon-actions {
+    justify-content: space-between;
+    gap: 14px;
+    width: 100%;
+  }
+
+  .icon-button {
+    flex: 1;
+    width: auto;
+    height: 50px;
+    min-height: 50px;
+    font-size: 1.45rem;
+  }
+}
