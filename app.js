@@ -1,5 +1,5 @@
-const STORAGE_KEY = "spese-pwa-locale-v35";
-const APP_VERSION = "V.35";
+const STORAGE_KEY = "spese-pwa-locale-v36";
+const APP_VERSION = "V.36";
 
 const defaultCategories = [
   "Alimentari",
@@ -40,6 +40,7 @@ const initialState = {
 
 let deferredPrompt = null;
 let editingExpenseId = null;
+let editingReimbursementId = null;
 let reimbursementSourceExpenseId = null;
 
 function createId() {
@@ -54,7 +55,7 @@ function loadState() {
   const saved = localStorage.getItem(STORAGE_KEY);
 
   if (!saved) {
-    const oldSaved = localStorage.getItem("spese-pwa-locale-v34") || localStorage.getItem("spese-pwa-locale-v33") || localStorage.getItem("spese-pwa-locale-v32") || localStorage.getItem("spese-pwa-locale-v31") || localStorage.getItem("spese-pwa-locale-v30") || localStorage.getItem("spese-pwa-locale-v29") || localStorage.getItem("spese-pwa-locale-v28") || localStorage.getItem("spese-pwa-locale-v27") || localStorage.getItem("spese-pwa-locale-v26") || localStorage.getItem("spese-pwa-locale-v25") || localStorage.getItem("spese-pwa-locale-v24") || localStorage.getItem("spese-pwa-locale-v23") || localStorage.getItem("spese-pwa-locale-v22") || localStorage.getItem("spese-pwa-locale-v21") || localStorage.getItem("spese-pwa-locale-v20") || localStorage.getItem("spese-pwa-locale-v19") || localStorage.getItem("spese-pwa-locale-v18") || localStorage.getItem("spese-pwa-locale-v17") || localStorage.getItem("spese-pwa-locale-v16") || localStorage.getItem("spese-pwa-locale-v15") || localStorage.getItem("spese-pwa-locale-v14") || localStorage.getItem("spese-pwa-locale-v13") || localStorage.getItem("spese-pwa-locale-v12") || localStorage.getItem("spese-pwa-locale-v11") || localStorage.getItem("spese-pwa-locale-v10") || localStorage.getItem("spese-pwa-locale-v9") || localStorage.getItem("spese-pwa-locale-v8") || localStorage.getItem("spese-pwa-locale-v7") || localStorage.getItem("spese-pwa-locale-v6") || localStorage.getItem("spese-pwa-locale-v5") || localStorage.getItem("spese-pwa-locale-v4") || localStorage.getItem("spese-pwa-locale-v3") || localStorage.getItem("spese-pwa-locale-v2") || localStorage.getItem("spese-pwa-locale-v1");
+    const oldSaved = localStorage.getItem("spese-pwa-locale-v35") || localStorage.getItem("spese-pwa-locale-v34") || localStorage.getItem("spese-pwa-locale-v33") || localStorage.getItem("spese-pwa-locale-v32") || localStorage.getItem("spese-pwa-locale-v31") || localStorage.getItem("spese-pwa-locale-v30") || localStorage.getItem("spese-pwa-locale-v29") || localStorage.getItem("spese-pwa-locale-v28") || localStorage.getItem("spese-pwa-locale-v27") || localStorage.getItem("spese-pwa-locale-v26") || localStorage.getItem("spese-pwa-locale-v25") || localStorage.getItem("spese-pwa-locale-v24") || localStorage.getItem("spese-pwa-locale-v23") || localStorage.getItem("spese-pwa-locale-v22") || localStorage.getItem("spese-pwa-locale-v21") || localStorage.getItem("spese-pwa-locale-v20") || localStorage.getItem("spese-pwa-locale-v19") || localStorage.getItem("spese-pwa-locale-v18") || localStorage.getItem("spese-pwa-locale-v17") || localStorage.getItem("spese-pwa-locale-v16") || localStorage.getItem("spese-pwa-locale-v15") || localStorage.getItem("spese-pwa-locale-v14") || localStorage.getItem("spese-pwa-locale-v13") || localStorage.getItem("spese-pwa-locale-v12") || localStorage.getItem("spese-pwa-locale-v11") || localStorage.getItem("spese-pwa-locale-v10") || localStorage.getItem("spese-pwa-locale-v9") || localStorage.getItem("spese-pwa-locale-v8") || localStorage.getItem("spese-pwa-locale-v7") || localStorage.getItem("spese-pwa-locale-v6") || localStorage.getItem("spese-pwa-locale-v5") || localStorage.getItem("spese-pwa-locale-v4") || localStorage.getItem("spese-pwa-locale-v3") || localStorage.getItem("spese-pwa-locale-v2") || localStorage.getItem("spese-pwa-locale-v1");
     if (oldSaved) {
       try {
         const oldState = JSON.parse(oldSaved);
@@ -754,13 +755,120 @@ function renderGenericReimbursementsList() {
       </div>
       <div>
         <div class="amount">${formatCurrency(reimbursement.amount)}</div>
-        <div class="expense-actions">
-          <button class="secondary small" onclick="deleteGenericReimbursement('${reimbursement.id}')">Elimina</button>
+        <div class="expense-actions icon-actions">
+          <button class="icon-button" onclick="startEditGenericReimbursement('${reimbursement.id}')" title="Modifica rimborso" aria-label="Modifica rimborso">✏️</button>
+          <button class="icon-button danger" onclick="deleteGenericReimbursement('${reimbursement.id}')" title="Elimina rimborso" aria-label="Elimina rimborso">🗑️</button>
         </div>
       </div>
     </div>
+    ${editingReimbursementId === reimbursement.id ? renderEditGenericReimbursementForm(reimbursement) : ""}
   `).join("");
 }
+
+function renderEditGenericReimbursementForm(reimbursement) {
+  const categoryOptions = state.categories
+    .map(category => `
+      <option value="${escapeHtml(category)}" ${category === reimbursement.category ? "selected" : ""}>
+        ${escapeHtml(category)}
+      </option>
+    `)
+    .join("");
+
+  return `
+    <form class="edit-expense-form" onsubmit="saveEditedGenericReimbursement(event, '${reimbursement.id}')">
+      <h3>Modifica rimborso</h3>
+
+      <label>
+        Importo rimborso
+        <input id="editReimbursementAmount-${reimbursement.id}" type="number" step="0.01" min="0" value="${Number(reimbursement.amount || 0)}" required />
+      </label>
+
+      <label>
+        Categoria
+        <select id="editReimbursementCategory-${reimbursement.id}" required>
+          ${categoryOptions}
+        </select>
+      </label>
+
+      <label>
+        Data
+        <input id="editReimbursementDate-${reimbursement.id}" type="date" value="${escapeHtml(reimbursement.date)}" required />
+      </label>
+
+      <label>
+        Descrizione
+        <input id="editReimbursementDescription-${reimbursement.id}" type="text" value="${escapeAttributeForHtml(reimbursement.description || "")}" />
+      </label>
+
+      <div class="edit-actions">
+        <button type="submit">Salva</button>
+        <button type="button" class="secondary" onclick="cancelEditGenericReimbursement()">Annulla</button>
+      </div>
+    </form>
+  `;
+}
+
+function startEditGenericReimbursement(id) {
+  editingReimbursementId = id;
+  editingExpenseId = null;
+  renderExpensesList();
+}
+
+function cancelEditGenericReimbursement() {
+  editingReimbursementId = null;
+  renderExpensesList();
+}
+
+function saveEditedGenericReimbursement(event, id) {
+  event.preventDefault();
+
+  const index = state.reimbursements.findIndex(reimbursement => reimbursement.id === id);
+  if (index === -1) {
+    alert("Rimborso non trovato.");
+    editingReimbursementId = null;
+    renderExpensesList();
+    return;
+  }
+
+  const amount = Number(document.getElementById(`editReimbursementAmount-${id}`).value || 0);
+  const category = document.getElementById(`editReimbursementCategory-${id}`).value;
+  const date = document.getElementById(`editReimbursementDate-${id}`).value;
+  const description = document.getElementById(`editReimbursementDescription-${id}`).value.trim();
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    alert("Inserisci un importo rimborso maggiore di zero.");
+    return;
+  }
+
+  if (!date) {
+    alert("Inserisci una data valida.");
+    return;
+  }
+
+  state.reimbursements[index] = {
+    ...state.reimbursements[index],
+    amount: roundToTwoDecimals(amount),
+    category,
+    date,
+    month: getMonthFromDate(date),
+    description
+  };
+
+  editingReimbursementId = null;
+  saveState();
+  renderAll();
+}
+
+function deleteGenericReimbursement(id) {
+  const confirmed = confirm("Vuoi eliminare questo rimborso?");
+  if (!confirmed) return;
+
+  state.reimbursements = state.reimbursements.filter(reimbursement => reimbursement.id !== id);
+  editingReimbursementId = null;
+  saveState();
+  renderAll();
+}
+
 
 function renderReportMonthSelect() {
   const select = document.getElementById("reportMonthSelect");
@@ -1493,6 +1601,7 @@ function renderEditExpenseForm(expense) {
 
 function startEditExpense(id) {
   editingExpenseId = id;
+  editingReimbursementId = null;
   renderExpensesList();
 }
 

@@ -736,3 +736,7 @@ input[readonly] {
     font-size: 1.45rem;
   }
 }
+
+.reimbursement-row + .edit-expense-form {
+  margin-top: 8px;
+}
