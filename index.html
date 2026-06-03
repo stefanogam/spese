@@ -13,7 +13,7 @@
     <header class="app-header">
       <div>
         <h1>Spese Mensili</h1>
-        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.25</span></p>
+        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.30</span></p>
       </div>
       <button id="installButton" class="secondary hidden">Installa</button>
     </header>
@@ -29,7 +29,7 @@
 
         <div class="card compact version-card">
           <span>Versione app</span>
-          <strong>V.25</strong>
+          <strong>V.30</strong>
         </div>
 
         <div class="card hero">
@@ -56,6 +56,10 @@
             <span>Di cui voucher</span>
             <strong id="monthlyVoucherTotal">0,00 €</strong>
           </div>
+          <div class="budget-detail">
+            <span>Di cui rimborsi generici</span>
+            <strong id="monthlyGenericReimbursementTotal">0,00 €</strong>
+          </div>
         </div>
 
         <div class="card">
@@ -73,9 +77,15 @@
         <div class="card">
           <h2>Aggiungi spesa</h2>
           <form id="expenseForm">
+            <label class="checkbox-row">
+              <input id="isGenericReimbursement" type="checkbox" />
+              <span>Questo inserimento è un rimborso generico</span>
+            </label>
+
             <label>
               Importo totale
               <input id="amount" type="number" step="0.01" min="0" placeholder="Es. 250.00" required />
+              <span id="amountHint" class="hint">Importo della spesa.</span>
             </label>
 
             <label>
@@ -84,46 +94,49 @@
             </label>
 
             <label>
-              Data prima quota
+              Data
               <input id="date" type="date" required />
             </label>
 
-            <label>
-              Metodo pagamento
-              <select id="paymentMethod">
-                <option>Contanti</option>
-                <option>Carta</option>
-                <option>Bancomat</option>
-                <option>Bonifico</option>
-                <option>Voucher</option>
-                <option>Altro</option>
-              </select>
-            </label>
+            <div id="expenseOnlyFields">
+              <label>
+                Metodo pagamento
+                <select id="paymentMethod">
+                  <option>Contanti</option>
+                  <option>Carta</option>
+                  <option>Bancomat</option>
+                  <option>Bonifico</option>
+                  <option>Voucher</option>
+                  <option>Altro</option>
+                </select>
+              </label>
+
+              <label class="checkbox-row">
+                <input id="isMultiMonth" type="checkbox" />
+                <span>Spesa plurimensile</span>
+              </label>
+
+              <div id="multiMonthOptions" class="nested-box hidden">
+                <label>
+                  Numero di mesi
+                  <input id="numberOfMonths" type="number" min="2" step="1" value="2" />
+                </label>
+                <p class="hint">
+                  L'importo verrà suddiviso in quote mensili. Esempio: 300 € per 3 mesi genera 100 € al mese.
+                </p>
+              </div>
+            </div>
 
             <label>
               Descrizione
-              <input id="description" type="text" placeholder="Es. Assicurazione auto" />
+              <input id="description" type="text" placeholder="Es. Assicurazione auto / rimborso carburante" />
             </label>
 
-            <label class="checkbox-row">
-              <input id="isMultiMonth" type="checkbox" />
-              <span>Spesa plurimensile</span>
-            </label>
-
-            <div id="multiMonthOptions" class="nested-box hidden">
-              <label>
-                Numero di mesi
-                <input id="numberOfMonths" type="number" min="2" step="1" value="2" />
-              </label>
-              <p class="hint">
-                L'importo verrà suddiviso in quote mensili. Esempio: 300 € per 3 mesi genera 100 € al mese.
-              </p>
-            </div>
-
-            <button type="submit">Salva spesa</button>
+            <button id="saveExpenseButton" type="submit">Salva spesa</button>
           </form>
         </div>
-      </section>
+
+              </section>
 
       <section id="expensesView" class="view">
         <div class="card">
@@ -138,6 +151,11 @@
           </label>
 
           <div id="expensesList"></div>
+        </div>
+
+        <div class="card">
+          <h2>Rimborsi generici del mese</h2>
+          <div id="genericReimbursementsList"></div>
         </div>
       </section>
 

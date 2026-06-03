@@ -1,5 +1,5 @@
-const STORAGE_KEY = "spese-pwa-locale-v25";
-const APP_VERSION = "V.25";
+const STORAGE_KEY = "spese-pwa-locale-v30";
+const APP_VERSION = "V.30";
 
 const defaultCategories = [
   "Alimentari",
@@ -21,6 +21,7 @@ const initialState = {
   selectedMultiReportMonthsAfter: 0,
   categories: [...defaultCategories],
   expenses: [],
+  reimbursements: [],
   thresholds: {
     totalLimit: 1400,
     categoryLimits: {
@@ -38,6 +39,7 @@ const initialState = {
 
 let deferredPrompt = null;
 let editingExpenseId = null;
+let reimbursementSourceExpenseId = null;
 
 function createId() {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -51,7 +53,7 @@ function loadState() {
   const saved = localStorage.getItem(STORAGE_KEY);
 
   if (!saved) {
-    const oldSaved = localStorage.getItem("spese-pwa-locale-v24") || localStorage.getItem("spese-pwa-locale-v23") || localStorage.getItem("spese-pwa-locale-v22") || localStorage.getItem("spese-pwa-locale-v21") || localStorage.getItem("spese-pwa-locale-v20") || localStorage.getItem("spese-pwa-locale-v19") || localStorage.getItem("spese-pwa-locale-v18") || localStorage.getItem("spese-pwa-locale-v17") || localStorage.getItem("spese-pwa-locale-v16") || localStorage.getItem("spese-pwa-locale-v15") || localStorage.getItem("spese-pwa-locale-v14") || localStorage.getItem("spese-pwa-locale-v13") || localStorage.getItem("spese-pwa-locale-v12") || localStorage.getItem("spese-pwa-locale-v11") || localStorage.getItem("spese-pwa-locale-v10") || localStorage.getItem("spese-pwa-locale-v9") || localStorage.getItem("spese-pwa-locale-v8") || localStorage.getItem("spese-pwa-locale-v7") || localStorage.getItem("spese-pwa-locale-v6") || localStorage.getItem("spese-pwa-locale-v5") || localStorage.getItem("spese-pwa-locale-v4") || localStorage.getItem("spese-pwa-locale-v3") || localStorage.getItem("spese-pwa-locale-v2") || localStorage.getItem("spese-pwa-locale-v1");
+    const oldSaved = localStorage.getItem("spese-pwa-locale-v29") || localStorage.getItem("spese-pwa-locale-v28") || localStorage.getItem("spese-pwa-locale-v27") || localStorage.getItem("spese-pwa-locale-v26") || localStorage.getItem("spese-pwa-locale-v25") || localStorage.getItem("spese-pwa-locale-v24") || localStorage.getItem("spese-pwa-locale-v23") || localStorage.getItem("spese-pwa-locale-v22") || localStorage.getItem("spese-pwa-locale-v21") || localStorage.getItem("spese-pwa-locale-v20") || localStorage.getItem("spese-pwa-locale-v19") || localStorage.getItem("spese-pwa-locale-v18") || localStorage.getItem("spese-pwa-locale-v17") || localStorage.getItem("spese-pwa-locale-v16") || localStorage.getItem("spese-pwa-locale-v15") || localStorage.getItem("spese-pwa-locale-v14") || localStorage.getItem("spese-pwa-locale-v13") || localStorage.getItem("spese-pwa-locale-v12") || localStorage.getItem("spese-pwa-locale-v11") || localStorage.getItem("spese-pwa-locale-v10") || localStorage.getItem("spese-pwa-locale-v9") || localStorage.getItem("spese-pwa-locale-v8") || localStorage.getItem("spese-pwa-locale-v7") || localStorage.getItem("spese-pwa-locale-v6") || localStorage.getItem("spese-pwa-locale-v5") || localStorage.getItem("spese-pwa-locale-v4") || localStorage.getItem("spese-pwa-locale-v3") || localStorage.getItem("spese-pwa-locale-v2") || localStorage.getItem("spese-pwa-locale-v1");
     if (oldSaved) {
       try {
         const oldState = JSON.parse(oldSaved);
@@ -81,6 +83,7 @@ function migrateState(rawState) {
     selectedMultiReportMonthsAfter: Number(rawState.selectedMultiReportMonthsAfter || 0),
     categories: rawState.categories || [...defaultCategories],
     expenses: Array.isArray(rawState.expenses) ? rawState.expenses : [],
+    reimbursements: Array.isArray(rawState.reimbursements) ? rawState.reimbursements : [],
     thresholds: rawState.thresholds || structuredClone(initialState.thresholds)
   };
 
@@ -99,6 +102,15 @@ function migrateState(rawState) {
     month: expense.month || getMonthFromDate(expense.date),
     type: expense.type || "single"
   }));
+
+  migrated.reimbursements = migrated.reimbursements.map(reimbursement => ({
+    id: reimbursement.id || createId(),
+    amount: roundToTwoDecimals(Number(reimbursement.amount || 0)),
+    category: reimbursement.category || "Altro",
+    date: reimbursement.date || getTodayDateString(),
+    month: reimbursement.month || getMonthFromDate(reimbursement.date || getTodayDateString()),
+    description: reimbursement.description || ""
+  })).filter(reimbursement => reimbursement.amount > 0);
 
   migrated.thresholds.totalLimit = migrated.categories.reduce((sum, category) => {
     return sum + Number(migrated.thresholds.categoryLimits[category] || 0);
@@ -261,6 +273,40 @@ function getVoucherTotalsByCategory(expenses) {
   return getTotalsByCategory(getVoucherExpenses(expenses));
 }
 
+function getGenericReimbursementsForMonth(month) {
+  return state.reimbursements.filter(reimbursement => reimbursement.month === month);
+}
+
+function getGenericReimbursementTotal(reimbursements) {
+  return roundToTwoDecimals(reimbursements.reduce((sum, reimbursement) => sum + Number(reimbursement.amount || 0), 0));
+}
+
+function getGenericReimbursementTotalsByCategory(reimbursements) {
+  return reimbursements.reduce((totals, reimbursement) => {
+    totals[reimbursement.category] = (totals[reimbursement.category] || 0) + Number(reimbursement.amount || 0);
+    return totals;
+  }, {});
+}
+
+function getAllReimbursementTotal(expenses, genericReimbursements = []) {
+  return roundToTwoDecimals(getReimbursementTotal(expenses) + getGenericReimbursementTotal(genericReimbursements));
+}
+
+function getNetBudgetTotal(expenses, genericReimbursements = []) {
+  return roundToTwoDecimals(Math.max(0, getBudgetRelevantTotal(expenses) - getGenericReimbursementTotal(genericReimbursements)));
+}
+
+function getNetBudgetTotalsByCategory(expenses, genericReimbursements = []) {
+  const totals = getBudgetRelevantTotalsByCategory(expenses);
+  const genericTotals = getGenericReimbursementTotalsByCategory(genericReimbursements);
+
+  state.categories.forEach(category => {
+    totals[category] = roundToTwoDecimals(Math.max(0, Number(totals[category] || 0) - Number(genericTotals[category] || 0)));
+  });
+
+  return totals;
+}
+
 function getLinkedExpenses(expense) {
   if (!expense || expense.type !== "multi" || !expense.groupId) {
     return expense ? [expense] : [];
@@ -332,13 +378,25 @@ function getTodayDateString() {
 
 function setDefaultDate() {
   document.getElementById("date").value = getTodayDateString();
+
+  const genericReimbursementDate = document.getElementById("genericReimbursementDate");
+  if (genericReimbursementDate) {
+    genericReimbursementDate.value = getTodayDateString();
+  }
 }
 
 function renderCategoryOptions() {
-  const categorySelect = document.getElementById("category");
-  categorySelect.innerHTML = state.categories
+  const options = state.categories
     .map(category => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`)
     .join("");
+
+  const categorySelect = document.getElementById("category");
+  categorySelect.innerHTML = options;
+
+  const genericReimbursementCategory = document.getElementById("genericReimbursementCategory");
+  if (genericReimbursementCategory) {
+    genericReimbursementCategory.innerHTML = options;
+  }
 }
 
 function renderHomeMonthSelect() {
@@ -366,9 +424,11 @@ function renderDashboard() {
 
   const month = state.selectedMonth;
   const expenses = getMonthlyExpenses(month);
+  const genericReimbursements = getGenericReimbursementsForMonth(month);
   const grossTotal = getTotal(expenses);
   const voucherTotal = getVoucherTotal(expenses);
-  const total = getBudgetRelevantTotal(expenses);
+  const genericReimbursementTotal = getGenericReimbursementTotal(genericReimbursements);
+  const total = getNetBudgetTotal(expenses, genericReimbursements);
   const limit = Number(state.thresholds.totalLimit || 0);
   const status = getThresholdStatus(total, limit);
 
@@ -382,6 +442,7 @@ function renderDashboard() {
   document.getElementById("monthlyGrossTotal").textContent = formatCurrency(grossTotal);
   document.getElementById("monthlyNetTotalDetail").textContent = formatCurrency(total);
   document.getElementById("monthlyVoucherTotal").textContent = formatCurrency(voucherTotal);
+  document.getElementById("monthlyGenericReimbursementTotal").textContent = formatCurrency(genericReimbursementTotal);
 
   const progress = limit > 0 ? Math.min((total / limit) * 100, 100) : 0;
   document.getElementById("monthlyProgressBar").style.width = `${progress}%`;
@@ -390,22 +451,24 @@ function renderDashboard() {
       ? `${Math.round(status.percentage)}% del budget utilizzato — ${status.label}`
       : "Imposta le soglie nella sezione Soglie";
 
-  renderCriticalCategories(expenses);
+  renderCriticalCategories(expenses, genericReimbursements);
   renderLatestExpenses(expenses);
 }
 
-function renderCriticalCategories(expenses) {
+function renderCriticalCategories(expenses, genericReimbursements = []) {
   const container = document.getElementById("criticalCategories");
-  const totalsByCategory = getBudgetRelevantTotalsByCategory(expenses);
+  const totalsByCategory = getNetBudgetTotalsByCategory(expenses, genericReimbursements);
   const voucherTotalsByCategory = getVoucherTotalsByCategory(expenses);
+  const genericReimbursementTotalsByCategory = getGenericReimbursementTotalsByCategory(genericReimbursements);
 
   const critical = state.categories
     .map(category => {
       const spent = totalsByCategory[category] || 0;
       const voucherSpent = voucherTotalsByCategory[category] || 0;
+      const genericReimbursementSpent = genericReimbursementTotalsByCategory[category] || 0;
       const limit = Number(state.thresholds.categoryLimits[category] || 0);
       const status = getThresholdStatus(spent, limit);
-      return { category, spent, voucherSpent, limit, status };
+      return { category, spent, voucherSpent, genericReimbursementSpent, limit, status };
     })
     .filter(item => item.status.percentage >= 70)
     .sort((a, b) => b.status.percentage - a.status.percentage);
@@ -422,6 +485,7 @@ function renderCriticalCategories(expenses) {
           <strong>${escapeHtml(item.category)}</strong><br>
           <span>Budget: ${formatCurrency(item.spent)} su ${formatCurrency(item.limit)}</span>
           ${item.voucherSpent > 0 ? `<br><span class="voucher-note">Voucher esclusi: ${formatCurrency(item.voucherSpent)}</span>` : ""}
+          ${item.genericReimbursementSpent > 0 ? `<br><span class="reimbursement-note">Rimborsi generici detratti: ${formatCurrency(item.genericReimbursementSpent)}</span>` : ""}
         </div>
         <span class="badge ${item.status.className}">${item.status.label}</span>
       </div>
@@ -459,6 +523,7 @@ function renderExpenseRow(expense, showDelete = false) {
   const actions = showDelete
     ? `
       <div class="expense-actions">
+        <button class="secondary small" onclick="startReimbursementFromExpense('${expense.id}')">Rimborso</button>
         <button class="secondary small" onclick="startEditExpense('${expense.id}')">Modifica</button>
         <button class="secondary small" onclick="deleteExpense('${expense.id}')">Elimina</button>
       </div>
@@ -518,6 +583,7 @@ function renderExpensesList() {
   if (!selectedExpensesMonth) {
     container.innerHTML = `<p class="empty">Non ci sono ancora spese registrate.</p>`;
     if (selectedTotal) selectedTotal.textContent = formatCurrency(0);
+    renderGenericReimbursementsList();
     return;
   }
 
@@ -530,12 +596,45 @@ function renderExpensesList() {
 
   if (expenses.length === 0) {
     container.innerHTML = `<p class="empty">Nessuna spesa per ${getMonthLabel(selectedExpensesMonth)}.</p>`;
+    renderGenericReimbursementsList();
     return;
   }
 
   container.innerHTML = expenses.map(expense => renderExpenseRow(expense, true)).join("");
+  renderGenericReimbursementsList();
 }
 
+
+function renderGenericReimbursementsList() {
+  const container = document.getElementById("genericReimbursementsList");
+  if (!container) return;
+
+  const selectedExpensesMonth = state.selectedExpensesMonth;
+  const reimbursements = selectedExpensesMonth
+    ? getGenericReimbursementsForMonth(selectedExpensesMonth).sort((a, b) => new Date(b.date) - new Date(a.date))
+    : [];
+
+  if (reimbursements.length === 0) {
+    container.innerHTML = `<p class="empty">Nessun rimborso generico per il mese selezionato.</p>`;
+    return;
+  }
+
+  container.innerHTML = reimbursements.map(reimbursement => `
+    <div class="reimbursement-row">
+      <div>
+        <strong>${escapeHtml(reimbursement.category)}</strong><br>
+        <span>${reimbursement.date}</span><br>
+        <span>${escapeHtml(reimbursement.description || "Rimborso generico")}</span>
+      </div>
+      <div>
+        <div class="amount">${formatCurrency(reimbursement.amount)}</div>
+        <div class="expense-actions">
+          <button class="secondary small" onclick="deleteGenericReimbursement('${reimbursement.id}')">Elimina</button>
+        </div>
+      </div>
+    </div>
+  `).join("");
+}
 
 function renderReportMonthSelect() {
   const select = document.getElementById("reportMonthSelect");
@@ -574,12 +673,15 @@ function renderReport() {
   }
 
   const expenses = getMonthlyExpenses(selectedReportMonth);
-  const totalsByCategory = getBudgetRelevantTotalsByCategory(expenses);
+  const genericReimbursements = getGenericReimbursementsForMonth(selectedReportMonth);
+  const totalsByCategory = getNetBudgetTotalsByCategory(expenses, genericReimbursements);
   const grossTotalsByCategory = getTotalsByCategory(expenses);
   const voucherTotalsByCategory = getVoucherTotalsByCategory(expenses);
-  const total = getBudgetRelevantTotal(expenses);
+  const genericReimbursementTotalsByCategory = getGenericReimbursementTotalsByCategory(genericReimbursements);
+  const total = getNetBudgetTotal(expenses, genericReimbursements);
   const grossTotal = getTotal(expenses);
   const voucherTotal = getVoucherTotal(expenses);
+  const genericReimbursementTotal = getGenericReimbursementTotal(genericReimbursements);
 
   if (expenses.length === 0) {
     container.innerHTML = `<p class="empty">Nessuna spesa presente per il mese selezionato.</p>`;
@@ -593,8 +695,8 @@ function renderReport() {
       <strong>${formatCurrency(total)}</strong>
     </div>
     <div class="report-summary">
-      <span>Totale registrato / Voucher</span>
-      <strong>${formatCurrency(grossTotal)} / ${formatCurrency(voucherTotal)}</strong>
+      <span>Totale registrato / Voucher / Rimborsi generici</span>
+      <strong>${formatCurrency(grossTotal)} / ${formatCurrency(voucherTotal)} / ${formatCurrency(genericReimbursementTotal)}</strong>
     </div>
   `;
 
@@ -604,6 +706,7 @@ function renderReport() {
       const spent = totalsByCategory[category] || 0;
       const grossSpent = grossTotalsByCategory[category] || 0;
       const voucherSpent = voucherTotalsByCategory[category] || 0;
+      const genericReimbursementSpent = genericReimbursementTotalsByCategory[category] || 0;
       const limit = Number(state.thresholds.categoryLimits[category] || 0);
       const status = getThresholdStatus(spent, limit);
       const width = limit > 0 ? Math.min((spent / limit) * 100, 100) : 0;
@@ -619,6 +722,7 @@ function renderReport() {
             <br>
             <span>Totale registrato: ${formatCurrency(grossSpent)}</span>
             ${voucherSpent > 0 ? `<br><span class="voucher-note">Voucher esclusi dal budget: ${formatCurrency(voucherSpent)}</span>` : ""}
+            ${genericReimbursementSpent > 0 ? `<br><span class="reimbursement-note">Rimborsi generici detratti: ${formatCurrency(genericReimbursementSpent)}</span>` : ""}
             <div class="report-bar">
               <div style="width: ${width}%"></div>
             </div>
@@ -649,13 +753,16 @@ function getMultiReportData() {
 
   return months.map(month => {
     const expenses = getMonthlyExpenses(month);
-    const totalsByCategory = getBudgetRelevantTotalsByCategory(expenses);
+    const genericReimbursements = getGenericReimbursementsForMonth(month);
+    const totalsByCategory = getNetBudgetTotalsByCategory(expenses, genericReimbursements);
     const grossTotalsByCategory = getTotalsByCategory(expenses);
     const voucherTotalsByCategory = getVoucherTotalsByCategory(expenses);
-    const total = getBudgetRelevantTotal(expenses);
+    const genericReimbursementTotalsByCategory = getGenericReimbursementTotalsByCategory(genericReimbursements);
+    const total = getNetBudgetTotal(expenses, genericReimbursements);
     const grossTotal = getTotal(expenses);
     const voucherTotal = getVoucherTotal(expenses);
-    return { month, total, grossTotal, voucherTotal, totalsByCategory, grossTotalsByCategory, voucherTotalsByCategory };
+    const genericReimbursementTotal = getGenericReimbursementTotal(genericReimbursements);
+    return { month, total, grossTotal, voucherTotal, genericReimbursementTotal, totalsByCategory, grossTotalsByCategory, voucherTotalsByCategory, genericReimbursementTotalsByCategory };
   });
 }
 
@@ -844,6 +951,7 @@ function renderMultiReportTable(data) {
         <td><strong>${formatCurrency(item.total)}</strong></td>
         <td>${formatCurrency(item.grossTotal || 0)}</td>
         <td>${formatCurrency(item.voucherTotal || 0)}</td>
+        <td>${formatCurrency(item.genericReimbursementTotal || 0)}</td>
       </tr>
     `;
   }).join("");
@@ -858,6 +966,7 @@ function renderMultiReportTable(data) {
             <th>Totale budget</th>
             <th>Totale registrato</th>
             <th>Voucher</th>
+            <th>Rimborsi generici</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
@@ -964,16 +1073,105 @@ function renderAll() {
   renderCategoriesList();
 }
 
+function updateGenericReimbursementMode() {
+  const isGeneric = document.getElementById("isGenericReimbursement")?.checked || false;
+  const expenseOnlyFields = document.getElementById("expenseOnlyFields");
+  const amountHint = document.getElementById("amountHint");
+  const saveButton = document.getElementById("saveExpenseButton");
+  const isMultiMonth = document.getElementById("isMultiMonth");
+  const multiMonthOptions = document.getElementById("multiMonthOptions");
+  const category = document.getElementById("category");
+  const description = document.getElementById("description");
+  const isSourceReimbursement = Boolean(reimbursementSourceExpenseId);
+
+  if (expenseOnlyFields) {
+    expenseOnlyFields.classList.toggle("hidden", isGeneric);
+  }
+
+  if (amountHint) {
+    amountHint.textContent = isGeneric
+      ? "Importo del rimborso da detrarre dalla categoria scelta."
+      : "Importo della spesa.";
+  }
+
+  if (saveButton) {
+    saveButton.textContent = isGeneric ? "Salva rimborso" : "Salva spesa";
+  }
+
+  if (isGeneric) {
+    if (isMultiMonth) isMultiMonth.checked = false;
+    if (multiMonthOptions) multiMonthOptions.classList.add("hidden");
+  }
+
+  if (category) {
+    category.disabled = isSourceReimbursement;
+  }
+
+  if (description) {
+    description.readOnly = isSourceReimbursement;
+  }
+
+  const genericCheckbox = document.getElementById("isGenericReimbursement");
+  if (genericCheckbox) {
+    genericCheckbox.disabled = isSourceReimbursement;
+  }
+}
+
+function resetReimbursementSourceMode() {
+  reimbursementSourceExpenseId = null;
+
+  const category = document.getElementById("category");
+  const description = document.getElementById("description");
+  const genericCheckbox = document.getElementById("isGenericReimbursement");
+
+  if (category) category.disabled = false;
+  if (description) description.readOnly = false;
+  if (genericCheckbox) genericCheckbox.disabled = false;
+}
+
+
 function addExpense(event) {
   event.preventDefault();
 
   const totalAmount = Number(document.getElementById("amount").value);
+  const isGenericReimbursement = document.getElementById("isGenericReimbursement")?.checked || false;
   const date = document.getElementById("date").value;
-  const isMultiMonth = document.getElementById("isMultiMonth").checked;
+  const isMultiMonth = !isGenericReimbursement && document.getElementById("isMultiMonth").checked;
   const numberOfMonths = Number(document.getElementById("numberOfMonths").value || 1);
   const category = document.getElementById("category").value;
   const paymentMethod = document.getElementById("paymentMethod").value;
   const description = document.getElementById("description").value.trim();
+
+  if (!Number.isFinite(totalAmount) || totalAmount <= 0) {
+    alert(isGenericReimbursement ? "Inserisci un importo rimborso maggiore di zero." : "Inserisci un importo spesa maggiore di zero.");
+    return;
+  }
+
+  if (!date) {
+    alert("Inserisci una data valida.");
+    return;
+  }
+
+  if (isGenericReimbursement) {
+    state.reimbursements.push({
+      id: createId(),
+      amount: roundToTwoDecimals(totalAmount),
+      category,
+      date,
+      month: getMonthFromDate(date),
+      description: description || "Rimborso generico",
+      sourceExpenseId: reimbursementSourceExpenseId || null
+    });
+
+    saveState();
+    event.target.reset();
+    resetReimbursementSourceMode();
+    setDefaultDate();
+    updateGenericReimbursementMode();
+    showView("dashboardView");
+    renderAll();
+    return;
+  }
 
   if (!isMultiMonth) {
     state.expenses.push({
@@ -1022,12 +1220,49 @@ function addExpense(event) {
   saveState();
 
   event.target.reset();
+  resetReimbursementSourceMode();
   setDefaultDate();
+  updateGenericReimbursementMode();
   document.getElementById("multiMonthOptions").classList.add("hidden");
   showView("dashboardView");
   renderAll();
 }
 
+
+function startReimbursementFromExpense(id) {
+  const expense = state.expenses.find(item => item.id === id);
+  if (!expense) {
+    alert("Spesa non trovata.");
+    return;
+  }
+
+  reimbursementSourceExpenseId = id;
+
+  showView("addView");
+  setDefaultDate();
+
+  const genericCheckbox = document.getElementById("isGenericReimbursement");
+  const amount = document.getElementById("amount");
+  const category = document.getElementById("category");
+  const date = document.getElementById("date");
+  const description = document.getElementById("description");
+
+  if (genericCheckbox) genericCheckbox.checked = true;
+  if (amount) amount.value = Number(expense.amount || 0).toFixed(2);
+  if (category) category.value = expense.category;
+  if (date) date.value = getTodayDateString();
+  if (description) {
+    description.value = expense.description
+      ? `Rimborso: ${expense.description}`
+      : `Rimborso ${expense.category}`;
+  }
+
+  updateGenericReimbursementMode();
+
+  if (amount) {
+    amount.focus();
+  }
+}
 
 function renderEditExpenseForm(expense) {
   const categoryOptions = state.categories
@@ -1415,6 +1650,20 @@ function exportCsv() {
     expense.type === "multi" ? `${expense.installmentNumber}/${expense.installmentTotal}` : ""
   ]);
 
+  const genericReimbursementRows = getGenericReimbursementsForMonth(selectedExpensesMonth).map(reimbursement => [
+    reimbursement.date,
+    reimbursement.month,
+    reimbursement.category,
+    "Rimborso generico",
+    reimbursement.description,
+    -Math.abs(Number(reimbursement.amount || 0)),
+    "Riduce budget",
+    "Rimborso generico",
+    ""
+  ]);
+
+  rows.push(...genericReimbursementRows);
+
   const csv = [header, ...rows]
     .map(row => row.map(value => `"${String(value ?? "").replaceAll('"', '""')}"`).join(";"))
     .join("\n");
@@ -1562,6 +1811,8 @@ document.querySelectorAll(".bottom-nav button").forEach(button => {
 });
 
 document.getElementById("expenseForm").addEventListener("submit", addExpense);
+
+
 document.getElementById("thresholdForm").addEventListener("submit", saveThresholds);
 document.getElementById("categoryForm").addEventListener("submit", addCategory);
 document.getElementById("exportCsvButton").addEventListener("click", exportCsv);
@@ -1635,6 +1886,17 @@ if (nextMonthButton) {
 document.getElementById("isMultiMonth").addEventListener("change", event => {
   document.getElementById("multiMonthOptions").classList.toggle("hidden", !event.target.checked);
 });
+
+const isGenericReimbursement = document.getElementById("isGenericReimbursement");
+if (isGenericReimbursement) {
+  isGenericReimbursement.addEventListener("change", event => {
+    if (!event.target.checked) {
+      resetReimbursementSourceMode();
+    }
+    updateGenericReimbursementMode();
+  });
+}
+
 
 try {
   document.getElementById("appVersion").textContent = APP_VERSION;

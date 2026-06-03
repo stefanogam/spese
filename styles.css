@@ -552,3 +552,32 @@ input[readonly] {
 .edit-scope-box .hint {
   margin-top: 2px;
 }
+
+.reimbursement-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 12px 0;
+}
+
+.reimbursement-row:last-child {
+  border-bottom: 0;
+}
+
+.locked-field-hint {
+  color: #6b7280;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.reimbursement-source-banner {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+  border-radius: 14px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}

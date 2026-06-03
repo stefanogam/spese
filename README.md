@@ -78,13 +78,13 @@ La lista spese e l'esportazione CSV usano il mese selezionato in questa sezione.
 
 ## Modifiche v8
 
-- La Home mostra chiaramente la versione **V.25**.
+- La Home mostra chiaramente la versione **V.30**.
 - All'apertura e quando si torna alla Home viene visualizzato il mese corrente.
 - Nella sezione Aggiungi, la data viene reimpostata automaticamente al giorno corrente.
 - Nella sezione Soglie, il budget mensile totale è calcolato automaticamente come somma delle soglie delle categorie.
 
 
-## Modifiche V.25
+## Modifiche V.30
 
 - In Home è stato aggiunto un selettore mese.
 - La Home si apre sempre sul mese corrente, ma consente di scegliere tutti i mesi in cui è presente almeno una spesa.
@@ -94,12 +94,12 @@ La lista spese e l'esportazione CSV usano il mese selezionato in questa sezione.
 - Il grafico mostra istogrammi impilati per categoria/soglia e una linea del totale mensile.
 
 
-## Correzione V.25
+## Correzione V.30
 
-Corretto un problema di navigazione dal menu basso: in V.25 lo script poteva interrompersi perché cercava i pulsanti `prevMonthButton` e `nextMonthButton`, rimossi dalla Home. Ora i listener sono protetti e il menu basso cambia correttamente sezione.
+Corretto un problema di navigazione dal menu basso: in V.30 lo script poteva interrompersi perché cercava i pulsanti `prevMonthButton` e `nextMonthButton`, rimossi dalla Home. Ora i listener sono protetti e il menu basso cambia correttamente sezione.
 
 
-## Correzione V.25
+## Correzione V.30
 
 Corretto l'errore JavaScript che bloccava l'app:
 
@@ -108,7 +108,7 @@ Corretto l'errore JavaScript che bloccava l'app:
 L'assegnazione con optional chaining non è valida in JavaScript. Ora il codice verifica prima l'esistenza dell'elemento e poi aggiorna il testo. Questo permette allo script di caricarsi correttamente e al menu basso di funzionare.
 
 
-## Modifiche V.25
+## Modifiche V.30
 
 Nel report plurimensile sono state aggiunte due combo box:
 
@@ -118,7 +118,7 @@ Nel report plurimensile sono state aggiunte due combo box:
 Il valore predefinito è 0 per entrambe. Il pulsante "Torna al mese corrente" riporta il mese di riferimento al mese corrente e reimposta entrambe le combo a 0.
 
 
-## Modifiche V.25
+## Modifiche V.30
 
 Ottimizzato il grafico plurimensile:
 
@@ -127,7 +127,7 @@ Ottimizzato il grafico plurimensile:
 - mantenuta la linea del totale mensile centrata sulle barre.
 
 
-## Modifiche V.25
+## Modifiche V.30
 
 Aggiunto il metodo di pagamento **Voucher**.
 
@@ -145,7 +145,7 @@ Logica introdotta:
 Esempio: 50 € di gasolio con metodo Voucher risultano nella categoria Trasporti, ma non riducono il budget disponibile.
 
 
-## Modifiche V.25
+## Modifiche V.30
 
 Aggiunta la possibilità di modificare le spese già inserite dalla sezione **Spese**.
 
@@ -165,7 +165,7 @@ La modifica permette di aggiornare:
 Per le spese plurimensili, la modifica riguarda la singola quota visualizzata.
 
 
-## Modifiche V.25
+## Modifiche V.30
 
 Migliorata la gestione delle spese plurimensili.
 
@@ -182,9 +182,9 @@ In fase di modifica di una quota plurimensile è ora possibile:
 Nota: la data resta specifica della singola quota. Per ripianificare tutte le date conviene eliminare e reinserire la spesa plurimensile.
 
 
-## Correzione V.25
+## Correzione V.30
 
-Versione ricostruita sulla base stabile V.25.
+Versione ricostruita sulla base stabile V.30.
 
 Correzioni principali:
 
@@ -194,32 +194,32 @@ Correzioni principali:
 - mantenute spese plurimensili, importo complessivo e modifica quote collegate;
 - mantenuta logica Voucher;
 - corretta generazione ID con fallback sicuro;
-- aggiunta migrazione da V.25/V.25 senza usare la logica instabile della V.25.
+- aggiunta migrazione da V.30/V.30 senza usare la logica instabile della V.30.
 
 
-## Correzione V.25
+## Correzione V.30
 
-Corretta la regressione della V.25:
+Corretta la regressione della V.30:
 
 - dichiarata correttamente la costante `APP_VERSION`;
 - riallineata la chiave di salvataggio a `spese-pwa-locale-v20`;
-- mantenuta la base stabile V.25/V.25;
+- mantenuta la base stabile V.30/V.30;
 - mantenuta la migrazione dalle versioni precedenti.
 
 
-## Correzione V.25
+## Correzione V.30
 
 Corretta la funzione mancante `renderExpensesMonthSelect()`, che bloccava l'app all'avvio e impediva il caricamento di categorie, spese e funzioni di modifica.
 
 
-## Correzione V.25
+## Correzione V.30
 
 Rimossa completamente la dipendenza dalla funzione `renderExpensesMonthSelect()`.
 
 La logica del filtro mese nella sezione Spese è ora integrata direttamente in `renderExpensesList()`, così l'app non può più bloccarsi all'avvio per quella funzione mancante.
 
 
-## Modifiche V.25
+## Modifiche V.30
 
 Nella Home la sintesi del mese è stata resa più chiara:
 
@@ -228,7 +228,7 @@ Nella Home la sintesi del mese è stata resa più chiara:
 - **Di cui voucher**: totale delle spese pagate con voucher.
 
 
-## Modifiche V.25
+## Modifiche V.30
 
 Nella Home sono ora visualizzate esplicitamente tre righe distinte:
 
@@ -239,7 +239,7 @@ Nella Home sono ora visualizzate esplicitamente tre righe distinte:
 Il valore principale della card resta "Spese escluse i voucher", cioè il totale che incide sul budget.
 
 
-## Modifiche V.25
+## Modifiche V.30
 
 Nella Home, la sezione **Ultime spese** è ora esplicitamente solo consultiva:
 
@@ -247,3 +247,68 @@ Nella Home, la sezione **Ultime spese** è ora esplicitamente solo consultiva:
 - non mostra il pulsante **Elimina**.
 
 La modifica e l'eliminazione restano disponibili nella sezione **Spese**.
+
+
+## Modifiche V.30
+
+Aggiunta la gestione dei **rimborsi generici per categoria**.
+
+Esempio: puoi inserire un rimborso di 30 € nella categoria Trasporti anche se non è collegato a una spesa specifica.
+
+Il rimborso generico:
+
+- ha importo, categoria, data e descrizione;
+- riduce il budget utilizzato della categoria scelta;
+- appare nella sezione **Spese** in una lista separata;
+- può essere eliminato;
+- viene considerato in Home, Report mensile, Report plurimensile ed export CSV.
+
+
+## Modifiche V.30
+
+La gestione dei rimborsi generici è stata integrata direttamente in **Aggiungi spesa**.
+
+Ora nella maschera di inserimento c'è il flag:
+
+- **Questo inserimento è un rimborso generico**
+
+Se il flag è attivo:
+
+- l'importo viene salvato come rimborso generico;
+- la categoria scelta determina da quale budget sottrarre il rimborso;
+- metodo pagamento e plurimensile vengono nascosti;
+- non serve una sezione separata.
+
+Se il flag è spento:
+
+- l'inserimento resta una spesa normale;
+- è disponibile il campo **Rimborso totale** per rimborsi collegati alla singola spesa.
+
+
+## Modifiche V.30
+
+Riorganizzata la gestione dei rimborsi.
+
+Modifiche principali:
+
+- rimosso il campo **Rimborso totale** dalla normale maschera di inserimento spesa;
+- nella sezione **Spese**, ogni voce ha ora il pulsante **Rimborso**;
+- cliccando **Rimborso**, l'app apre **Aggiungi spesa** in modalità rimborso generico;
+- categoria e descrizione vengono precompilate dalla spesa selezionata;
+- l'unico dato da inserire è l'importo del rimborso;
+- la data viene impostata automaticamente al giorno corrente ma resta modificabile;
+- il rimborso viene sottratto dal budget della categoria della spesa selezionata.
+
+La modifica/eliminazione delle spese resta disponibile solo nella sezione **Spese**, non nella Home.
+
+
+## Modifiche V.30
+
+Corretto il pulsante **Rimborso** nella sezione **Spese**.
+
+Ora, quando si clicca su **Rimborso** da una spesa esistente:
+
+- l'importo viene precompilato con l'importo della spesa selezionata;
+- l'importo resta modificabile;
+- la data viene impostata al giorno corrente;
+- categoria e descrizione restano precompilate dalla spesa selezionata.
