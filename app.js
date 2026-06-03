@@ -1,4 +1,5 @@
-const STORAGE_KEY = "spese-pwa-locale-v4";
+const STORAGE_KEY = "spese-pwa-locale-v22";
+const APP_VERSION = "V.22";
 
 const defaultCategories = [
   "Alimentari",
@@ -36,12 +37,21 @@ const initialState = {
 };
 
 let deferredPrompt = null;
+let editingExpenseId = null;
+
+function createId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+
+  return `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
 
 function loadState() {
   const saved = localStorage.getItem(STORAGE_KEY);
 
   if (!saved) {
-    const oldSaved = localStorage.getItem("spese-pwa-locale-v3") || localStorage.getItem("spese-pwa-locale-v2") || localStorage.getItem("spese-pwa-locale-v1");
+    const oldSaved = localStorage.getItem("spese-pwa-locale-v21") || localStorage.getItem("spese-pwa-locale-v20") || localStorage.getItem("spese-pwa-locale-v19") || localStorage.getItem("spese-pwa-locale-v18") || localStorage.getItem("spese-pwa-locale-v17") || localStorage.getItem("spese-pwa-locale-v16") || localStorage.getItem("spese-pwa-locale-v15") || localStorage.getItem("spese-pwa-locale-v14") || localStorage.getItem("spese-pwa-locale-v13") || localStorage.getItem("spese-pwa-locale-v12") || localStorage.getItem("spese-pwa-locale-v11") || localStorage.getItem("spese-pwa-locale-v10") || localStorage.getItem("spese-pwa-locale-v9") || localStorage.getItem("spese-pwa-locale-v8") || localStorage.getItem("spese-pwa-locale-v7") || localStorage.getItem("spese-pwa-locale-v6") || localStorage.getItem("spese-pwa-locale-v5") || localStorage.getItem("spese-pwa-locale-v4") || localStorage.getItem("spese-pwa-locale-v3") || localStorage.getItem("spese-pwa-locale-v2") || localStorage.getItem("spese-pwa-locale-v1");
     if (oldSaved) {
       try {
         const oldState = JSON.parse(oldSaved);
@@ -251,6 +261,28 @@ function getVoucherTotalsByCategory(expenses) {
   return getTotalsByCategory(getVoucherExpenses(expenses));
 }
 
+function getLinkedExpenses(expense) {
+  if (!expense || expense.type !== "multi" || !expense.groupId) {
+    return expense ? [expense] : [];
+  }
+
+  return state.expenses
+    .filter(item => item.groupId === expense.groupId)
+    .sort((a, b) => Number(a.installmentNumber || 0) - Number(b.installmentNumber || 0));
+}
+
+function getMultiTotalAmount(expense) {
+  if (!expense || expense.type !== "multi") {
+    return Number(expense?.amount || 0);
+  }
+
+  if (expense.originalAmount !== undefined && expense.originalAmount !== null) {
+    return Number(expense.originalAmount || 0);
+  }
+
+  return getTotal(getLinkedExpenses(expense));
+}
+
 function calculateTotalLimitFromCategories() {
   return state.categories.reduce((sum, category) => {
     return sum + Number(state.thresholds.categoryLimits[category] || 0);
@@ -419,6 +451,19 @@ function renderExpenseRow(expense, showDelete = false) {
     ? `<span class="voucher-note">Voucher: non incide sul budget</span>`
     : "";
 
+  const multiTotalInfo = expense.type === "multi"
+    ? `<span class="multi-total-note">Importo complessivo: ${formatCurrency(getMultiTotalAmount(expense))}</span>`
+    : "";
+
+  const actions = showDelete
+    ? `
+      <div class="expense-actions">
+        <button class="secondary small" onclick="startEditExpense('${expense.id}')">Modifica</button>
+        <button class="secondary small" onclick="deleteExpense('${expense.id}')">Elimina</button>
+      </div>
+    `
+    : "";
+
   return `
     <div class="expense-row">
       <div class="expense-main">
@@ -426,72 +471,70 @@ function renderExpenseRow(expense, showDelete = false) {
         <span>${expense.date} · ${escapeHtml(expense.paymentMethod)}</span>
         <span>${escapeHtml(expense.description || "Nessuna descrizione")}</span>
         ${multiInfo}
+        ${multiTotalInfo}
         ${voucherInfo}
       </div>
       <div>
         <div class="amount">${formatCurrency(expense.amount)}</div>
-        ${showDelete ? `<button class="secondary small" onclick="deleteExpense('${expense.id}')">Elimina</button>` : ""}
+        ${actions}
       </div>
     </div>
+    ${editingExpenseId === expense.id ? renderEditExpenseForm(expense) : ""}
   `;
 }
 
-function renderExpensesMonthSelect() {
+function renderExpensesList() {
   const select = document.getElementById("expensesMonthSelect");
+  const container = document.getElementById("expensesList");
+  const selectedTotal = document.getElementById("selectedExpensesTotal");
+
   const months = getMonthsWithExpenses();
 
-  if (!select) return;
+  if (select) {
+    if (months.length === 0) {
+      select.innerHTML = `<option value="">Nessuna spesa registrata</option>`;
+      select.disabled = true;
+      state.selectedExpensesMonth = "";
+    } else {
+      select.disabled = false;
 
-  ensureSelectedExpensesMonth();
+      if (!state.selectedExpensesMonth || !months.includes(state.selectedExpensesMonth)) {
+        state.selectedExpensesMonth = months[0];
+      }
 
-  if (months.length === 0) {
-    select.innerHTML = `<option value="">Nessuna spesa registrata</option>`;
-    select.disabled = true;
-    return;
+      select.innerHTML = months
+        .map(month => `
+          <option value="${month}" ${month === state.selectedExpensesMonth ? "selected" : ""}>
+            ${getMonthLabel(month)}
+          </option>
+        `)
+        .join("");
+    }
   }
 
-  select.disabled = false;
-  select.innerHTML = months
-    .map(month => `
-      <option value="${month}" ${month === state.selectedExpensesMonth ? "selected" : ""}>
-        ${getMonthLabel(month)}
-      </option>
-    `)
-    .join("");
-}
-
-function renderExpensesList() {
-  renderExpensesMonthSelect();
-
-  const container = document.getElementById("expensesList");
   const selectedExpensesMonth = state.selectedExpensesMonth;
 
   if (!selectedExpensesMonth) {
     container.innerHTML = `<p class="empty">Non ci sono ancora spese registrate.</p>`;
+    if (selectedTotal) selectedTotal.textContent = formatCurrency(0);
     return;
   }
 
   const expenses = getMonthlyExpenses(selectedExpensesMonth)
     .sort((a, b) => new Date(b.date) - new Date(a.date));
 
+  if (selectedTotal) {
+    selectedTotal.textContent = formatCurrency(getTotal(expenses));
+  }
+
   if (expenses.length === 0) {
-    container.innerHTML = `<p class="empty">Nessuna spesa presente per il mese selezionato.</p>`;
+    container.innerHTML = `<p class="empty">Nessuna spesa per ${getMonthLabel(selectedExpensesMonth)}.</p>`;
     return;
   }
 
-  const total = getTotal(expenses);
-
-  const summary = `
-    <div class="report-summary">
-      <span>Totale ${getMonthLabel(selectedExpensesMonth)}</span>
-      <strong>${formatCurrency(total)}</strong>
-    </div>
-  `;
-
-  container.innerHTML = summary + expenses
-    .map(expense => renderExpenseRow(expense, true))
-    .join("");
+  container.innerHTML = expenses.map(expense => renderExpenseRow(expense, true)).join("");
 }
+
 
 function renderReportMonthSelect() {
   const select = document.getElementById("reportMonthSelect");
@@ -851,19 +894,64 @@ function renderCategoriesList() {
     return;
   }
 
-  container.innerHTML = state.categories.map(category => {
+  container.innerHTML = state.categories.map((category, index) => {
     const used = state.expenses.some(expense => expense.category === category);
 
     return `
       <div class="category-row">
-        <input class="category-name-input" value="${escapeHtml(category)}" data-category-old-name="${escapeHtml(category)}" />
+        <input class="category-name-input" value="${escapeAttributeForHtml(category)}" data-category-index="${index}" data-category-old-name="${escapeAttributeForHtml(category)}" />
         <div class="category-actions">
-          <button class="secondary small" onclick="renameCategory('${escapeAttribute(category)}')">Salva</button>
-          <button class="danger small" onclick="deleteCategory('${escapeAttribute(category)}')" ${used ? "title='Categoria usata da alcune spese'" : ""}>Elimina</button>
+          <button class="secondary small" onclick="renameCategoryByIndex(${index})">Salva</button>
+          <button class="danger small" onclick="deleteCategoryByIndex(${index})" ${used ? "title='Categoria usata da alcune spese'" : ""}>Elimina</button>
         </div>
       </div>
     `;
   }).join("");
+}
+
+function renameCategoryByIndex(index) {
+  const oldName = state.categories[index];
+  if (!oldName) return;
+
+  const input = document.querySelector(`[data-category-index="${index}"]`);
+  if (!input) return;
+
+  const newName = input.value.trim();
+
+  if (!newName) {
+    alert("Il nome della categoria non può essere vuoto.");
+    renderAll();
+    return;
+  }
+
+  if (newName !== oldName && state.categories.some(category => category.toLowerCase() === newName.toLowerCase())) {
+    alert("Esiste già una categoria con questo nome.");
+    renderAll();
+    return;
+  }
+
+  state.categories[index] = newName;
+
+  state.expenses = state.expenses.map(expense => ({
+    ...expense,
+    category: expense.category === oldName ? newName : expense.category
+  }));
+
+  state.thresholds.categoryLimits[newName] = state.thresholds.categoryLimits[oldName] || 0;
+
+  if (newName !== oldName) {
+    delete state.thresholds.categoryLimits[oldName];
+  }
+
+  syncTotalLimitWithCategories();
+  saveState();
+  renderAll();
+}
+
+function deleteCategoryByIndex(index) {
+  const categoryName = state.categories[index];
+  if (!categoryName) return;
+  deleteCategory(categoryName);
 }
 
 function renderAll() {
@@ -888,7 +976,7 @@ function addExpense(event) {
 
   if (!isMultiMonth) {
     state.expenses.push({
-      id: crypto.randomUUID(),
+      id: createId(),
       amount: roundToTwoDecimals(totalAmount),
       category,
       date,
@@ -903,7 +991,7 @@ function addExpense(event) {
       return;
     }
 
-    const groupId = crypto.randomUUID();
+    const groupId = createId();
     const baseAmount = Math.floor((totalAmount / numberOfMonths) * 100) / 100;
     const amounts = Array(numberOfMonths).fill(baseAmount);
     const remainder = roundToTwoDecimals(totalAmount - baseAmount * numberOfMonths);
@@ -914,7 +1002,7 @@ function addExpense(event) {
       const installmentDate = getInstallmentDate(date, i);
 
       state.expenses.push({
-        id: crypto.randomUUID(),
+        id: createId(),
         groupId,
         amount: amounts[i],
         originalAmount: totalAmount,
@@ -936,6 +1024,214 @@ function addExpense(event) {
   setDefaultDate();
   document.getElementById("multiMonthOptions").classList.add("hidden");
   showView("dashboardView");
+  renderAll();
+}
+
+
+function renderEditExpenseForm(expense) {
+  const categoryOptions = state.categories
+    .map(category => `
+      <option value="${escapeHtml(category)}" ${category === expense.category ? "selected" : ""}>
+        ${escapeHtml(category)}
+      </option>
+    `)
+    .join("");
+
+  const paymentMethods = ["Contanti", "Carta", "Bancomat", "Bonifico", "Voucher", "Altro"];
+  const paymentOptions = paymentMethods
+    .map(method => `
+      <option value="${escapeHtml(method)}" ${method === expense.paymentMethod ? "selected" : ""}>
+        ${escapeHtml(method)}
+      </option>
+    `)
+    .join("");
+
+  const isMulti = expense.type === "multi";
+  const multiWarning = isMulti
+    ? `<p class="hint">Questa è una quota di una spesa plurimensile. Puoi modificare solo questa quota oppure applicare alcune modifiche a tutte le quote collegate.</p>`
+    : "";
+
+  const multiTotalField = isMulti
+    ? `
+      <label>
+        Importo complessivo
+        <input id="editOriginalAmount-${expense.id}" type="number" step="0.01" min="0" value="${Number(getMultiTotalAmount(expense) || 0)}" />
+        <span class="hint">Modificando questo valore e attivando "Ridividi importo complessivo", l'app ripartisce il totale su tutte le quote collegate.</span>
+      </label>
+    `
+    : "";
+
+  const multiScopeOptions = isMulti
+    ? `
+      <div class="edit-scope-box">
+        <strong>Applica modifiche alle quote collegate</strong>
+
+        <label class="checkbox-row">
+          <input id="editApplyText-${expense.id}" type="checkbox" />
+          <span>Applica categoria, metodo pagamento e descrizione a tutte le quote</span>
+        </label>
+
+        <label class="checkbox-row">
+          <input id="editRedistributeAmount-${expense.id}" type="checkbox" />
+          <span>Ridividi importo complessivo su tutte le quote</span>
+        </label>
+
+        <p class="hint">
+          La data resta specifica della singola quota. Per cambiare l'intera pianificazione conviene eliminare e reinserire la spesa plurimensile.
+        </p>
+      </div>
+    `
+    : "";
+
+  return `
+    <form class="edit-expense-form" onsubmit="saveEditedExpense(event, '${expense.id}')">
+      <h3>Modifica spesa</h3>
+      ${multiWarning}
+
+      <label>
+        Importo quota
+        <input id="editAmount-${expense.id}" type="number" step="0.01" min="0" value="${Number(expense.amount || 0)}" required />
+      </label>
+
+      ${multiTotalField}
+
+      <label>
+        Categoria
+        <select id="editCategory-${expense.id}" required>
+          ${categoryOptions}
+        </select>
+      </label>
+
+      <label>
+        Data
+        <input id="editDate-${expense.id}" type="date" value="${escapeHtml(expense.date)}" required />
+      </label>
+
+      <label>
+        Metodo pagamento
+        <select id="editPaymentMethod-${expense.id}">
+          ${paymentOptions}
+        </select>
+      </label>
+
+      <label>
+        Descrizione
+        <input id="editDescription-${expense.id}" type="text" value="${escapeAttributeForHtml(expense.description || "")}" />
+      </label>
+
+      ${multiScopeOptions}
+
+      <div class="edit-actions">
+        <button type="submit">Salva</button>
+        <button type="button" class="secondary" onclick="cancelEditExpense()">Annulla</button>
+      </div>
+    </form>
+  `;
+}
+
+function startEditExpense(id) {
+  editingExpenseId = id;
+  renderExpensesList();
+}
+
+function cancelEditExpense() {
+  editingExpenseId = null;
+  renderExpensesList();
+}
+
+function saveEditedExpense(event, id) {
+  event.preventDefault();
+
+  const expenseIndex = state.expenses.findIndex(expense => expense.id === id);
+  if (expenseIndex === -1) {
+    alert("Spesa non trovata.");
+    editingExpenseId = null;
+    renderExpensesList();
+    return;
+  }
+
+  const existingExpense = state.expenses[expenseIndex];
+  const amount = Number(document.getElementById(`editAmount-${id}`).value || 0);
+  const category = document.getElementById(`editCategory-${id}`).value;
+  const date = document.getElementById(`editDate-${id}`).value;
+  const paymentMethod = document.getElementById(`editPaymentMethod-${id}`).value;
+  const description = document.getElementById(`editDescription-${id}`).value.trim();
+
+  const isMulti = existingExpense.type === "multi" && existingExpense.groupId;
+  const applyTextToAll = isMulti && document.getElementById(`editApplyText-${id}`)?.checked;
+  const redistributeAmount = isMulti && document.getElementById(`editRedistributeAmount-${id}`)?.checked;
+
+  if (!isMulti) {
+    state.expenses[expenseIndex] = {
+      ...existingExpense,
+      amount: roundToTwoDecimals(amount),
+      category,
+      date,
+      month: getMonthFromDate(date),
+      paymentMethod,
+      description
+    };
+  } else {
+    const linkedExpenses = getLinkedExpenses(existingExpense);
+    const linkedIds = new Set(linkedExpenses.map(expense => expense.id));
+
+    if (applyTextToAll) {
+      state.expenses = state.expenses.map(expense => {
+        if (!linkedIds.has(expense.id)) return expense;
+
+        return {
+          ...expense,
+          category,
+          paymentMethod,
+          description
+        };
+      });
+    }
+
+    if (redistributeAmount) {
+      const totalAmountInput = document.getElementById(`editOriginalAmount-${id}`);
+      const totalAmount = Number(totalAmountInput?.value || 0);
+      const numberOfInstallments = linkedExpenses.length || 1;
+      const baseAmount = Math.floor((totalAmount / numberOfInstallments) * 100) / 100;
+      const amounts = Array(numberOfInstallments).fill(baseAmount);
+      const remainder = roundToTwoDecimals(totalAmount - baseAmount * numberOfInstallments);
+      amounts[numberOfInstallments - 1] = roundToTwoDecimals(amounts[numberOfInstallments - 1] + remainder);
+
+      const amountById = new Map();
+      linkedExpenses.forEach((expense, index) => {
+        amountById.set(expense.id, amounts[index]);
+      });
+
+      state.expenses = state.expenses.map(expense => {
+        if (!linkedIds.has(expense.id)) return expense;
+
+        return {
+          ...expense,
+          amount: amountById.get(expense.id),
+          originalAmount: roundToTwoDecimals(totalAmount)
+        };
+      });
+    }
+
+    const updatedIndex = state.expenses.findIndex(expense => expense.id === id);
+    if (updatedIndex !== -1) {
+      state.expenses[updatedIndex] = {
+        ...state.expenses[updatedIndex],
+        amount: redistributeAmount ? state.expenses[updatedIndex].amount : roundToTwoDecimals(amount),
+        category: applyTextToAll ? state.expenses[updatedIndex].category : category,
+        date,
+        month: getMonthFromDate(date),
+        paymentMethod: applyTextToAll ? state.expenses[updatedIndex].paymentMethod : paymentMethod,
+        description: applyTextToAll ? state.expenses[updatedIndex].description : description,
+        originalAmount: redistributeAmount
+          ? state.expenses[updatedIndex].originalAmount
+          : Number(document.getElementById(`editOriginalAmount-${id}`)?.value || getMultiTotalAmount(existingExpense))
+      };
+    }
+  }
+
+  editingExpenseId = null;
+  saveState();
   renderAll();
 }
 
@@ -997,7 +1293,9 @@ function addCategory(event) {
 }
 
 function renameCategory(oldName) {
-  const input = document.querySelector(`[data-category-old-name="${cssEscape(oldName)}"]`);
+  const inputs = [...document.querySelectorAll("[data-category-old-name]")];
+  const input = inputs.find(element => element.dataset.categoryOldName === oldName);
+
   if (!input) return;
 
   const newName = input.value.trim();
@@ -1221,6 +1519,14 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+function escapeAttributeForHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
 function escapeAttribute(value) {
   return String(value)
     .replaceAll("\\", "\\\\")
@@ -1329,10 +1635,15 @@ document.getElementById("isMultiMonth").addEventListener("change", event => {
   document.getElementById("multiMonthOptions").classList.toggle("hidden", !event.target.checked);
 });
 
-document.getElementById("appVersion").textContent = APP_VERSION;
-syncTotalLimitWithCategories();
-state.selectedMonth = getCurrentMonth();
-setDefaultDate();
-renderAll();
-renderMultiReport();
-registerServiceWorker();
+try {
+  document.getElementById("appVersion").textContent = APP_VERSION;
+  syncTotalLimitWithCategories();
+  state.selectedMonth = getCurrentMonth();
+  setDefaultDate();
+  renderAll();
+  renderMultiReport();
+  registerServiceWorker();
+} catch (error) {
+  console.error("Errore avvio app", error);
+  alert("Errore di avvio app: " + error.message);
+}

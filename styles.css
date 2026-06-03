@@ -498,3 +498,57 @@ input[readonly] {
   font-size: 0.82rem;
   font-weight: 700;
 }
+
+.edit-expense-form {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 14px;
+  margin: 10px 0 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.edit-expense-form h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.edit-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.expense-actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.expense-actions button {
+  width: 100%;
+}
+
+.multi-total-note {
+  color: #374151;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.edit-scope-box {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.edit-scope-box .checkbox-row {
+  font-weight: 600;
+}
+
+.edit-scope-box .hint {
+  margin-top: 2px;
+}
