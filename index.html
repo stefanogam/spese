@@ -13,7 +13,7 @@
     <header class="app-header">
       <div>
         <h1>Spese Mensili</h1>
-        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.22</span></p>
+        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.25</span></p>
       </div>
       <button id="installButton" class="secondary hidden">Installa</button>
     </header>
@@ -29,11 +29,11 @@
 
         <div class="card compact version-card">
           <span>Versione app</span>
-          <strong>V.22</strong>
+          <strong>V.25</strong>
         </div>
 
         <div class="card hero">
-          <p>Budget utilizzato</p>
+          <p>Spese escluse i voucher</p>
           <h2 id="monthlyTotal">0,00 €</h2>
           <div class="budget-row">
             <span>Budget mensile</span>
@@ -43,9 +43,14 @@
             <div id="monthlyProgressBar"></div>
           </div>
           <p id="monthlyStatus" class="status"></p>
+
           <div class="budget-detail">
-            <span>Totale spese registrate</span>
+            <span>Spese registrate</span>
             <strong id="monthlyGrossTotal">0,00 €</strong>
+          </div>
+          <div class="budget-detail">
+            <span>Spese escluse i voucher</span>
+            <strong id="monthlyNetTotalDetail">0,00 €</strong>
           </div>
           <div class="budget-detail">
             <span>Di cui voucher</span>
