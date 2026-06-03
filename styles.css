@@ -896,3 +896,62 @@ input[readonly] {
     min-width: 50px;
   }
 }
+
+/* V.41 - menu azioni allineato a destra, apertura verso il centro */
+.expense-action-menu {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.expense-action-menu .menu-trigger,
+.menu-trigger {
+  margin-left: auto;
+  margin-right: 0;
+}
+
+.action-menu-panel {
+  right: 0;
+  left: auto;
+  transform-origin: top right;
+  max-width: calc(100vw - 48px);
+}
+
+@media (max-width: 520px) {
+  .expense-row > div:last-child {
+    align-items: flex-end;
+  }
+
+  .expense-row .amount {
+    text-align: right;
+  }
+
+  .expense-action-menu {
+    justify-content: flex-end;
+    align-self: stretch;
+  }
+
+  .expense-action-menu .menu-trigger,
+  .menu-trigger {
+    margin-left: auto;
+    margin-right: 0;
+    width: 54px;
+    max-width: 54px;
+  }
+
+  .action-menu-panel {
+    right: 0;
+    left: auto;
+    width: auto;
+    max-width: calc(100vw - 40px);
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
+  .action-menu-panel .icon-button {
+    flex: 0 0 50px;
+    width: 50px;
+    min-width: 50px;
+  }
+}
