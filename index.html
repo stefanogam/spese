@@ -13,7 +13,7 @@
     <header class="app-header">
       <div>
         <h1>Spese Mensili</h1>
-        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.30</span></p>
+        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.34</span></p>
       </div>
       <button id="installButton" class="secondary hidden">Installa</button>
     </header>
@@ -29,7 +29,7 @@
 
         <div class="card compact version-card">
           <span>Versione app</span>
-          <strong>V.30</strong>
+          <strong>V.34</strong>
         </div>
 
         <div class="card hero">
@@ -149,6 +149,20 @@
             Mese da visualizzare
             <select id="expensesMonthSelect"></select>
           </label>
+
+          <details class="expense-category-filter" id="expenseCategoryFilterPanel">
+            <summary class="filter-header">
+              <strong>Categorie da visualizzare</strong>
+              <span id="expenseCategoryFilterSummary" class="filter-summary">Tutte</span>
+            </summary>
+
+            <div class="filter-actions">
+              <button id="selectAllExpenseCategoriesButton" class="secondary small" type="button">Tutte</button>
+              <button id="selectNoExpenseCategoriesButton" class="secondary small" type="button">Nessuna</button>
+            </div>
+
+            <div id="expenseCategoryFilter" class="category-filter-options"></div>
+          </details>
 
           <div id="expensesList"></div>
         </div>
