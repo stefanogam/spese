@@ -223,6 +223,34 @@ function getTotal(expenses) {
   return expenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
 }
 
+function isVoucherExpense(expense) {
+  return String(expense.paymentMethod || "").toLowerCase() === "voucher";
+}
+
+function getBudgetRelevantExpenses(expenses) {
+  return expenses.filter(expense => !isVoucherExpense(expense));
+}
+
+function getVoucherExpenses(expenses) {
+  return expenses.filter(expense => isVoucherExpense(expense));
+}
+
+function getBudgetRelevantTotal(expenses) {
+  return getTotal(getBudgetRelevantExpenses(expenses));
+}
+
+function getVoucherTotal(expenses) {
+  return getTotal(getVoucherExpenses(expenses));
+}
+
+function getBudgetRelevantTotalsByCategory(expenses) {
+  return getTotalsByCategory(getBudgetRelevantExpenses(expenses));
+}
+
+function getVoucherTotalsByCategory(expenses) {
+  return getTotalsByCategory(getVoucherExpenses(expenses));
+}
+
 function calculateTotalLimitFromCategories() {
   return state.categories.reduce((sum, category) => {
     return sum + Number(state.thresholds.categoryLimits[category] || 0);
@@ -306,7 +334,9 @@ function renderDashboard() {
 
   const month = state.selectedMonth;
   const expenses = getMonthlyExpenses(month);
-  const total = getTotal(expenses);
+  const grossTotal = getTotal(expenses);
+  const voucherTotal = getVoucherTotal(expenses);
+  const total = getBudgetRelevantTotal(expenses);
   const limit = Number(state.thresholds.totalLimit || 0);
   const status = getThresholdStatus(total, limit);
 
@@ -317,6 +347,8 @@ function renderDashboard() {
   }
   document.getElementById("monthlyTotal").textContent = formatCurrency(total);
   document.getElementById("monthlyBudget").textContent = formatCurrency(limit);
+  document.getElementById("monthlyGrossTotal").textContent = formatCurrency(grossTotal);
+  document.getElementById("monthlyVoucherTotal").textContent = formatCurrency(voucherTotal);
 
   const progress = limit > 0 ? Math.min((total / limit) * 100, 100) : 0;
   document.getElementById("monthlyProgressBar").style.width = `${progress}%`;
@@ -331,14 +363,16 @@ function renderDashboard() {
 
 function renderCriticalCategories(expenses) {
   const container = document.getElementById("criticalCategories");
-  const totalsByCategory = getTotalsByCategory(expenses);
+  const totalsByCategory = getBudgetRelevantTotalsByCategory(expenses);
+  const voucherTotalsByCategory = getVoucherTotalsByCategory(expenses);
 
   const critical = state.categories
     .map(category => {
       const spent = totalsByCategory[category] || 0;
+      const voucherSpent = voucherTotalsByCategory[category] || 0;
       const limit = Number(state.thresholds.categoryLimits[category] || 0);
       const status = getThresholdStatus(spent, limit);
-      return { category, spent, limit, status };
+      return { category, spent, voucherSpent, limit, status };
     })
     .filter(item => item.status.percentage >= 70)
     .sort((a, b) => b.status.percentage - a.status.percentage);
@@ -353,7 +387,8 @@ function renderCriticalCategories(expenses) {
       <div class="report-row">
         <div>
           <strong>${escapeHtml(item.category)}</strong><br>
-          <span>${formatCurrency(item.spent)} su ${formatCurrency(item.limit)}</span>
+          <span>Budget: ${formatCurrency(item.spent)} su ${formatCurrency(item.limit)}</span>
+          ${item.voucherSpent > 0 ? `<br><span class="voucher-note">Voucher esclusi: ${formatCurrency(item.voucherSpent)}</span>` : ""}
         </div>
         <span class="badge ${item.status.className}">${item.status.label}</span>
       </div>
@@ -380,6 +415,10 @@ function renderExpenseRow(expense, showDelete = false) {
     ? `<span><span class="badge info">Quota ${expense.installmentNumber}/${expense.installmentTotal}</span></span>`
     : "";
 
+  const voucherInfo = isVoucherExpense(expense)
+    ? `<span class="voucher-note">Voucher: non incide sul budget</span>`
+    : "";
+
   return `
     <div class="expense-row">
       <div class="expense-main">
@@ -387,6 +426,7 @@ function renderExpenseRow(expense, showDelete = false) {
         <span>${expense.date} · ${escapeHtml(expense.paymentMethod)}</span>
         <span>${escapeHtml(expense.description || "Nessuna descrizione")}</span>
         ${multiInfo}
+        ${voucherInfo}
       </div>
       <div>
         <div class="amount">${formatCurrency(expense.amount)}</div>
@@ -490,8 +530,12 @@ function renderReport() {
   }
 
   const expenses = getMonthlyExpenses(selectedReportMonth);
-  const totalsByCategory = getTotalsByCategory(expenses);
-  const total = getTotal(expenses);
+  const totalsByCategory = getBudgetRelevantTotalsByCategory(expenses);
+  const grossTotalsByCategory = getTotalsByCategory(expenses);
+  const voucherTotalsByCategory = getVoucherTotalsByCategory(expenses);
+  const total = getBudgetRelevantTotal(expenses);
+  const grossTotal = getTotal(expenses);
+  const voucherTotal = getVoucherTotal(expenses);
 
   if (expenses.length === 0) {
     container.innerHTML = `<p class="empty">Nessuna spesa presente per il mese selezionato.</p>`;
@@ -501,8 +545,12 @@ function renderReport() {
 
   const summary = `
     <div class="report-summary">
-      <span>Totale ${getMonthLabel(selectedReportMonth)}</span>
+      <span>Budget utilizzato ${getMonthLabel(selectedReportMonth)}</span>
       <strong>${formatCurrency(total)}</strong>
+    </div>
+    <div class="report-summary">
+      <span>Totale registrato / Voucher</span>
+      <strong>${formatCurrency(grossTotal)} / ${formatCurrency(voucherTotal)}</strong>
     </div>
   `;
 
@@ -510,6 +558,8 @@ function renderReport() {
     .filter(category => (totalsByCategory[category] || 0) > 0 || (state.thresholds.categoryLimits[category] || 0) > 0)
     .map(category => {
       const spent = totalsByCategory[category] || 0;
+      const grossSpent = grossTotalsByCategory[category] || 0;
+      const voucherSpent = voucherTotalsByCategory[category] || 0;
       const limit = Number(state.thresholds.categoryLimits[category] || 0);
       const status = getThresholdStatus(spent, limit);
       const width = limit > 0 ? Math.min((spent / limit) * 100, 100) : 0;
@@ -521,7 +571,10 @@ function renderReport() {
               <strong>${escapeHtml(category)}</strong>
               <span class="badge ${status.className}">${status.label}</span>
             </div>
-            <span>${formatCurrency(spent)} su ${formatCurrency(limit)}</span>
+            <span>Budget: ${formatCurrency(spent)} su ${formatCurrency(limit)}</span>
+            <br>
+            <span>Totale registrato: ${formatCurrency(grossSpent)}</span>
+            ${voucherSpent > 0 ? `<br><span class="voucher-note">Voucher esclusi dal budget: ${formatCurrency(voucherSpent)}</span>` : ""}
             <div class="report-bar">
               <div style="width: ${width}%"></div>
             </div>
@@ -552,9 +605,13 @@ function getMultiReportData() {
 
   return months.map(month => {
     const expenses = getMonthlyExpenses(month);
-    const totalsByCategory = getTotalsByCategory(expenses);
-    const total = getTotal(expenses);
-    return { month, total, totalsByCategory };
+    const totalsByCategory = getBudgetRelevantTotalsByCategory(expenses);
+    const grossTotalsByCategory = getTotalsByCategory(expenses);
+    const voucherTotalsByCategory = getVoucherTotalsByCategory(expenses);
+    const total = getBudgetRelevantTotal(expenses);
+    const grossTotal = getTotal(expenses);
+    const voucherTotal = getVoucherTotal(expenses);
+    return { month, total, grossTotal, voucherTotal, totalsByCategory, grossTotalsByCategory, voucherTotalsByCategory };
   });
 }
 
@@ -705,7 +762,7 @@ function drawMultiReportChart(data) {
   ctx.font = "bold 15px system-ui";
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
-  ctx.fillText("Spese per categoria e totale mensile", padding.left, 10);
+  ctx.fillText("Budget per categoria e totale mensile utilizzato", padding.left, 10);
 }
 
 function renderMultiReportLegend() {
@@ -722,7 +779,7 @@ function renderMultiReportLegend() {
   container.innerHTML = categoryItems + `
     <span class="legend-item">
       <span class="legend-line"></span>
-      Totale mensile
+      Totale budget mensile
     </span>
   `;
 }
@@ -741,6 +798,8 @@ function renderMultiReportTable(data) {
         <td>${getMonthLabel(item.month)}</td>
         ${categoryCells}
         <td><strong>${formatCurrency(item.total)}</strong></td>
+        <td>${formatCurrency(item.grossTotal || 0)}</td>
+        <td>${formatCurrency(item.voucherTotal || 0)}</td>
       </tr>
     `;
   }).join("");
@@ -751,8 +810,10 @@ function renderMultiReportTable(data) {
         <thead>
           <tr>
             <th>Mese</th>
-            ${state.categories.map(category => `<th>${escapeHtml(category)}</th>`).join("")}
-            <th>Totale</th>
+            ${state.categories.map(category => `<th>${escapeHtml(category)} budget</th>`).join("")}
+            <th>Totale budget</th>
+            <th>Totale registrato</th>
+            <th>Voucher</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
@@ -1038,6 +1099,7 @@ function exportCsv() {
     "Metodo pagamento",
     "Descrizione",
     "Importo",
+    "Rileva budget",
     "Tipo",
     "Quota"
   ];
@@ -1049,6 +1111,7 @@ function exportCsv() {
     expense.paymentMethod,
     expense.description,
     expense.amount,
+    isVoucherExpense(expense) ? "No" : "Sì",
     expense.type === "multi" ? "Plurimensile" : "Singola",
     expense.type === "multi" ? `${expense.installmentNumber}/${expense.installmentTotal}` : ""
   ]);

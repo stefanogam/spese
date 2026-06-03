@@ -1,4 +1,4 @@
-# Spese Mensili - PWA locale v13
+# Spese Mensili - PWA locale v14
 
 Questa versione include:
 
@@ -84,7 +84,7 @@ La lista spese e l'esportazione CSV usano il mese selezionato in questa sezione.
 - Nella sezione Soglie, il budget mensile totale è calcolato automaticamente come somma delle soglie delle categorie.
 
 
-## Modifiche V.13
+## Modifiche V.14
 
 - In Home è stato aggiunto un selettore mese.
 - La Home si apre sempre sul mese corrente, ma consente di scegliere tutti i mesi in cui è presente almeno una spesa.
@@ -94,12 +94,12 @@ La lista spese e l'esportazione CSV usano il mese selezionato in questa sezione.
 - Il grafico mostra istogrammi impilati per categoria/soglia e una linea del totale mensile.
 
 
-## Correzione V.13
+## Correzione V.14
 
 Corretto un problema di navigazione dal menu basso: in V.9 lo script poteva interrompersi perché cercava i pulsanti `prevMonthButton` e `nextMonthButton`, rimossi dalla Home. Ora i listener sono protetti e il menu basso cambia correttamente sezione.
 
 
-## Correzione V.13
+## Correzione V.14
 
 Corretto l'errore JavaScript che bloccava l'app:
 
@@ -108,7 +108,7 @@ Corretto l'errore JavaScript che bloccava l'app:
 L'assegnazione con optional chaining non è valida in JavaScript. Ora il codice verifica prima l'esistenza dell'elemento e poi aggiorna il testo. Questo permette allo script di caricarsi correttamente e al menu basso di funzionare.
 
 
-## Modifiche V.13
+## Modifiche V.14
 
 Nel report plurimensile sono state aggiunte due combo box:
 
@@ -118,10 +118,28 @@ Nel report plurimensile sono state aggiunte due combo box:
 Il valore predefinito è 0 per entrambe. Il pulsante "Torna al mese corrente" riporta il mese di riferimento al mese corrente e reimposta entrambe le combo a 0.
 
 
-## Modifiche V.13
+## Modifiche V.14
 
 Ottimizzato il grafico plurimensile:
 
 - il primo mese visualizzato parte allineato a sinistra dell'area grafico;
 - ridotto lo spazio vuoto iniziale;
 - mantenuta la linea del totale mensile centrata sulle barre.
+
+
+## Modifiche V.14
+
+Aggiunto il metodo di pagamento **Voucher**.
+
+Logica introdotta:
+
+- una spesa pagata con Voucher resta registrata nella categoria corretta;
+- la spesa appare nella lista spese e nei totali registrati;
+- la spesa Voucher non incide sul budget mensile utilizzato;
+- la spesa Voucher non incide sulle soglie di categoria;
+- Dashboard e Report mostrano separatamente:
+  - budget utilizzato;
+  - totale spese registrate;
+  - totale voucher esclusi dal budget.
+
+Esempio: 50 € di gasolio con metodo Voucher risultano nella categoria Trasporti, ma non riducono il budget disponibile.
