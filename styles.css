@@ -1059,3 +1059,48 @@ input[readonly] {
     width: 100%;
   }
 }
+
+/* V.45 - ricerca nella descrizione nella sezione Spese */
+.expense-search-filter {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 0;
+  margin-bottom: 14px;
+  background: #ffffff;
+}
+
+.expense-search-filter summary {
+  cursor: pointer;
+  padding: 12px 14px;
+  list-style: none;
+}
+
+.expense-search-filter summary::-webkit-details-marker {
+  display: none;
+}
+
+.expense-search-content {
+  display: grid;
+  gap: 12px;
+  padding: 0 14px 14px;
+}
+
+.expense-search-content input[type="search"] {
+  width: 100%;
+}
+
+.expense-search-content .filter-actions {
+  justify-content: flex-start;
+}
+
+@media (max-width: 520px) {
+  .expense-search-content .filter-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .expense-search-content .filter-actions button {
+    width: 100%;
+  }
+}

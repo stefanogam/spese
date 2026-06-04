@@ -1,5 +1,5 @@
-const STORAGE_KEY = "spese-pwa-locale-v44";
-const APP_VERSION = "V.44";
+const STORAGE_KEY = "spese-pwa-locale-v45";
+const APP_VERSION = "V.45";
 
 const defaultCategories = [
   "Alimentari",
@@ -18,6 +18,7 @@ const initialState = {
   selectedExpensesDateFrom: getMonthStartDate(getCurrentMonth()),
   selectedExpensesDateTo: getMonthEndDate(getCurrentMonth()),
   selectedExpenseCategories: [],
+  selectedExpenseDescriptionSearch: "",
   selectedReportMonth: getCurrentMonth(),
   selectedMultiReportReferenceMonth: getCurrentMonth(),
   selectedMultiReportMonthsBefore: 0,
@@ -58,7 +59,7 @@ function loadState() {
   const saved = localStorage.getItem(STORAGE_KEY);
 
   if (!saved) {
-    const oldSaved = localStorage.getItem("spese-pwa-locale-v43") || localStorage.getItem("spese-pwa-locale-v42") || localStorage.getItem("spese-pwa-locale-v41") || localStorage.getItem("spese-pwa-locale-v40") || localStorage.getItem("spese-pwa-locale-v39") || localStorage.getItem("spese-pwa-locale-v38") || localStorage.getItem("spese-pwa-locale-v37") || localStorage.getItem("spese-pwa-locale-v36") || localStorage.getItem("spese-pwa-locale-v35") || localStorage.getItem("spese-pwa-locale-v34") || localStorage.getItem("spese-pwa-locale-v33") || localStorage.getItem("spese-pwa-locale-v32") || localStorage.getItem("spese-pwa-locale-v31") || localStorage.getItem("spese-pwa-locale-v30") || localStorage.getItem("spese-pwa-locale-v29") || localStorage.getItem("spese-pwa-locale-v28") || localStorage.getItem("spese-pwa-locale-v27") || localStorage.getItem("spese-pwa-locale-v26") || localStorage.getItem("spese-pwa-locale-v25") || localStorage.getItem("spese-pwa-locale-v24") || localStorage.getItem("spese-pwa-locale-v23") || localStorage.getItem("spese-pwa-locale-v22") || localStorage.getItem("spese-pwa-locale-v21") || localStorage.getItem("spese-pwa-locale-v20") || localStorage.getItem("spese-pwa-locale-v19") || localStorage.getItem("spese-pwa-locale-v18") || localStorage.getItem("spese-pwa-locale-v17") || localStorage.getItem("spese-pwa-locale-v16") || localStorage.getItem("spese-pwa-locale-v15") || localStorage.getItem("spese-pwa-locale-v14") || localStorage.getItem("spese-pwa-locale-v13") || localStorage.getItem("spese-pwa-locale-v12") || localStorage.getItem("spese-pwa-locale-v11") || localStorage.getItem("spese-pwa-locale-v10") || localStorage.getItem("spese-pwa-locale-v9") || localStorage.getItem("spese-pwa-locale-v8") || localStorage.getItem("spese-pwa-locale-v7") || localStorage.getItem("spese-pwa-locale-v6") || localStorage.getItem("spese-pwa-locale-v5") || localStorage.getItem("spese-pwa-locale-v4") || localStorage.getItem("spese-pwa-locale-v3") || localStorage.getItem("spese-pwa-locale-v2") || localStorage.getItem("spese-pwa-locale-v1");
+    const oldSaved = localStorage.getItem("spese-pwa-locale-v44") || localStorage.getItem("spese-pwa-locale-v43") || localStorage.getItem("spese-pwa-locale-v42") || localStorage.getItem("spese-pwa-locale-v41") || localStorage.getItem("spese-pwa-locale-v40") || localStorage.getItem("spese-pwa-locale-v39") || localStorage.getItem("spese-pwa-locale-v38") || localStorage.getItem("spese-pwa-locale-v37") || localStorage.getItem("spese-pwa-locale-v36") || localStorage.getItem("spese-pwa-locale-v35") || localStorage.getItem("spese-pwa-locale-v34") || localStorage.getItem("spese-pwa-locale-v33") || localStorage.getItem("spese-pwa-locale-v32") || localStorage.getItem("spese-pwa-locale-v31") || localStorage.getItem("spese-pwa-locale-v30") || localStorage.getItem("spese-pwa-locale-v29") || localStorage.getItem("spese-pwa-locale-v28") || localStorage.getItem("spese-pwa-locale-v27") || localStorage.getItem("spese-pwa-locale-v26") || localStorage.getItem("spese-pwa-locale-v25") || localStorage.getItem("spese-pwa-locale-v24") || localStorage.getItem("spese-pwa-locale-v23") || localStorage.getItem("spese-pwa-locale-v22") || localStorage.getItem("spese-pwa-locale-v21") || localStorage.getItem("spese-pwa-locale-v20") || localStorage.getItem("spese-pwa-locale-v19") || localStorage.getItem("spese-pwa-locale-v18") || localStorage.getItem("spese-pwa-locale-v17") || localStorage.getItem("spese-pwa-locale-v16") || localStorage.getItem("spese-pwa-locale-v15") || localStorage.getItem("spese-pwa-locale-v14") || localStorage.getItem("spese-pwa-locale-v13") || localStorage.getItem("spese-pwa-locale-v12") || localStorage.getItem("spese-pwa-locale-v11") || localStorage.getItem("spese-pwa-locale-v10") || localStorage.getItem("spese-pwa-locale-v9") || localStorage.getItem("spese-pwa-locale-v8") || localStorage.getItem("spese-pwa-locale-v7") || localStorage.getItem("spese-pwa-locale-v6") || localStorage.getItem("spese-pwa-locale-v5") || localStorage.getItem("spese-pwa-locale-v4") || localStorage.getItem("spese-pwa-locale-v3") || localStorage.getItem("spese-pwa-locale-v2") || localStorage.getItem("spese-pwa-locale-v1");
     if (oldSaved) {
       try {
         const oldState = JSON.parse(oldSaved);
@@ -85,6 +86,7 @@ function migrateState(rawState) {
     selectedExpensesDateFrom: rawState.selectedExpensesDateFrom || getMonthStartDate(rawState.selectedExpensesMonth || rawState.selectedMonth || getCurrentMonth()),
     selectedExpensesDateTo: rawState.selectedExpensesDateTo || getMonthEndDate(rawState.selectedExpensesMonth || rawState.selectedMonth || getCurrentMonth()),
     selectedExpenseCategories: Array.isArray(rawState.selectedExpenseCategories) ? rawState.selectedExpenseCategories : [],
+    selectedExpenseDescriptionSearch: rawState.selectedExpenseDescriptionSearch || "",
     selectedReportMonth: rawState.selectedReportMonth || rawState.selectedMonth || getCurrentMonth(),
     selectedMultiReportReferenceMonth: rawState.selectedMultiReportReferenceMonth || getCurrentMonth(),
     selectedMultiReportMonthsBefore: Number(rawState.selectedMultiReportMonthsBefore || 0),
@@ -761,6 +763,47 @@ function selectNoExpenseCategories() {
   renderExpensesList();
 }
 
+function getExpenseDescriptionSearchTerm() {
+  return String(state.selectedExpenseDescriptionSearch || "").trim().toLowerCase();
+}
+
+function filterByExpenseDescriptionSearch(items) {
+  const term = getExpenseDescriptionSearchTerm();
+  if (!term) return items;
+
+  return items.filter(item => String(item.description || "").toLowerCase().includes(term));
+}
+
+function renderExpenseDescriptionSearchFilter() {
+  const input = document.getElementById("expenseDescriptionSearchInput");
+  if (input) {
+    input.value = state.selectedExpenseDescriptionSearch || "";
+  }
+
+  updateExpenseDescriptionSearchSummary();
+}
+
+function updateExpenseDescriptionSearchSummary() {
+  const summary = document.getElementById("expenseDescriptionSearchSummary");
+  if (!summary) return;
+
+  const term = String(state.selectedExpenseDescriptionSearch || "").trim();
+  summary.textContent = term ? `"${term}"` : "Nessuna ricerca";
+}
+
+function applyExpenseDescriptionSearch() {
+  const input = document.getElementById("expenseDescriptionSearchInput");
+  state.selectedExpenseDescriptionSearch = input ? input.value.trim() : "";
+  saveState();
+  renderExpensesList();
+}
+
+function clearExpenseDescriptionSearch() {
+  state.selectedExpenseDescriptionSearch = "";
+  saveState();
+  renderExpensesList();
+}
+
 function renderExpensesList() {
   const select = document.getElementById("expensesMonthSelect");
   const fromInput = document.getElementById("expensesDateFrom");
@@ -770,6 +813,7 @@ function renderExpensesList() {
 
   ensureSelectedExpensesMonth();
   renderExpenseCategoryFilter();
+  renderExpenseDescriptionSearchFilter();
 
   const months = getQuickExpenseMonths();
 
@@ -807,9 +851,9 @@ function renderExpensesList() {
 
   const periodLabel = getExpensesPeriodLabel();
 
-  const expenses = filterBySelectedExpenseCategories(
+  const expenses = filterByExpenseDescriptionSearch(filterBySelectedExpenseCategories(
     getExpensesForDateRange(state.selectedExpensesDateFrom, state.selectedExpensesDateTo)
-  ).sort((a, b) => new Date(b.date) - new Date(a.date));
+  )).sort((a, b) => new Date(b.date) - new Date(a.date));
 
   if (selectedTotal) {
     selectedTotal.textContent = formatCurrency(getTotal(expenses));
@@ -831,9 +875,9 @@ function renderGenericReimbursementsList() {
   if (!container) return;
 
   const periodLabel = getExpensesPeriodLabel();
-  const reimbursements = filterBySelectedExpenseCategories(
+  const reimbursements = filterByExpenseDescriptionSearch(filterBySelectedExpenseCategories(
     getGenericReimbursementsForDateRange(state.selectedExpensesDateFrom, state.selectedExpensesDateTo)
-  ).sort((a, b) => new Date(b.date) - new Date(a.date));
+  )).sort((a, b) => new Date(b.date) - new Date(a.date));
 
   if (reimbursements.length === 0) {
     container.innerHTML = `<p class="empty">Nessun rimborso generico per il periodo ${periodLabel}.</p>`;
@@ -2113,13 +2157,13 @@ function showView(viewId) {
 
 
 function exportCsv() {
-  const expenses = filterBySelectedExpenseCategories(
+  const expenses = filterByExpenseDescriptionSearch(filterBySelectedExpenseCategories(
     getExpensesForDateRange(state.selectedExpensesDateFrom, state.selectedExpensesDateTo)
-  );
+  ));
 
-  const genericReimbursements = filterBySelectedExpenseCategories(
+  const genericReimbursements = filterByExpenseDescriptionSearch(filterBySelectedExpenseCategories(
     getGenericReimbursementsForDateRange(state.selectedExpensesDateFrom, state.selectedExpensesDateTo)
-  );
+  ));
 
   if (expenses.length === 0 && genericReimbursements.length === 0) {
     alert("Non ci sono spese o rimborsi da esportare per il periodo selezionato.");
@@ -2417,6 +2461,26 @@ if (selectAllExpenseCategoriesButton) {
 const selectNoExpenseCategoriesButton = document.getElementById("selectNoExpenseCategoriesButton");
 if (selectNoExpenseCategoriesButton) {
   selectNoExpenseCategoriesButton.addEventListener("click", selectNoExpenseCategories);
+}
+
+const applyExpenseDescriptionSearchButton = document.getElementById("applyExpenseDescriptionSearchButton");
+if (applyExpenseDescriptionSearchButton) {
+  applyExpenseDescriptionSearchButton.addEventListener("click", applyExpenseDescriptionSearch);
+}
+
+const clearExpenseDescriptionSearchButton = document.getElementById("clearExpenseDescriptionSearchButton");
+if (clearExpenseDescriptionSearchButton) {
+  clearExpenseDescriptionSearchButton.addEventListener("click", clearExpenseDescriptionSearch);
+}
+
+const expenseDescriptionSearchInput = document.getElementById("expenseDescriptionSearchInput");
+if (expenseDescriptionSearchInput) {
+  expenseDescriptionSearchInput.addEventListener("keydown", event => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      applyExpenseDescriptionSearch();
+    }
+  });
 }
 
 const selectAllMultiReportCategoriesButton = document.getElementById("selectAllMultiReportCategoriesButton");

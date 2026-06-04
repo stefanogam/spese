@@ -13,7 +13,7 @@
     <header class="app-header">
       <div>
         <h1>Spese Mensili</h1>
-        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.44</span></p>
+        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.45</span></p>
       </div>
       <button id="installButton" class="secondary hidden">Installa</button>
     </header>
@@ -29,7 +29,7 @@
 
         <div class="card compact version-card">
           <span>Versione app</span>
-          <strong>V.44</strong>
+          <strong>V.45</strong>
         </div>
 
         <div class="card hero">
@@ -188,6 +188,25 @@
             </div>
 
             <div id="expenseCategoryFilter" class="category-filter-options"></div>
+          </details>
+
+          <details class="expense-search-filter" id="expenseDescriptionSearchPanel">
+            <summary class="filter-header">
+              <strong>Ricerca nella descrizione</strong>
+              <span id="expenseDescriptionSearchSummary" class="filter-summary">Nessuna ricerca</span>
+            </summary>
+
+            <div class="expense-search-content">
+              <label>
+                Testo da cercare
+                <input id="expenseDescriptionSearchInput" type="search" placeholder="Cerca nella descrizione..." />
+              </label>
+
+              <div class="filter-actions">
+                <button id="applyExpenseDescriptionSearchButton" class="secondary small" type="button">Applica</button>
+                <button id="clearExpenseDescriptionSearchButton" class="secondary small" type="button">Cancella</button>
+              </div>
+            </div>
           </details>
 
           <div id="expensesList"></div>
