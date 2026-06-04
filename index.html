@@ -13,7 +13,7 @@
     <header class="app-header">
       <div>
         <h1>Spese Mensili</h1>
-        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.41</span></p>
+        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.42</span></p>
       </div>
       <button id="installButton" class="secondary hidden">Installa</button>
     </header>
@@ -29,7 +29,7 @@
 
         <div class="card compact version-card">
           <span>Versione app</span>
-          <strong>V.41</strong>
+          <strong>V.42</strong>
         </div>
 
         <div class="card hero">
@@ -208,6 +208,20 @@
 
             <button id="multiReportCurrentButton" type="button" class="secondary">Torna al mese corrente</button>
           </div>
+
+          <details class="expense-category-filter" id="multiReportCategoryFilterPanel">
+            <summary class="filter-header">
+              <strong>Categorie da visualizzare</strong>
+              <span id="multiReportCategoryFilterSummary" class="filter-summary">Tutte</span>
+            </summary>
+
+            <div class="filter-actions">
+              <button id="selectAllMultiReportCategoriesButton" class="secondary small" type="button">Tutte</button>
+              <button id="selectNoMultiReportCategoriesButton" class="secondary small" type="button">Nessuna</button>
+            </div>
+
+            <div id="multiReportCategoryFilter" class="category-filter-options"></div>
+          </details>
 
           <p class="hint">
             Puoi scegliere quanti mesi visualizzare prima e dopo il mese di riferimento, da 0 a 12.
