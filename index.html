@@ -13,7 +13,7 @@
     <header class="app-header">
       <div>
         <h1>Spese Mensili</h1>
-        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.42</span></p>
+        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.43</span></p>
       </div>
       <button id="installButton" class="secondary hidden">Installa</button>
     </header>
@@ -29,7 +29,7 @@
 
         <div class="card compact version-card">
           <span>Versione app</span>
-          <strong>V.42</strong>
+          <strong>V.43</strong>
         </div>
 
         <div class="card hero">
@@ -145,10 +145,29 @@
             <button id="exportCsvButton" class="secondary">CSV</button>
           </div>
 
-          <label class="expenses-month-selector">
-            Mese da visualizzare
-            <select id="expensesMonthSelect"></select>
-          </label>
+          <div class="expenses-period-filter">
+            <label class="expenses-month-selector">
+              Selezione rapida mese
+              <select id="expensesMonthSelect"></select>
+            </label>
+
+            <div class="expenses-date-range">
+              <label>
+                Dal
+                <input id="expensesDateFrom" type="date" />
+              </label>
+
+              <label>
+                Al
+                <input id="expensesDateTo" type="date" />
+              </label>
+            </div>
+
+            <div class="filter-actions">
+              <button id="applyExpensesPeriodButton" class="secondary small" type="button">Applica</button>
+              <button id="currentExpensesMonthButton" class="secondary small" type="button">Mese corrente</button>
+            </div>
+          </div>
 
           <details class="expense-category-filter" id="expenseCategoryFilterPanel">
             <summary class="filter-header">
