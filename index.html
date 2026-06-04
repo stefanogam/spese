@@ -13,7 +13,7 @@
     <header class="app-header">
       <div>
         <h1>Spese Mensili</h1>
-        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.45</span></p>
+        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.47</span></p>
       </div>
       <button id="installButton" class="secondary hidden">Installa</button>
     </header>
@@ -29,7 +29,7 @@
 
         <div class="card compact version-card">
           <span>Versione app</span>
-          <strong>V.45</strong>
+          <strong>V.47</strong>
         </div>
 
         <div class="card hero">
@@ -99,17 +99,31 @@
             </label>
 
             <div id="expenseOnlyFields">
-              <label>
-                Metodo pagamento
-                <select id="paymentMethod">
-                  <option>Contanti</option>
-                  <option>Carta</option>
-                  <option>Bancomat</option>
-                  <option>Bonifico</option>
-                  <option>Voucher</option>
-                  <option>Altro</option>
-                </select>
-              </label>
+              <div id="singlePaymentMethodBox">
+                <label>
+                  Metodo pagamento
+                  <select id="paymentMethod">
+                    <option>Contanti</option>
+                    <option>Carta</option>
+                    <option>Bancomat</option>
+                    <option>Bonifico</option>
+                    <option>Voucher</option>
+                    <option>Altro</option>
+                  </select>
+                </label>
+
+                <button id="addPaymentMethodButton" class="secondary small" type="button">+ Aggiungi metodo</button>
+              </div>
+
+              <div id="paymentSplitBox" class="payment-split-box hidden">
+                <div class="section-title compact-title">
+                  <strong>Metodi di pagamento</strong>
+                  <button id="addPaymentSplitRowButton" class="secondary small" type="button">+ Aggiungi metodo</button>
+                </div>
+
+                <div id="paymentSplitRows" class="payment-split-rows"></div>
+                <p id="paymentSplitHint" class="hint">La somma dei metodi deve coincidere con l'importo totale.</p>
+              </div>
 
               <label class="checkbox-row">
                 <input id="isMultiMonth" type="checkbox" />

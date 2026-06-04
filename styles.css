@@ -1104,3 +1104,78 @@ input[readonly] {
     width: 100%;
   }
 }
+
+/* V.46 - pagamento misto */
+.payment-split-box {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 12px;
+  background: #f9fafb;
+  display: grid;
+  gap: 10px;
+}
+
+.compact-title {
+  margin-bottom: 0;
+  align-items: center;
+}
+
+.payment-split-rows {
+  display: grid;
+  gap: 8px;
+}
+
+.payment-split-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.payment-split-row select,
+.payment-split-row input {
+  min-width: 0;
+  width: 100%;
+}
+
+.payment-remove-button {
+  min-width: 42px;
+}
+
+.payment-breakdown {
+  color: #374151;
+  font-size: 0.92rem;
+}
+
+@media (max-width: 520px) {
+  .payment-split-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr) 42px;
+    gap: 6px;
+  }
+
+  .payment-split-row select,
+  .payment-split-row input {
+    font-size: 0.9rem;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .compact-title {
+    gap: 8px;
+  }
+
+  .compact-title button {
+    width: auto;
+  }
+}
+
+/* V.47 - pagamento singolo come V.45, split solo dal secondo metodo */
+#singlePaymentMethodBox {
+  display: grid;
+  gap: 10px;
+}
+
+#singlePaymentMethodBox.hidden,
+#paymentSplitBox.hidden {
+  display: none;
+}

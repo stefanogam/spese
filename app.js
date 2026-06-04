@@ -1,5 +1,5 @@
-const STORAGE_KEY = "spese-pwa-locale-v45";
-const APP_VERSION = "V.45";
+const STORAGE_KEY = "spese-pwa-locale-v47";
+const APP_VERSION = "V.47";
 
 const defaultCategories = [
   "Alimentari",
@@ -11,6 +11,9 @@ const defaultCategories = [
   "Abbonamenti",
   "Altro"
 ];
+
+const paymentMethods = ["Contanti", "Carta", "Bancomat", "Bonifico", "Voucher", "Altro"];
+let paymentSplitRows = [];
 
 const initialState = {
   selectedMonth: getCurrentMonth(),
@@ -59,7 +62,7 @@ function loadState() {
   const saved = localStorage.getItem(STORAGE_KEY);
 
   if (!saved) {
-    const oldSaved = localStorage.getItem("spese-pwa-locale-v44") || localStorage.getItem("spese-pwa-locale-v43") || localStorage.getItem("spese-pwa-locale-v42") || localStorage.getItem("spese-pwa-locale-v41") || localStorage.getItem("spese-pwa-locale-v40") || localStorage.getItem("spese-pwa-locale-v39") || localStorage.getItem("spese-pwa-locale-v38") || localStorage.getItem("spese-pwa-locale-v37") || localStorage.getItem("spese-pwa-locale-v36") || localStorage.getItem("spese-pwa-locale-v35") || localStorage.getItem("spese-pwa-locale-v34") || localStorage.getItem("spese-pwa-locale-v33") || localStorage.getItem("spese-pwa-locale-v32") || localStorage.getItem("spese-pwa-locale-v31") || localStorage.getItem("spese-pwa-locale-v30") || localStorage.getItem("spese-pwa-locale-v29") || localStorage.getItem("spese-pwa-locale-v28") || localStorage.getItem("spese-pwa-locale-v27") || localStorage.getItem("spese-pwa-locale-v26") || localStorage.getItem("spese-pwa-locale-v25") || localStorage.getItem("spese-pwa-locale-v24") || localStorage.getItem("spese-pwa-locale-v23") || localStorage.getItem("spese-pwa-locale-v22") || localStorage.getItem("spese-pwa-locale-v21") || localStorage.getItem("spese-pwa-locale-v20") || localStorage.getItem("spese-pwa-locale-v19") || localStorage.getItem("spese-pwa-locale-v18") || localStorage.getItem("spese-pwa-locale-v17") || localStorage.getItem("spese-pwa-locale-v16") || localStorage.getItem("spese-pwa-locale-v15") || localStorage.getItem("spese-pwa-locale-v14") || localStorage.getItem("spese-pwa-locale-v13") || localStorage.getItem("spese-pwa-locale-v12") || localStorage.getItem("spese-pwa-locale-v11") || localStorage.getItem("spese-pwa-locale-v10") || localStorage.getItem("spese-pwa-locale-v9") || localStorage.getItem("spese-pwa-locale-v8") || localStorage.getItem("spese-pwa-locale-v7") || localStorage.getItem("spese-pwa-locale-v6") || localStorage.getItem("spese-pwa-locale-v5") || localStorage.getItem("spese-pwa-locale-v4") || localStorage.getItem("spese-pwa-locale-v3") || localStorage.getItem("spese-pwa-locale-v2") || localStorage.getItem("spese-pwa-locale-v1");
+    const oldSaved = localStorage.getItem("spese-pwa-locale-v46") || localStorage.getItem("spese-pwa-locale-v45") || localStorage.getItem("spese-pwa-locale-v44") || localStorage.getItem("spese-pwa-locale-v43") || localStorage.getItem("spese-pwa-locale-v42") || localStorage.getItem("spese-pwa-locale-v41") || localStorage.getItem("spese-pwa-locale-v40") || localStorage.getItem("spese-pwa-locale-v39") || localStorage.getItem("spese-pwa-locale-v38") || localStorage.getItem("spese-pwa-locale-v37") || localStorage.getItem("spese-pwa-locale-v36") || localStorage.getItem("spese-pwa-locale-v35") || localStorage.getItem("spese-pwa-locale-v34") || localStorage.getItem("spese-pwa-locale-v33") || localStorage.getItem("spese-pwa-locale-v32") || localStorage.getItem("spese-pwa-locale-v31") || localStorage.getItem("spese-pwa-locale-v30") || localStorage.getItem("spese-pwa-locale-v29") || localStorage.getItem("spese-pwa-locale-v28") || localStorage.getItem("spese-pwa-locale-v27") || localStorage.getItem("spese-pwa-locale-v26") || localStorage.getItem("spese-pwa-locale-v25") || localStorage.getItem("spese-pwa-locale-v24") || localStorage.getItem("spese-pwa-locale-v23") || localStorage.getItem("spese-pwa-locale-v22") || localStorage.getItem("spese-pwa-locale-v21") || localStorage.getItem("spese-pwa-locale-v20") || localStorage.getItem("spese-pwa-locale-v19") || localStorage.getItem("spese-pwa-locale-v18") || localStorage.getItem("spese-pwa-locale-v17") || localStorage.getItem("spese-pwa-locale-v16") || localStorage.getItem("spese-pwa-locale-v15") || localStorage.getItem("spese-pwa-locale-v14") || localStorage.getItem("spese-pwa-locale-v13") || localStorage.getItem("spese-pwa-locale-v12") || localStorage.getItem("spese-pwa-locale-v11") || localStorage.getItem("spese-pwa-locale-v10") || localStorage.getItem("spese-pwa-locale-v9") || localStorage.getItem("spese-pwa-locale-v8") || localStorage.getItem("spese-pwa-locale-v7") || localStorage.getItem("spese-pwa-locale-v6") || localStorage.getItem("spese-pwa-locale-v5") || localStorage.getItem("spese-pwa-locale-v4") || localStorage.getItem("spese-pwa-locale-v3") || localStorage.getItem("spese-pwa-locale-v2") || localStorage.getItem("spese-pwa-locale-v1");
     if (oldSaved) {
       try {
         const oldState = JSON.parse(oldSaved);
@@ -108,11 +111,21 @@ function migrateState(rawState) {
     }
   });
 
-  migrated.expenses = migrated.expenses.map(expense => ({
-    ...expense,
-    month: expense.month || getMonthFromDate(expense.date),
-    type: expense.type || "single"
-  }));
+  migrated.expenses = migrated.expenses.map(expense => {
+    const amount = roundToTwoDecimals(Number(expense.amount || 0));
+    const paymentBreakdown = Array.isArray(expense.paymentBreakdown) && expense.paymentBreakdown.length > 0
+      ? normalizePaymentBreakdown(expense.paymentBreakdown, amount)
+      : [{ method: expense.paymentMethod || "Bancomat", amount }];
+
+    return {
+      ...expense,
+      amount,
+      month: expense.month || getMonthFromDate(expense.date),
+      type: expense.type || "single",
+      paymentMethod: getPaymentMethodLabel(paymentBreakdown),
+      paymentBreakdown
+    };
+  });
 
   migrated.reimbursements = migrated.reimbursements.map(reimbursement => ({
     id: reimbursement.id || createId(),
@@ -329,36 +342,308 @@ function ensureSelectedExpensesMonth() {
 }
 
 
+function roundPaymentBreakdownForTotal(paymentBreakdown, totalAmount) {
+  const normalized = (paymentBreakdown || [])
+    .map(item => ({
+      method: item.method || "Altro",
+      amount: roundToTwoDecimals(Number(item.amount || 0))
+    }))
+    .filter(item => item.amount > 0);
+
+  const total = roundToTwoDecimals(Number(totalAmount || 0));
+
+  if (normalized.length === 0) {
+    return [{ method: "Bancomat", amount: total }];
+  }
+
+  const currentTotal = roundToTwoDecimals(normalized.reduce((sum, item) => sum + item.amount, 0));
+  const difference = roundToTwoDecimals(total - currentTotal);
+
+  if (Math.abs(difference) >= 0.01) {
+    normalized[normalized.length - 1].amount = roundToTwoDecimals(normalized[normalized.length - 1].amount + difference);
+  }
+
+  return normalized.filter(item => item.amount > 0);
+}
+
+function normalizePaymentBreakdown(paymentBreakdown, totalAmount) {
+  return roundPaymentBreakdownForTotal(paymentBreakdown, totalAmount);
+}
+
+function getPaymentMethodLabel(paymentBreakdown) {
+  const validRows = (paymentBreakdown || []).filter(row => Number(row.amount || 0) > 0);
+  if (validRows.length === 0) return "Bancomat";
+  if (validRows.length === 1) return validRows[0].method || "Altro";
+  return "Pagamento misto";
+}
+
+function getPaymentBreakdown(expense) {
+  if (Array.isArray(expense.paymentBreakdown) && expense.paymentBreakdown.length > 0) {
+    return normalizePaymentBreakdown(expense.paymentBreakdown, expense.amount);
+  }
+
+  return [{
+    method: expense.paymentMethod || "Bancomat",
+    amount: roundToTwoDecimals(Number(expense.amount || 0))
+  }];
+}
+
+function getVoucherAmount(expense) {
+  return roundToTwoDecimals(getPaymentBreakdown(expense).reduce((sum, row) => {
+    return sum + (String(row.method || "").toLowerCase() === "voucher" ? Number(row.amount || 0) : 0);
+  }, 0));
+}
+
+function getBudgetRelevantAmount(expense) {
+  return roundToTwoDecimals(Math.max(0, Number(expense.amount || 0) - getVoucherAmount(expense)));
+}
+
+function getPaymentBreakdownText(expense) {
+  return getPaymentBreakdown(expense)
+    .map(row => `${escapeHtml(row.method)} ${formatCurrency(row.amount)}`)
+    .join(" · ");
+}
+
+function splitPaymentBreakdownForInstallment(paymentBreakdown, installmentAmount, totalAmount) {
+  const total = Number(totalAmount || 0);
+  const amount = roundToTwoDecimals(Number(installmentAmount || 0));
+
+  if (!total || total <= 0) {
+    return [{ method: "Bancomat", amount }];
+  }
+
+  const rows = getPaymentBreakdown({ paymentBreakdown, amount: total });
+  const splitRows = rows.map(row => ({
+    method: row.method,
+    amount: Math.floor(((Number(row.amount || 0) / total) * amount) * 100) / 100
+  }));
+
+  const currentTotal = roundToTwoDecimals(splitRows.reduce((sum, row) => sum + row.amount, 0));
+  const difference = roundToTwoDecimals(amount - currentTotal);
+
+  if (splitRows.length > 0) {
+    splitRows[splitRows.length - 1].amount = roundToTwoDecimals(splitRows[splitRows.length - 1].amount + difference);
+  }
+
+  return splitRows.filter(row => row.amount > 0);
+}
+
+function getPaymentMethodOptions(selectedMethod = "Bancomat") {
+  return paymentMethods.map(method => `
+    <option value="${escapeAttributeForHtml(method)}" ${method === selectedMethod ? "selected" : ""}>
+      ${escapeHtml(method)}
+    </option>
+  `).join("");
+}
+
+function isPaymentSplitModeActive() {
+  const splitBox = document.getElementById("paymentSplitBox");
+  return Boolean(splitBox && !splitBox.classList.contains("hidden"));
+}
+
+function showPaymentSplitModeFromSingle() {
+  const amountInput = document.getElementById("amount");
+  const singleMethod = document.getElementById("paymentMethod")?.value || "Bancomat";
+  const totalAmount = amountInput?.value || "";
+
+  paymentSplitRows = [
+    { id: createId(), method: singleMethod, amount: totalAmount },
+    { id: createId(), method: "Bancomat", amount: "" }
+  ];
+
+  const singleBox = document.getElementById("singlePaymentMethodBox");
+  const splitBox = document.getElementById("paymentSplitBox");
+
+  if (singleBox) singleBox.classList.add("hidden");
+  if (splitBox) splitBox.classList.remove("hidden");
+
+  renderPaymentSplitRows();
+}
+
+function hidePaymentSplitMode() {
+  const singleBox = document.getElementById("singlePaymentMethodBox");
+  const splitBox = document.getElementById("paymentSplitBox");
+
+  if (singleBox) singleBox.classList.remove("hidden");
+  if (splitBox) splitBox.classList.add("hidden");
+
+  paymentSplitRows = [];
+}
+
+function renderPaymentSplitRows() {
+  const container = document.getElementById("paymentSplitRows");
+  if (!container) return;
+
+  if (!Array.isArray(paymentSplitRows) || paymentSplitRows.length === 0) {
+    paymentSplitRows = [{ id: createId(), method: "Bancomat", amount: "" }];
+  }
+
+  container.innerHTML = paymentSplitRows.map((row, index) => `
+    <div class="payment-split-row" data-row-id="${escapeAttributeForHtml(row.id)}">
+      <select class="payment-split-method" aria-label="Metodo pagamento">
+        ${getPaymentMethodOptions(row.method)}
+      </select>
+      <input class="payment-split-amount" type="number" step="0.01" min="0" placeholder="Importo" value="${escapeAttributeForHtml(row.amount ?? "")}" aria-label="Importo metodo pagamento" />
+      <button class="secondary small payment-remove-button" type="button" onclick="removePaymentSplitRow('${escapeAttributeForHtml(row.id)}')" ${paymentSplitRows.length === 1 ? "disabled" : ""}>-</button>
+    </div>
+  `).join("");
+}
+
+function syncPaymentSplitRowsFromDom() {
+  const rows = [...document.querySelectorAll("#paymentSplitRows .payment-split-row")];
+  if (rows.length === 0) return;
+
+  paymentSplitRows = rows.map(row => ({
+    id: row.dataset.rowId || createId(),
+    method: row.querySelector(".payment-split-method")?.value || "Altro",
+    amount: row.querySelector(".payment-split-amount")?.value || ""
+  }));
+}
+
+function addPaymentSplitRow() {
+  syncPaymentSplitRowsFromDom();
+  paymentSplitRows.push({ id: createId(), method: "Bancomat", amount: "" });
+  renderPaymentSplitRows();
+}
+
+function removePaymentSplitRow(id) {
+  syncPaymentSplitRowsFromDom();
+  paymentSplitRows = paymentSplitRows.filter(row => row.id !== id);
+
+  if (paymentSplitRows.length === 0) {
+    paymentSplitRows = [{ id: createId(), method: "Bancomat", amount: "" }];
+  }
+
+  renderPaymentSplitRows();
+}
+
+function resetPaymentSplitRows(totalAmount = "") {
+  hidePaymentSplitMode();
+  const amountInput = document.getElementById("amount");
+  if (amountInput && totalAmount) amountInput.value = String(totalAmount);
+}
+
+function collectPaymentBreakdownFromForm(totalAmount) {
+  const total = roundToTwoDecimals(Number(totalAmount || 0));
+
+  if (!isPaymentSplitModeActive()) {
+    const method = document.getElementById("paymentMethod")?.value || "Bancomat";
+    return [{ method, amount: total }];
+  }
+
+  const rows = [...document.querySelectorAll("#paymentSplitRows .payment-split-row")];
+  const breakdown = rows.map(row => ({
+    method: row.querySelector(".payment-split-method")?.value || "Altro",
+    amount: roundToTwoDecimals(Number(row.querySelector(".payment-split-amount")?.value || 0))
+  })).filter(row => row.amount > 0);
+
+  if (breakdown.length === 0) {
+    alert("Inserisci almeno un metodo di pagamento con importo maggiore di zero.");
+    return null;
+  }
+
+  const methodsTotal = roundToTwoDecimals(breakdown.reduce((sum, row) => sum + row.amount, 0));
+
+  if (Math.abs(methodsTotal - total) >= 0.01) {
+    alert(`La somma dei metodi di pagamento è ${formatCurrency(methodsTotal)}, ma l'importo totale è ${formatCurrency(total)}.`);
+    return null;
+  }
+
+  return breakdown;
+}
+
+function getEditPaymentBreakdownRows(id) {
+  const rows = [...document.querySelectorAll(`#editPaymentSplitRows-${CSS.escape(id)} .payment-split-row`)];
+  return rows.map(row => ({
+    method: row.querySelector(".payment-split-method")?.value || "Altro",
+    amount: roundToTwoDecimals(Number(row.querySelector(".payment-split-amount")?.value || 0))
+  })).filter(row => row.amount > 0);
+}
+
+function addEditPaymentSplitRow(id) {
+  const container = document.getElementById(`editPaymentSplitRows-${id}`);
+  if (!container) return;
+
+  const rowId = createId();
+  container.insertAdjacentHTML("beforeend", renderEditPaymentSplitRow(id, { id: rowId, method: "Bancomat", amount: "" }, false));
+  updateEditPaymentRemoveButtons(id);
+}
+
+function removeEditPaymentSplitRow(id, rowId) {
+  const container = document.getElementById(`editPaymentSplitRows-${id}`);
+  if (!container) return;
+
+  const row = container.querySelector(`[data-row-id="${CSS.escape(rowId)}"]`);
+  if (row) row.remove();
+
+  updateEditPaymentRemoveButtons(id);
+}
+
+function updateEditPaymentRemoveButtons(id) {
+  const rows = [...document.querySelectorAll(`#editPaymentSplitRows-${CSS.escape(id)} .payment-split-row`)];
+  rows.forEach(row => {
+    const button = row.querySelector(".payment-remove-button");
+    if (button) button.disabled = rows.length === 1;
+  });
+}
+
+function renderEditPaymentSplitRow(expenseId, row, disabled = false) {
+  const rowId = row.id || createId();
+  return `
+    <div class="payment-split-row" data-row-id="${escapeAttributeForHtml(rowId)}">
+      <select class="payment-split-method" aria-label="Metodo pagamento" ${disabled ? "disabled" : ""}>
+        ${getPaymentMethodOptions(row.method)}
+      </select>
+      <input class="payment-split-amount" type="number" step="0.01" min="0" placeholder="Importo" value="${Number(row.amount || 0)}" aria-label="Importo metodo pagamento" ${disabled ? "readonly" : ""} />
+      <button class="secondary small payment-remove-button" type="button" onclick="removeEditPaymentSplitRow('${escapeAttributeForHtml(expenseId)}', '${escapeAttributeForHtml(rowId)}')" ${disabled ? "disabled" : ""}>-</button>
+    </div>
+  `;
+}
+
 function getTotal(expenses) {
   return expenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
 }
 
 function isVoucherExpense(expense) {
-  return String(expense.paymentMethod || "").toLowerCase() === "voucher";
+  return getVoucherAmount(expense) >= Number(expense.amount || 0) && Number(expense.amount || 0) > 0;
+}
+
+function hasVoucherAmount(expense) {
+  return getVoucherAmount(expense) > 0;
 }
 
 function getBudgetRelevantExpenses(expenses) {
-  return expenses.filter(expense => !isVoucherExpense(expense));
+  return expenses.filter(expense => getBudgetRelevantAmount(expense) > 0);
 }
 
 function getVoucherExpenses(expenses) {
-  return expenses.filter(expense => isVoucherExpense(expense));
+  return expenses.filter(expense => hasVoucherAmount(expense));
 }
 
 function getBudgetRelevantTotal(expenses) {
-  return getTotal(getBudgetRelevantExpenses(expenses));
+  return roundToTwoDecimals(expenses.reduce((sum, expense) => sum + getBudgetRelevantAmount(expense), 0));
 }
 
 function getVoucherTotal(expenses) {
-  return getTotal(getVoucherExpenses(expenses));
+  return roundToTwoDecimals(expenses.reduce((sum, expense) => sum + getVoucherAmount(expense), 0));
+}
+
+function getReimbursementTotal(expenses) {
+  return getVoucherTotal(expenses);
 }
 
 function getBudgetRelevantTotalsByCategory(expenses) {
-  return getTotalsByCategory(getBudgetRelevantExpenses(expenses));
+  return expenses.reduce((acc, expense) => {
+    acc[expense.category] = roundToTwoDecimals((acc[expense.category] || 0) + getBudgetRelevantAmount(expense));
+    return acc;
+  }, {});
 }
 
 function getVoucherTotalsByCategory(expenses) {
-  return getTotalsByCategory(getVoucherExpenses(expenses));
+  return expenses.reduce((acc, expense) => {
+    acc[expense.category] = roundToTwoDecimals((acc[expense.category] || 0) + getVoucherAmount(expense));
+    return acc;
+  }, {});
 }
 
 function getGenericReimbursementsForMonth(month) {
@@ -600,8 +885,14 @@ function renderExpenseRow(expense, showDelete = false) {
     ? `<span><span class="badge info">Quota ${expense.installmentNumber}/${expense.installmentTotal}</span></span>`
     : "";
 
-  const voucherInfo = isVoucherExpense(expense)
-    ? `<span class="voucher-note">Voucher: non incide sul budget</span>`
+  const voucherAmount = getVoucherAmount(expense);
+  const budgetAmount = getBudgetRelevantAmount(expense);
+  const paymentInfo = getPaymentBreakdown(expense).length > 1
+    ? `<span class="payment-breakdown">${getPaymentBreakdownText(expense)}</span>`
+    : "";
+
+  const voucherInfo = voucherAmount > 0
+    ? `<span class="voucher-note">Voucher esclusi dal budget: ${formatCurrency(voucherAmount)}${budgetAmount > 0 ? ` · Budget: ${formatCurrency(budgetAmount)}` : ""}</span>`
     : "";
 
   const multiTotalInfo = expense.type === "multi"
@@ -626,7 +917,8 @@ function renderExpenseRow(expense, showDelete = false) {
     <div class="expense-row">
       <div class="expense-main">
         <strong>${escapeHtml(expense.category)}</strong>
-        <span>${expense.date} · ${escapeHtml(expense.paymentMethod)}</span>
+        <span>${expense.date} · ${escapeHtml(getPaymentMethodLabel(getPaymentBreakdown(expense)))}</span>
+        ${paymentInfo}
         <span>${escapeHtml(expense.description || "Nessuna descrizione")}</span>
         ${multiInfo}
         ${multiTotalInfo}
@@ -1582,6 +1874,10 @@ function updateGenericReimbursementMode() {
     expenseOnlyFields.classList.toggle("hidden", isGeneric);
   }
 
+  if (isGeneric) {
+    hidePaymentSplitMode();
+  }
+
   if (amountHint) {
     amountHint.textContent = isGeneric
       ? "Importo del rimborso da detrarre dalla categoria scelta."
@@ -1633,7 +1929,6 @@ function addExpense(event) {
   const isMultiMonth = !isGenericReimbursement && document.getElementById("isMultiMonth").checked;
   const numberOfMonths = Number(document.getElementById("numberOfMonths").value || 1);
   const category = document.getElementById("category").value;
-  const paymentMethod = document.getElementById("paymentMethod").value;
   const description = document.getElementById("description").value.trim();
 
   if (!Number.isFinite(totalAmount) || totalAmount <= 0) {
@@ -1643,6 +1938,11 @@ function addExpense(event) {
 
   if (!date) {
     alert("Inserisci una data valida.");
+    return;
+  }
+
+  const paymentBreakdown = isGenericReimbursement ? [] : collectPaymentBreakdownFromForm(totalAmount);
+  if (!isGenericReimbursement && !paymentBreakdown) {
     return;
   }
 
@@ -1674,7 +1974,8 @@ function addExpense(event) {
       category,
       date,
       month: getMonthFromDate(date),
-      paymentMethod,
+      paymentMethod: getPaymentMethodLabel(paymentBreakdown),
+      paymentBreakdown,
       description,
       type: "single"
     });
@@ -1702,7 +2003,8 @@ function addExpense(event) {
         category,
         date: installmentDate,
         month: installmentTarget.monthKey,
-        paymentMethod,
+        paymentMethod: getPaymentMethodLabel(splitPaymentBreakdownForInstallment(paymentBreakdown, amounts[i], totalAmount)),
+        paymentBreakdown: splitPaymentBreakdownForInstallment(paymentBreakdown, amounts[i], totalAmount),
         description: description || `Spesa plurimensile`,
         type: "multi",
         installmentNumber: i + 1,
@@ -1717,6 +2019,7 @@ function addExpense(event) {
   resetReimbursementSourceMode();
   setDefaultDate();
   updateGenericReimbursementMode();
+  resetPaymentSplitRows();
   document.getElementById("multiMonthOptions").classList.add("hidden");
   showView("dashboardView");
   renderAll();
@@ -1767,14 +2070,6 @@ function renderEditExpenseForm(expense) {
     `)
     .join("");
 
-  const paymentMethods = ["Contanti", "Carta", "Bancomat", "Bonifico", "Voucher", "Altro"];
-  const paymentOptions = paymentMethods
-    .map(method => `
-      <option value="${escapeHtml(method)}" ${method === expense.paymentMethod ? "selected" : ""}>
-        ${escapeHtml(method)}
-      </option>
-    `)
-    .join("");
 
   const isMulti = expense.type === "multi";
   const multiWarning = isMulti
@@ -1798,7 +2093,7 @@ function renderEditExpenseForm(expense) {
 
         <label class="checkbox-row">
           <input id="editApplyText-${expense.id}" type="checkbox" />
-          <span>Applica categoria, metodo pagamento e descrizione a tutte le quote</span>
+          <span>Applica categoria, descrizione e metodi di pagamento a tutte le quote</span>
         </label>
 
         <label class="checkbox-row">
@@ -1837,12 +2132,16 @@ function renderEditExpenseForm(expense) {
         <input id="editDate-${expense.id}" type="date" value="${escapeHtml(expense.date)}" required />
       </label>
 
-      <label>
-        Metodo pagamento
-        <select id="editPaymentMethod-${expense.id}">
-          ${paymentOptions}
-        </select>
-      </label>
+      <div class="payment-split-box">
+        <div class="section-title compact-title">
+          <strong>Metodi di pagamento</strong>
+          <button class="secondary small" type="button" onclick="addEditPaymentSplitRow('${expense.id}')">+ Aggiungi metodo</button>
+        </div>
+        <div id="editPaymentSplitRows-${expense.id}" class="payment-split-rows">
+          ${getPaymentBreakdown(expense).map(row => renderEditPaymentSplitRow(expense.id, row, false)).join("")}
+        </div>
+        ${isMulti ? `<p class="hint">Puoi modificare i metodi della singola quota oppure applicarli a tutte le quote collegate usando l'opzione sotto.</p>` : ""}
+      </div>
 
       <label>
         Descrizione
@@ -1885,12 +2184,32 @@ function saveEditedExpense(event, id) {
   const amount = Number(document.getElementById(`editAmount-${id}`).value || 0);
   const category = document.getElementById(`editCategory-${id}`).value;
   const date = document.getElementById(`editDate-${id}`).value;
-  const paymentMethod = document.getElementById(`editPaymentMethod-${id}`).value;
   const description = document.getElementById(`editDescription-${id}`).value.trim();
+  const editPaymentBreakdown = getEditPaymentBreakdownRows(id);
+  const editPaymentTotal = roundToTwoDecimals(editPaymentBreakdown.reduce((sum, row) => sum + Number(row.amount || 0), 0));
 
   const isMulti = existingExpense.type === "multi" && existingExpense.groupId;
   const applyTextToAll = isMulti && document.getElementById(`editApplyText-${id}`)?.checked;
   const redistributeAmount = isMulti && document.getElementById(`editRedistributeAmount-${id}`)?.checked;
+
+  if ((!isMulti || applyTextToAll) && editPaymentBreakdown.length === 0) {
+    alert("Inserisci almeno un metodo di pagamento.");
+    return;
+  }
+
+  if ((!isMulti || !applyTextToAll) && Math.abs(editPaymentTotal - roundToTwoDecimals(amount)) >= 0.01) {
+    alert(`La somma dei metodi di pagamento è ${formatCurrency(editPaymentTotal)}, ma l'importo della spesa è ${formatCurrency(amount)}.`);
+    return;
+  }
+
+  if (isMulti && applyTextToAll) {
+    const totalForPayments = Number(document.getElementById(`editOriginalAmount-${id}`)?.value || getMultiTotalAmount(existingExpense));
+    const expectedTotal = roundToTwoDecimals(totalForPayments);
+    if (Math.abs(editPaymentTotal - expectedTotal) >= 0.01) {
+      alert(`Per applicare i metodi a tutte le quote, la somma dei metodi deve essere ${formatCurrency(expectedTotal)}.`);
+      return;
+    }
+  }
 
   if (!isMulti) {
     state.expenses[expenseIndex] = {
@@ -1899,7 +2218,8 @@ function saveEditedExpense(event, id) {
       category,
       date,
       month: getMonthFromDate(date),
-      paymentMethod,
+      paymentMethod: getPaymentMethodLabel(editPaymentBreakdown),
+      paymentBreakdown: normalizePaymentBreakdown(editPaymentBreakdown, amount),
       description
     };
   } else {
@@ -1913,7 +2233,8 @@ function saveEditedExpense(event, id) {
         return {
           ...expense,
           category,
-          paymentMethod,
+          paymentMethod: getPaymentMethodLabel(splitPaymentBreakdownForInstallment(editPaymentBreakdown, expense.amount, getMultiTotalAmount(existingExpense))),
+          paymentBreakdown: splitPaymentBreakdownForInstallment(editPaymentBreakdown, expense.amount, getMultiTotalAmount(existingExpense)),
           description
         };
       });
@@ -1939,6 +2260,8 @@ function saveEditedExpense(event, id) {
         return {
           ...expense,
           amount: amountById.get(expense.id),
+          paymentBreakdown: splitPaymentBreakdownForInstallment(applyTextToAll ? editPaymentBreakdown : getPaymentBreakdown(expense), amountById.get(expense.id), totalAmount),
+          paymentMethod: getPaymentMethodLabel(splitPaymentBreakdownForInstallment(applyTextToAll ? editPaymentBreakdown : getPaymentBreakdown(expense), amountById.get(expense.id), totalAmount)),
           originalAmount: roundToTwoDecimals(totalAmount)
         };
       });
@@ -1952,7 +2275,8 @@ function saveEditedExpense(event, id) {
         category: applyTextToAll ? state.expenses[updatedIndex].category : category,
         date,
         month: getMonthFromDate(date),
-        paymentMethod: applyTextToAll ? state.expenses[updatedIndex].paymentMethod : paymentMethod,
+        paymentMethod: applyTextToAll ? state.expenses[updatedIndex].paymentMethod : getPaymentMethodLabel(normalizePaymentBreakdown(editPaymentBreakdown, amount)),
+        paymentBreakdown: applyTextToAll ? state.expenses[updatedIndex].paymentBreakdown : normalizePaymentBreakdown(editPaymentBreakdown, amount),
         description: applyTextToAll ? state.expenses[updatedIndex].description : description,
         originalAmount: redistributeAmount
           ? state.expenses[updatedIndex].originalAmount
@@ -2177,6 +2501,9 @@ function exportCsv() {
     "Metodo pagamento",
     "Descrizione",
     "Importo",
+    "Budget",
+    "Voucher",
+    "Metodi pagamento",
     "Rileva budget",
     "Tipo",
     "Quota"
@@ -2189,7 +2516,10 @@ function exportCsv() {
     expense.paymentMethod,
     expense.description,
     expense.amount,
-    isVoucherExpense(expense) ? "No" : "Sì",
+    getBudgetRelevantAmount(expense),
+    getVoucherAmount(expense),
+    getPaymentBreakdown(expense).map(row => `${row.method} ${formatCurrency(row.amount)}`).join(" | "),
+    getBudgetRelevantAmount(expense) > 0 ? "Sì" : "No",
     expense.type === "multi" ? "Plurimensile" : "Singola",
     expense.type === "multi" ? `${expense.installmentNumber}/${expense.installmentTotal}` : ""
   ]);
@@ -2201,6 +2531,9 @@ function exportCsv() {
     "Rimborso generico",
     reimbursement.description,
     -Math.abs(Number(reimbursement.amount || 0)),
+    -Math.abs(Number(reimbursement.amount || 0)),
+    0,
+    "Rimborso generico",
     "Riduce budget",
     "Rimborso generico",
     ""
@@ -2358,6 +2691,29 @@ document.querySelectorAll(".bottom-nav button").forEach(button => {
 });
 
 document.getElementById("expenseForm").addEventListener("submit", addExpense);
+
+const addPaymentMethodButton = document.getElementById("addPaymentMethodButton");
+if (addPaymentMethodButton) {
+  addPaymentMethodButton.addEventListener("click", showPaymentSplitModeFromSingle);
+}
+
+const addPaymentSplitRowButton = document.getElementById("addPaymentSplitRowButton");
+if (addPaymentSplitRowButton) {
+  addPaymentSplitRowButton.addEventListener("click", addPaymentSplitRow);
+}
+
+const amountInputForPaymentSplit = document.getElementById("amount");
+if (amountInputForPaymentSplit) {
+  amountInputForPaymentSplit.addEventListener("change", () => {
+    if (!isPaymentSplitModeActive()) return;
+
+    syncPaymentSplitRowsFromDom();
+    if (paymentSplitRows.length === 1 && !paymentSplitRows[0].amount) {
+      paymentSplitRows[0].amount = amountInputForPaymentSplit.value;
+      renderPaymentSplitRows();
+    }
+  });
+}
 
 
 document.getElementById("thresholdForm").addEventListener("submit", saveThresholds);
