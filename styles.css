@@ -988,3 +988,74 @@ input[readonly] {
     width: 100%;
   }
 }
+
+/* V.44 - periodo spese a scomparsa e Dal/Al sulla stessa riga */
+.expenses-period-filter {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 0;
+  margin-bottom: 14px;
+  background: #ffffff;
+}
+
+.expenses-period-filter summary {
+  cursor: pointer;
+  padding: 12px 14px;
+  list-style: none;
+}
+
+.expenses-period-filter summary::-webkit-details-marker {
+  display: none;
+}
+
+.expenses-period-content {
+  display: grid;
+  gap: 12px;
+  padding: 0 14px 14px;
+}
+
+.expenses-date-range {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+  align-items: end;
+}
+
+.expenses-date-range input[type="date"] {
+  min-width: 0;
+  width: 100%;
+  font-size: 0.92rem;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.expenses-period-filter .filter-actions {
+  justify-content: flex-start;
+}
+
+@media (max-width: 520px) {
+  .expenses-date-range {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .expenses-date-range label {
+    min-width: 0;
+  }
+
+  .expenses-date-range input[type="date"] {
+    font-size: 0.84rem;
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+
+  .expenses-period-filter .filter-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .expenses-period-filter .filter-actions button {
+    width: 100%;
+  }
+}

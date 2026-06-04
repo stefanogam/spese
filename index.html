@@ -13,7 +13,7 @@
     <header class="app-header">
       <div>
         <h1>Spese Mensili</h1>
-        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.43</span></p>
+        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.44</span></p>
       </div>
       <button id="installButton" class="secondary hidden">Installa</button>
     </header>
@@ -29,7 +29,7 @@
 
         <div class="card compact version-card">
           <span>Versione app</span>
-          <strong>V.43</strong>
+          <strong>V.44</strong>
         </div>
 
         <div class="card hero">
@@ -145,29 +145,36 @@
             <button id="exportCsvButton" class="secondary">CSV</button>
           </div>
 
-          <div class="expenses-period-filter">
-            <label class="expenses-month-selector">
-              Selezione rapida mese
-              <select id="expensesMonthSelect"></select>
-            </label>
+          <details class="expenses-period-filter" id="expensesPeriodFilterPanel">
+            <summary class="filter-header">
+              <strong>Periodo da visualizzare</strong>
+              <span id="expensesPeriodSummary" class="filter-summary">Mese corrente</span>
+            </summary>
 
-            <div class="expenses-date-range">
-              <label>
-                Dal
-                <input id="expensesDateFrom" type="date" />
+            <div class="expenses-period-content">
+              <label class="expenses-month-selector">
+                Selezione rapida mese
+                <select id="expensesMonthSelect"></select>
               </label>
 
-              <label>
-                Al
-                <input id="expensesDateTo" type="date" />
-              </label>
-            </div>
+              <div class="expenses-date-range">
+                <label>
+                  Dal
+                  <input id="expensesDateFrom" type="date" />
+                </label>
 
-            <div class="filter-actions">
-              <button id="applyExpensesPeriodButton" class="secondary small" type="button">Applica</button>
-              <button id="currentExpensesMonthButton" class="secondary small" type="button">Mese corrente</button>
+                <label>
+                  Al
+                  <input id="expensesDateTo" type="date" />
+                </label>
+              </div>
+
+              <div class="filter-actions">
+                <button id="applyExpensesPeriodButton" class="secondary small" type="button">Applica</button>
+                <button id="currentExpensesMonthButton" class="secondary small" type="button">Mese corrente</button>
+              </div>
             </div>
-          </div>
+          </details>
 
           <details class="expense-category-filter" id="expenseCategoryFilterPanel">
             <summary class="filter-header">
