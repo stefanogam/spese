@@ -13,7 +13,7 @@
     <header class="app-header">
       <div>
         <h1>Spese Mensili</h1>
-        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.50</span></p>
+        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.51</span></p>
       </div>
       <button id="installButton" class="secondary hidden">Installa</button>
     </header>
@@ -29,7 +29,7 @@
 
         <div class="card compact version-card">
           <span>Versione app</span>
-          <strong>V.50</strong>
+          <strong>V.51</strong>
         </div>
 
         <div class="card hero">
@@ -155,16 +155,18 @@
       <section id="expensesView" class="view">
         <div class="card">
           <div class="section-title expenses-title-row">
-            <div class="title-with-total">
-              <h2>Spese</h2>
+            <div class="title-with-total expenses-title-with-csv">
+              <div class="title-and-csv">
+                <h2>Spese</h2>
+                <button id="exportCsvButton" class="secondary small">CSV</button>
+              </div>
               <span id="visibleExpensesTotal" class="section-total">Totale: 0,00 €</span>
             </div>
-            <button id="exportCsvButton" class="secondary">CSV</button>
           </div>
 
           <details class="expenses-period-filter" id="expensesPeriodFilterPanel">
             <summary class="filter-header">
-              <strong>Periodo da visualizzare</strong>
+              <strong>Periodo</strong>
               <span id="expensesPeriodSummary" class="filter-summary">Mese corrente</span>
             </summary>
 
@@ -195,7 +197,7 @@
 
           <details class="expense-category-filter" id="expenseCategoryFilterPanel">
             <summary class="filter-header">
-              <strong>Categorie da visualizzare</strong>
+              <strong>Categorie</strong>
               <span id="expenseCategoryFilterSummary" class="filter-summary">Tutte</span>
             </summary>
 
@@ -209,7 +211,7 @@
 
           <details class="expense-search-filter" id="expenseDescriptionSearchPanel">
             <summary class="filter-header">
-              <strong>Ricerca nella descrizione</strong>
+              <strong>Descrizione</strong>
               <span id="expenseDescriptionSearchSummary" class="filter-summary">Nessuna ricerca</span>
             </summary>
 
@@ -278,7 +280,7 @@
 
           <details class="expense-category-filter" id="multiReportCategoryFilterPanel">
             <summary class="filter-header">
-              <strong>Categorie da visualizzare</strong>
+              <strong>Categorie</strong>
               <span id="multiReportCategoryFilterSummary" class="filter-summary">Tutte</span>
             </summary>
 

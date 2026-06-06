@@ -1296,3 +1296,79 @@ input[readonly] {
     font-size: 1.08rem;
   }
 }
+
+/* V.51 - etichette compatte e CSV accanto al titolo Spese */
+.expenses-title-with-csv {
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title-and-csv {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.title-and-csv h2 {
+  margin-bottom: 0;
+}
+
+.title-and-csv #exportCsvButton {
+  min-height: 34px;
+  padding: 6px 10px;
+  line-height: 1;
+}
+
+@media (max-width: 520px) {
+  .expenses-title-row {
+    display: block;
+  }
+
+  .expenses-title-with-csv {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  .title-and-csv {
+    flex: 0 1 auto;
+  }
+
+  .title-and-csv h2 {
+    font-size: 1.14rem;
+  }
+
+  .title-and-csv #exportCsvButton {
+    width: auto;
+    min-height: 32px;
+    padding: 5px 9px;
+    font-size: 0.82rem;
+  }
+
+  .expenses-title-with-csv .section-total {
+    margin-left: auto;
+    font-size: 0.86rem;
+    text-align: right;
+  }
+}
+
+@media (max-width: 360px) {
+  .title-and-csv {
+    gap: 6px;
+  }
+
+  .title-and-csv h2 {
+    font-size: 1.04rem;
+  }
+
+  .title-and-csv #exportCsvButton {
+    padding: 5px 7px;
+    font-size: 0.78rem;
+  }
+
+  .expenses-title-with-csv .section-total {
+    font-size: 0.78rem;
+  }
+}
