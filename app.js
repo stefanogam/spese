@@ -1,5 +1,5 @@
-const STORAGE_KEY = "spese-pwa-locale-v47";
-const APP_VERSION = "V.47";
+const STORAGE_KEY = "spese-pwa-locale-v49";
+const APP_VERSION = "V.49";
 
 const defaultCategories = [
   "Alimentari",
@@ -62,7 +62,7 @@ function loadState() {
   const saved = localStorage.getItem(STORAGE_KEY);
 
   if (!saved) {
-    const oldSaved = localStorage.getItem("spese-pwa-locale-v46") || localStorage.getItem("spese-pwa-locale-v45") || localStorage.getItem("spese-pwa-locale-v44") || localStorage.getItem("spese-pwa-locale-v43") || localStorage.getItem("spese-pwa-locale-v42") || localStorage.getItem("spese-pwa-locale-v41") || localStorage.getItem("spese-pwa-locale-v40") || localStorage.getItem("spese-pwa-locale-v39") || localStorage.getItem("spese-pwa-locale-v38") || localStorage.getItem("spese-pwa-locale-v37") || localStorage.getItem("spese-pwa-locale-v36") || localStorage.getItem("spese-pwa-locale-v35") || localStorage.getItem("spese-pwa-locale-v34") || localStorage.getItem("spese-pwa-locale-v33") || localStorage.getItem("spese-pwa-locale-v32") || localStorage.getItem("spese-pwa-locale-v31") || localStorage.getItem("spese-pwa-locale-v30") || localStorage.getItem("spese-pwa-locale-v29") || localStorage.getItem("spese-pwa-locale-v28") || localStorage.getItem("spese-pwa-locale-v27") || localStorage.getItem("spese-pwa-locale-v26") || localStorage.getItem("spese-pwa-locale-v25") || localStorage.getItem("spese-pwa-locale-v24") || localStorage.getItem("spese-pwa-locale-v23") || localStorage.getItem("spese-pwa-locale-v22") || localStorage.getItem("spese-pwa-locale-v21") || localStorage.getItem("spese-pwa-locale-v20") || localStorage.getItem("spese-pwa-locale-v19") || localStorage.getItem("spese-pwa-locale-v18") || localStorage.getItem("spese-pwa-locale-v17") || localStorage.getItem("spese-pwa-locale-v16") || localStorage.getItem("spese-pwa-locale-v15") || localStorage.getItem("spese-pwa-locale-v14") || localStorage.getItem("spese-pwa-locale-v13") || localStorage.getItem("spese-pwa-locale-v12") || localStorage.getItem("spese-pwa-locale-v11") || localStorage.getItem("spese-pwa-locale-v10") || localStorage.getItem("spese-pwa-locale-v9") || localStorage.getItem("spese-pwa-locale-v8") || localStorage.getItem("spese-pwa-locale-v7") || localStorage.getItem("spese-pwa-locale-v6") || localStorage.getItem("spese-pwa-locale-v5") || localStorage.getItem("spese-pwa-locale-v4") || localStorage.getItem("spese-pwa-locale-v3") || localStorage.getItem("spese-pwa-locale-v2") || localStorage.getItem("spese-pwa-locale-v1");
+    const oldSaved = localStorage.getItem("spese-pwa-locale-v48") || localStorage.getItem("spese-pwa-locale-v47") || localStorage.getItem("spese-pwa-locale-v46") || localStorage.getItem("spese-pwa-locale-v45") || localStorage.getItem("spese-pwa-locale-v44") || localStorage.getItem("spese-pwa-locale-v43") || localStorage.getItem("spese-pwa-locale-v42") || localStorage.getItem("spese-pwa-locale-v41") || localStorage.getItem("spese-pwa-locale-v40") || localStorage.getItem("spese-pwa-locale-v39") || localStorage.getItem("spese-pwa-locale-v38") || localStorage.getItem("spese-pwa-locale-v37") || localStorage.getItem("spese-pwa-locale-v36") || localStorage.getItem("spese-pwa-locale-v35") || localStorage.getItem("spese-pwa-locale-v34") || localStorage.getItem("spese-pwa-locale-v33") || localStorage.getItem("spese-pwa-locale-v32") || localStorage.getItem("spese-pwa-locale-v31") || localStorage.getItem("spese-pwa-locale-v30") || localStorage.getItem("spese-pwa-locale-v29") || localStorage.getItem("spese-pwa-locale-v28") || localStorage.getItem("spese-pwa-locale-v27") || localStorage.getItem("spese-pwa-locale-v26") || localStorage.getItem("spese-pwa-locale-v25") || localStorage.getItem("spese-pwa-locale-v24") || localStorage.getItem("spese-pwa-locale-v23") || localStorage.getItem("spese-pwa-locale-v22") || localStorage.getItem("spese-pwa-locale-v21") || localStorage.getItem("spese-pwa-locale-v20") || localStorage.getItem("spese-pwa-locale-v19") || localStorage.getItem("spese-pwa-locale-v18") || localStorage.getItem("spese-pwa-locale-v17") || localStorage.getItem("spese-pwa-locale-v16") || localStorage.getItem("spese-pwa-locale-v15") || localStorage.getItem("spese-pwa-locale-v14") || localStorage.getItem("spese-pwa-locale-v13") || localStorage.getItem("spese-pwa-locale-v12") || localStorage.getItem("spese-pwa-locale-v11") || localStorage.getItem("spese-pwa-locale-v10") || localStorage.getItem("spese-pwa-locale-v9") || localStorage.getItem("spese-pwa-locale-v8") || localStorage.getItem("spese-pwa-locale-v7") || localStorage.getItem("spese-pwa-locale-v6") || localStorage.getItem("spese-pwa-locale-v5") || localStorage.getItem("spese-pwa-locale-v4") || localStorage.getItem("spese-pwa-locale-v3") || localStorage.getItem("spese-pwa-locale-v2") || localStorage.getItem("spese-pwa-locale-v1");
     if (oldSaved) {
       try {
         const oldState = JSON.parse(oldSaved);
@@ -1136,6 +1136,8 @@ function renderExpensesList() {
 
   if (state.selectedExpensesDateFrom && state.selectedExpensesDateTo && state.selectedExpensesDateFrom > state.selectedExpensesDateTo) {
     container.innerHTML = `<p class="empty">La data iniziale non può essere successiva alla data finale.</p>`;
+    const visibleExpensesTotal = document.getElementById("visibleExpensesTotal");
+    if (visibleExpensesTotal) visibleExpensesTotal.textContent = `Totale visualizzato: ${formatCurrency(0)}`;
     if (selectedTotal) selectedTotal.textContent = formatCurrency(0);
     renderGenericReimbursementsList();
     return;
@@ -1146,6 +1148,11 @@ function renderExpensesList() {
   const expenses = filterByExpenseDescriptionSearch(filterBySelectedExpenseCategories(
     getExpensesForDateRange(state.selectedExpensesDateFrom, state.selectedExpensesDateTo)
   )).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  const visibleExpensesTotal = document.getElementById("visibleExpensesTotal");
+  if (visibleExpensesTotal) {
+    visibleExpensesTotal.textContent = `Totale visualizzato: ${formatCurrency(getTotal(expenses))}`;
+  }
 
   if (selectedTotal) {
     selectedTotal.textContent = formatCurrency(getTotal(expenses));
@@ -1170,6 +1177,11 @@ function renderGenericReimbursementsList() {
   const reimbursements = filterByExpenseDescriptionSearch(filterBySelectedExpenseCategories(
     getGenericReimbursementsForDateRange(state.selectedExpensesDateFrom, state.selectedExpensesDateTo)
   )).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  const visibleReimbursementsTotal = document.getElementById("visibleReimbursementsTotal");
+  if (visibleReimbursementsTotal) {
+    visibleReimbursementsTotal.textContent = `Totale visualizzato: ${formatCurrency(getGenericReimbursementTotal(reimbursements))}`;
+  }
 
   if (reimbursements.length === 0) {
     container.innerHTML = `<p class="empty">Nessun rimborso generico per il periodo ${periodLabel}.</p>`;

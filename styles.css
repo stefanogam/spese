@@ -1179,3 +1179,54 @@ input[readonly] {
 #paymentSplitBox.hidden {
   display: none;
 }
+
+/* V.48 - totali visualizzati in sezione Spese e Rimborsi */
+.expenses-title-row {
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.section-total {
+  display: inline-block;
+  margin-top: 2px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #374151;
+}
+
+@media (max-width: 520px) {
+  .expenses-title-row {
+    align-items: stretch;
+  }
+
+  .section-total {
+    font-size: 0.9rem;
+  }
+}
+
+/* V.49 - titoli Spese/Rimborsi e totale sulla stessa riga */
+.title-with-total {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.title-with-total h2 {
+  margin-bottom: 0;
+}
+
+.title-with-total .section-total {
+  margin-top: 0;
+  white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+  .title-with-total {
+    gap: 8px;
+  }
+
+  .title-with-total .section-total {
+    font-size: 0.86rem;
+  }
+}
