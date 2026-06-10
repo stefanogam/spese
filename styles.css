@@ -1523,3 +1523,30 @@ input[readonly] {
 .family-budget-table table {
   min-width: 1180px;
 }
+
+/* V.59 - Report bilancio: colonna Mese fissa e Entrate dopo Risultato netto */
+.family-budget-table table th:first-child,
+.family-budget-table table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: #ffffff;
+  box-shadow: 1px 0 0 #e5e7eb;
+}
+
+.family-budget-table table thead th:first-child {
+  z-index: 4;
+}
+
+.family-budget-table table tfoot th:first-child {
+  z-index: 3;
+  background: #f9fafb;
+}
+
+@media (max-width: 520px) {
+  .family-budget-table table th:first-child,
+  .family-budget-table table td:first-child {
+    min-width: 118px;
+    max-width: 118px;
+  }
+}
