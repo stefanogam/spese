@@ -1372,3 +1372,154 @@ input[readonly] {
     font-size: 0.78rem;
   }
 }
+
+/* V.52 - Bilancio familiare */
+.family-income-panel {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.family-income-panel summary {
+  cursor: pointer;
+  padding: 12px 14px;
+  list-style: none;
+}
+
+.family-income-panel summary::-webkit-details-marker {
+  display: none;
+}
+
+.family-income-form {
+  display: grid;
+  gap: 12px;
+  padding: 0 14px 14px;
+}
+
+.income-row {
+  align-items: center;
+}
+
+.income-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.family-budget-summary {
+  margin-bottom: 12px;
+}
+
+.family-budget-table {
+  overflow-x: auto;
+}
+
+.family-budget-table table {
+  min-width: 980px;
+}
+
+.positive-result {
+  color: #047857;
+}
+
+.negative-result {
+  color: #b91c1c;
+}
+
+@media (max-width: 520px) {
+  .income-actions {
+    justify-content: flex-start;
+  }
+
+  .family-income-form .filter-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .family-income-form .filter-actions button {
+    width: 100%;
+  }
+
+  .family-budget-summary strong {
+    display: block;
+    margin-top: 4px;
+    line-height: 1.35;
+  }
+}
+
+/* V.53 - bilancio +/- 6 mesi e menu basso su una riga */
+.family-budget-controls .multi-report-selectors {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.bottom-nav {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+.bottom-nav button {
+  min-width: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 420px) {
+  .bottom-nav {
+    gap: 2px;
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+
+  .bottom-nav button {
+    font-size: 0.68rem;
+    padding-left: 2px;
+    padding-right: 2px;
+  }
+}
+
+@media (max-width: 340px) {
+  .bottom-nav button {
+    font-size: 0.62rem;
+  }
+}
+
+/* V.54 - filtri Report bilancio a scomparsa */
+.family-budget-filter-panel {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #ffffff;
+  margin-bottom: 12px;
+}
+
+.family-budget-filter-panel summary {
+  cursor: pointer;
+  padding: 12px 14px;
+  list-style: none;
+}
+
+.family-budget-filter-panel summary::-webkit-details-marker {
+  display: none;
+}
+
+.family-budget-filter-panel .family-budget-controls {
+  padding: 0 14px 14px;
+}
+
+@media (max-width: 520px) {
+  .family-budget-filter-panel .family-budget-controls {
+    gap: 10px;
+  }
+}
+
+/* V.55 - colonne Voucher/Rimborsi/Risultato netto nel bilancio */
+.family-budget-table table {
+  min-width: 1180px;
+}

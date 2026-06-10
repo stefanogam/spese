@@ -1,5 +1,5 @@
-const STORAGE_KEY = "spese-pwa-locale-v51";
-const APP_VERSION = "V.51";
+const STORAGE_KEY = "spese-pwa-locale-v55";
+const APP_VERSION = "V.55";
 
 const defaultCategories = [
   "Alimentari",
@@ -27,6 +27,10 @@ const initialState = {
   selectedMultiReportMonthsBefore: 0,
   selectedMultiReportMonthsAfter: 0,
   selectedMultiReportCategories: [],
+  selectedFamilyBudgetReferenceMonth: getCurrentMonth(),
+  selectedFamilyBudgetMonthsBefore: 0,
+  selectedFamilyBudgetMonthsAfter: 12,
+  incomes: [],
   categories: [...defaultCategories],
   expenses: [],
   reimbursements: [],
@@ -48,6 +52,7 @@ const initialState = {
 let deferredPrompt = null;
 let editingExpenseId = null;
 let editingReimbursementId = null;
+let editingIncomeId = null;
 let reimbursementSourceExpenseId = null;
 
 function createId() {
@@ -62,7 +67,7 @@ function loadState() {
   const saved = localStorage.getItem(STORAGE_KEY);
 
   if (!saved) {
-    const oldSaved = localStorage.getItem("spese-pwa-locale-v50") || localStorage.getItem("spese-pwa-locale-v49") || localStorage.getItem("spese-pwa-locale-v48") || localStorage.getItem("spese-pwa-locale-v47") || localStorage.getItem("spese-pwa-locale-v46") || localStorage.getItem("spese-pwa-locale-v45") || localStorage.getItem("spese-pwa-locale-v44") || localStorage.getItem("spese-pwa-locale-v43") || localStorage.getItem("spese-pwa-locale-v42") || localStorage.getItem("spese-pwa-locale-v41") || localStorage.getItem("spese-pwa-locale-v40") || localStorage.getItem("spese-pwa-locale-v39") || localStorage.getItem("spese-pwa-locale-v38") || localStorage.getItem("spese-pwa-locale-v37") || localStorage.getItem("spese-pwa-locale-v36") || localStorage.getItem("spese-pwa-locale-v35") || localStorage.getItem("spese-pwa-locale-v34") || localStorage.getItem("spese-pwa-locale-v33") || localStorage.getItem("spese-pwa-locale-v32") || localStorage.getItem("spese-pwa-locale-v31") || localStorage.getItem("spese-pwa-locale-v30") || localStorage.getItem("spese-pwa-locale-v29") || localStorage.getItem("spese-pwa-locale-v28") || localStorage.getItem("spese-pwa-locale-v27") || localStorage.getItem("spese-pwa-locale-v26") || localStorage.getItem("spese-pwa-locale-v25") || localStorage.getItem("spese-pwa-locale-v24") || localStorage.getItem("spese-pwa-locale-v23") || localStorage.getItem("spese-pwa-locale-v22") || localStorage.getItem("spese-pwa-locale-v21") || localStorage.getItem("spese-pwa-locale-v20") || localStorage.getItem("spese-pwa-locale-v19") || localStorage.getItem("spese-pwa-locale-v18") || localStorage.getItem("spese-pwa-locale-v17") || localStorage.getItem("spese-pwa-locale-v16") || localStorage.getItem("spese-pwa-locale-v15") || localStorage.getItem("spese-pwa-locale-v14") || localStorage.getItem("spese-pwa-locale-v13") || localStorage.getItem("spese-pwa-locale-v12") || localStorage.getItem("spese-pwa-locale-v11") || localStorage.getItem("spese-pwa-locale-v10") || localStorage.getItem("spese-pwa-locale-v9") || localStorage.getItem("spese-pwa-locale-v8") || localStorage.getItem("spese-pwa-locale-v7") || localStorage.getItem("spese-pwa-locale-v6") || localStorage.getItem("spese-pwa-locale-v5") || localStorage.getItem("spese-pwa-locale-v4") || localStorage.getItem("spese-pwa-locale-v3") || localStorage.getItem("spese-pwa-locale-v2") || localStorage.getItem("spese-pwa-locale-v1");
+    const oldSaved = localStorage.getItem("spese-pwa-locale-v54") || localStorage.getItem("spese-pwa-locale-v53") || localStorage.getItem("spese-pwa-locale-v52") || localStorage.getItem("spese-pwa-locale-v51") || localStorage.getItem("spese-pwa-locale-v50") || localStorage.getItem("spese-pwa-locale-v49") || localStorage.getItem("spese-pwa-locale-v48") || localStorage.getItem("spese-pwa-locale-v47") || localStorage.getItem("spese-pwa-locale-v46") || localStorage.getItem("spese-pwa-locale-v45") || localStorage.getItem("spese-pwa-locale-v44") || localStorage.getItem("spese-pwa-locale-v43") || localStorage.getItem("spese-pwa-locale-v42") || localStorage.getItem("spese-pwa-locale-v41") || localStorage.getItem("spese-pwa-locale-v40") || localStorage.getItem("spese-pwa-locale-v39") || localStorage.getItem("spese-pwa-locale-v38") || localStorage.getItem("spese-pwa-locale-v37") || localStorage.getItem("spese-pwa-locale-v36") || localStorage.getItem("spese-pwa-locale-v35") || localStorage.getItem("spese-pwa-locale-v34") || localStorage.getItem("spese-pwa-locale-v33") || localStorage.getItem("spese-pwa-locale-v32") || localStorage.getItem("spese-pwa-locale-v31") || localStorage.getItem("spese-pwa-locale-v30") || localStorage.getItem("spese-pwa-locale-v29") || localStorage.getItem("spese-pwa-locale-v28") || localStorage.getItem("spese-pwa-locale-v27") || localStorage.getItem("spese-pwa-locale-v26") || localStorage.getItem("spese-pwa-locale-v25") || localStorage.getItem("spese-pwa-locale-v24") || localStorage.getItem("spese-pwa-locale-v23") || localStorage.getItem("spese-pwa-locale-v22") || localStorage.getItem("spese-pwa-locale-v21") || localStorage.getItem("spese-pwa-locale-v20") || localStorage.getItem("spese-pwa-locale-v19") || localStorage.getItem("spese-pwa-locale-v18") || localStorage.getItem("spese-pwa-locale-v17") || localStorage.getItem("spese-pwa-locale-v16") || localStorage.getItem("spese-pwa-locale-v15") || localStorage.getItem("spese-pwa-locale-v14") || localStorage.getItem("spese-pwa-locale-v13") || localStorage.getItem("spese-pwa-locale-v12") || localStorage.getItem("spese-pwa-locale-v11") || localStorage.getItem("spese-pwa-locale-v10") || localStorage.getItem("spese-pwa-locale-v9") || localStorage.getItem("spese-pwa-locale-v8") || localStorage.getItem("spese-pwa-locale-v7") || localStorage.getItem("spese-pwa-locale-v6") || localStorage.getItem("spese-pwa-locale-v5") || localStorage.getItem("spese-pwa-locale-v4") || localStorage.getItem("spese-pwa-locale-v3") || localStorage.getItem("spese-pwa-locale-v2") || localStorage.getItem("spese-pwa-locale-v1");
     if (oldSaved) {
       try {
         const oldState = JSON.parse(oldSaved);
@@ -95,6 +100,10 @@ function migrateState(rawState) {
     selectedMultiReportMonthsBefore: Number(rawState.selectedMultiReportMonthsBefore || 0),
     selectedMultiReportMonthsAfter: Number(rawState.selectedMultiReportMonthsAfter || 0),
     selectedMultiReportCategories: Array.isArray(rawState.selectedMultiReportCategories) ? rawState.selectedMultiReportCategories : [],
+    selectedFamilyBudgetReferenceMonth: rawState.selectedFamilyBudgetReferenceMonth || getCurrentMonth(),
+    selectedFamilyBudgetMonthsBefore: Number(rawState.selectedFamilyBudgetMonthsBefore ?? 0),
+    selectedFamilyBudgetMonthsAfter: Number(rawState.selectedFamilyBudgetMonthsAfter ?? 12),
+    incomes: Array.isArray(rawState.incomes) ? rawState.incomes : [],
     categories: rawState.categories || [...defaultCategories],
     expenses: Array.isArray(rawState.expenses) ? rawState.expenses : [],
     reimbursements: Array.isArray(rawState.reimbursements) ? rawState.reimbursements : [],
@@ -135,6 +144,13 @@ function migrateState(rawState) {
     month: reimbursement.month || getMonthFromDate(reimbursement.date || getTodayDateString()),
     description: reimbursement.description || ""
   })).filter(reimbursement => reimbursement.amount > 0);
+
+  migrated.incomes = migrated.incomes.map(income => ({
+    id: income.id || createId(),
+    amount: roundToTwoDecimals(Number(income.amount || 0)),
+    month: income.month || getCurrentMonth(),
+    description: income.description || "Entrata"
+  })).filter(income => income.amount > 0);
 
   migrated.thresholds.totalLimit = migrated.categories.reduce((sum, category) => {
     return sum + Number(migrated.thresholds.categoryLimits[category] || 0);
@@ -1862,11 +1878,316 @@ function deleteCategoryByIndex(index) {
   deleteCategory(categoryName);
 }
 
+
+function getFamilyBudgetMonths() {
+  const referenceMonth = state.selectedFamilyBudgetReferenceMonth || getCurrentMonth();
+  const monthsBefore = Math.min(Math.max(Number(state.selectedFamilyBudgetMonthsBefore || 0), 0), 6);
+  const monthsAfter = Math.min(Math.max(Number(state.selectedFamilyBudgetMonthsAfter || 0), 0), 6);
+  return getMonthRangeAround(referenceMonth, monthsBefore, monthsAfter);
+}
+
+function updateFamilyBudgetFilterSummary() {
+  const summary = document.getElementById("familyBudgetFilterSummary");
+  if (!summary) return;
+
+  const referenceMonth = state.selectedFamilyBudgetReferenceMonth || getCurrentMonth();
+  const monthsBefore = Math.min(Math.max(Number(state.selectedFamilyBudgetMonthsBefore || 0), 0), 6);
+  const monthsAfter = Math.min(Math.max(Number(state.selectedFamilyBudgetMonthsAfter || 0), 0), 6);
+
+  summary.textContent = `${getMonthLabel(referenceMonth)} · -${monthsBefore} / +${monthsAfter} mesi`;
+}
+
+function renderFamilyBudgetRangeSelectors() {
+  const beforeSelect = document.getElementById("familyBudgetMonthsBefore");
+  const afterSelect = document.getElementById("familyBudgetMonthsAfter");
+
+  if (!beforeSelect || !afterSelect) return;
+
+  const options = Array.from({ length: 7 }, (_, index) => {
+    return `<option value="${index}">${index}</option>`;
+  }).join("");
+
+  beforeSelect.innerHTML = options;
+  afterSelect.innerHTML = options;
+
+  beforeSelect.value = String(Math.min(Math.max(Number(state.selectedFamilyBudgetMonthsBefore || 0), 0), 6));
+  afterSelect.value = String(Math.min(Math.max(Number(state.selectedFamilyBudgetMonthsAfter || 0), 0), 6));
+}
+
+function getIncomesForMonth(month) {
+  return state.incomes.filter(income => income.month === month);
+}
+
+function getIncomeTotalForMonth(month) {
+  return roundToTwoDecimals(getIncomesForMonth(month).reduce((sum, income) => sum + Number(income.amount || 0), 0));
+}
+
+function getIncomeTotalForMonths(months) {
+  return roundToTwoDecimals(months.reduce((sum, month) => sum + getIncomeTotalForMonth(month), 0));
+}
+
+function resetFamilyIncomeForm() {
+  const idInput = document.getElementById("incomeId");
+  const monthInput = document.getElementById("incomeMonth");
+  const descriptionInput = document.getElementById("incomeDescription");
+  const amountInput = document.getElementById("incomeAmount");
+  const saveButton = document.getElementById("saveIncomeButton");
+  const cancelButton = document.getElementById("cancelIncomeEditButton");
+
+  editingIncomeId = null;
+
+  if (idInput) idInput.value = "";
+  if (monthInput) monthInput.value = state.selectedFamilyBudgetReferenceMonth || getCurrentMonth();
+  if (descriptionInput) descriptionInput.value = "";
+  if (amountInput) amountInput.value = "";
+  if (saveButton) saveButton.textContent = "Salva entrata";
+  if (cancelButton) cancelButton.classList.add("hidden");
+}
+
+function saveFamilyIncome(event) {
+  event.preventDefault();
+
+  const idInput = document.getElementById("incomeId");
+  const month = document.getElementById("incomeMonth")?.value || getCurrentMonth();
+  const description = document.getElementById("incomeDescription")?.value.trim() || "Entrata";
+  const amount = Number(document.getElementById("incomeAmount")?.value || 0);
+  const id = idInput?.value || "";
+
+  if (!month) {
+    alert("Inserisci il mese dell'entrata.");
+    return;
+  }
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    alert("Inserisci un importo entrata maggiore di zero.");
+    return;
+  }
+
+  if (id) {
+    const index = state.incomes.findIndex(income => income.id === id);
+    if (index !== -1) {
+      state.incomes[index] = {
+        ...state.incomes[index],
+        month,
+        description,
+        amount: roundToTwoDecimals(amount)
+      };
+    }
+  } else {
+    state.incomes.push({
+      id: createId(),
+      month,
+      description,
+      amount: roundToTwoDecimals(amount)
+    });
+  }
+
+  state.selectedFamilyBudgetReferenceMonth = month;
+  saveState();
+  resetFamilyIncomeForm();
+  renderFamilyBudget();
+}
+
+function startEditIncome(id) {
+  const income = state.incomes.find(item => item.id === id);
+  if (!income) return;
+
+  editingIncomeId = id;
+
+  const idInput = document.getElementById("incomeId");
+  const monthInput = document.getElementById("incomeMonth");
+  const descriptionInput = document.getElementById("incomeDescription");
+  const amountInput = document.getElementById("incomeAmount");
+  const saveButton = document.getElementById("saveIncomeButton");
+  const cancelButton = document.getElementById("cancelIncomeEditButton");
+
+  if (idInput) idInput.value = income.id;
+  if (monthInput) monthInput.value = income.month;
+  if (descriptionInput) descriptionInput.value = income.description || "";
+  if (amountInput) amountInput.value = Number(income.amount || 0);
+  if (saveButton) saveButton.textContent = "Aggiorna entrata";
+  if (cancelButton) cancelButton.classList.remove("hidden");
+}
+
+function deleteIncome(id) {
+  const confirmed = confirm("Vuoi eliminare questa entrata?");
+  if (!confirmed) return;
+
+  state.incomes = state.incomes.filter(income => income.id !== id);
+  saveState();
+
+  if (editingIncomeId === id) {
+    resetFamilyIncomeForm();
+  }
+
+  renderFamilyBudget();
+}
+
+function renderFamilyIncomeList() {
+  const container = document.getElementById("familyIncomeList");
+  const summary = document.getElementById("familyIncomeSummary");
+  if (!container) return;
+
+  const months = getFamilyBudgetMonths();
+  const visibleIncomes = state.incomes
+    .filter(income => months.includes(income.month))
+    .sort((a, b) => b.month.localeCompare(a.month) || (a.description || "").localeCompare(b.description || ""));
+
+  const visibleTotal = getIncomeTotalForMonths(months);
+  if (summary) summary.textContent = formatCurrency(visibleTotal);
+
+  if (visibleIncomes.length === 0) {
+    container.innerHTML = `<p class="empty">Nessuna entrata nel periodo visualizzato.</p>`;
+    return;
+  }
+
+  container.innerHTML = visibleIncomes.map(income => `
+    <div class="settings-row income-row">
+      <div>
+        <strong>${escapeHtml(income.description || "Entrata")}</strong><br>
+        <span>${getMonthLabel(income.month)}</span>
+      </div>
+      <div class="income-actions">
+        <strong>${formatCurrency(income.amount)}</strong>
+        <button class="secondary small" type="button" onclick="startEditIncome('${income.id}')">Modifica</button>
+        <button class="danger small" type="button" onclick="deleteIncome('${income.id}')">Elimina</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+function renderFamilyBudgetReport() {
+  const container = document.getElementById("familyBudgetReport");
+  if (!container) return;
+
+  const months = getFamilyBudgetMonths();
+
+  let totalIncome = 0;
+  let totalGrossExpenses = 0;
+  let totalVoucher = 0;
+  let totalReimbursements = 0;
+  let totalNetExpenses = 0;
+
+  const categoryTotals = {};
+  state.categories.forEach(category => { categoryTotals[category] = 0; });
+
+  const rows = months.map(month => {
+    const expenses = getMonthlyExpenses(month);
+    const reimbursements = getGenericReimbursementsForMonth(month);
+
+    const grossTotalsByCategory = getTotalsByCategory(expenses);
+    const monthGrossExpensesTotal = getTotal(expenses);
+    const monthVoucherTotal = getVoucherTotal(expenses);
+    const monthReimbursementTotal = getGenericReimbursementTotal(reimbursements);
+    const monthNetExpensesTotal = getNetBudgetTotal(expenses, reimbursements);
+    const monthIncomeTotal = getIncomeTotalForMonth(month);
+
+    const result = roundToTwoDecimals(monthIncomeTotal - monthGrossExpensesTotal);
+    const netResult = roundToTwoDecimals(monthIncomeTotal - monthNetExpensesTotal);
+
+    totalIncome = roundToTwoDecimals(totalIncome + monthIncomeTotal);
+    totalGrossExpenses = roundToTwoDecimals(totalGrossExpenses + monthGrossExpensesTotal);
+    totalVoucher = roundToTwoDecimals(totalVoucher + monthVoucherTotal);
+    totalReimbursements = roundToTwoDecimals(totalReimbursements + monthReimbursementTotal);
+    totalNetExpenses = roundToTwoDecimals(totalNetExpenses + monthNetExpensesTotal);
+
+    state.categories.forEach(category => {
+      categoryTotals[category] = roundToTwoDecimals((categoryTotals[category] || 0) + Number(grossTotalsByCategory[category] || 0));
+    });
+
+    const categoryCells = state.categories.map(category => {
+      return `<td>${formatCurrency(grossTotalsByCategory[category] || 0)}</td>`;
+    }).join("");
+
+    return `
+      <tr>
+        <td><strong>${getMonthLabel(month)}</strong></td>
+        <td>${formatCurrency(monthIncomeTotal)}</td>
+        ${categoryCells}
+        <td>${formatCurrency(monthGrossExpensesTotal)}</td>
+        <td class="${result >= 0 ? "positive-result" : "negative-result"}"><strong>${formatCurrency(result)}</strong></td>
+        <td>${formatCurrency(monthVoucherTotal)}</td>
+        <td>${formatCurrency(monthReimbursementTotal)}</td>
+        <td class="${netResult >= 0 ? "positive-result" : "negative-result"}"><strong>${formatCurrency(netResult)}</strong></td>
+      </tr>
+    `;
+  }).join("");
+
+  const generalResult = roundToTwoDecimals(totalIncome - totalGrossExpenses);
+  const generalNetResult = roundToTwoDecimals(totalIncome - totalNetExpenses);
+
+  const footerCategoryCells = state.categories.map(category => {
+    return `<td>${formatCurrency(categoryTotals[category] || 0)}</td>`;
+  }).join("");
+
+  container.innerHTML = `
+    <div class="report-summary family-budget-summary">
+      <span>Totale periodo</span>
+      <strong>
+        Entrate ${formatCurrency(totalIncome)} · Spese ${formatCurrency(totalGrossExpenses)} · Risultato ${formatCurrency(generalResult)} · Netto ${formatCurrency(generalNetResult)}
+      </strong>
+    </div>
+
+    <div class="multi-table family-budget-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Mese</th>
+            <th>Entrate</th>
+            ${state.categories.map(category => `<th>${escapeHtml(category)}</th>`).join("")}
+            <th>Totale spese</th>
+            <th>Risultato</th>
+            <th>Voucher</th>
+            <th>Rimborsi</th>
+            <th>Risultato netto</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+        <tfoot>
+          <tr>
+            <th>Totale periodo</th>
+            <th>${formatCurrency(totalIncome)}</th>
+            ${footerCategoryCells}
+            <th>${formatCurrency(totalGrossExpenses)}</th>
+            <th class="${generalResult >= 0 ? "positive-result" : "negative-result"}">${formatCurrency(generalResult)}</th>
+            <th>${formatCurrency(totalVoucher)}</th>
+            <th>${formatCurrency(totalReimbursements)}</th>
+            <th class="${generalNetResult >= 0 ? "positive-result" : "negative-result"}">${formatCurrency(generalNetResult)}</th>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  `;
+}
+
+function renderFamilyBudget() {
+  const referenceInput = document.getElementById("familyBudgetReferenceMonth");
+  if (!state.selectedFamilyBudgetReferenceMonth) {
+    state.selectedFamilyBudgetReferenceMonth = getCurrentMonth();
+  }
+
+  if (referenceInput) {
+    referenceInput.value = state.selectedFamilyBudgetReferenceMonth;
+  }
+
+  renderFamilyBudgetRangeSelectors();
+  updateFamilyBudgetFilterSummary();
+
+  const incomeMonth = document.getElementById("incomeMonth");
+  if (incomeMonth && !incomeMonth.value) {
+    incomeMonth.value = state.selectedFamilyBudgetReferenceMonth;
+  }
+
+  renderFamilyIncomeList();
+  renderFamilyBudgetReport();
+}
+
 function renderAll() {
   renderCategoryOptions();
   renderDashboard();
   renderExpensesList();
   renderReport();
+  renderFamilyBudget();
   renderThresholdForm();
   renderCategoriesList();
 }
@@ -2489,6 +2810,10 @@ function showView(viewId) {
     renderReport();
     renderMultiReport();
   }
+
+  if (viewId === "familyBudgetView") {
+    renderFamilyBudget();
+  }
 }
 
 
@@ -2862,6 +3187,57 @@ if (selectNoMultiReportCategoriesButton) {
 }
 
 
+
+const familyIncomeForm = document.getElementById("familyIncomeForm");
+if (familyIncomeForm) {
+  familyIncomeForm.addEventListener("submit", saveFamilyIncome);
+}
+
+const cancelIncomeEditButton = document.getElementById("cancelIncomeEditButton");
+if (cancelIncomeEditButton) {
+  cancelIncomeEditButton.addEventListener("click", resetFamilyIncomeForm);
+}
+
+const familyBudgetReferenceMonth = document.getElementById("familyBudgetReferenceMonth");
+if (familyBudgetReferenceMonth) {
+  familyBudgetReferenceMonth.addEventListener("change", event => {
+    state.selectedFamilyBudgetReferenceMonth = event.target.value || getCurrentMonth();
+    saveState();
+    resetFamilyIncomeForm();
+    renderFamilyBudget();
+  });
+}
+
+const familyBudgetMonthsBefore = document.getElementById("familyBudgetMonthsBefore");
+if (familyBudgetMonthsBefore) {
+  familyBudgetMonthsBefore.addEventListener("change", event => {
+    state.selectedFamilyBudgetMonthsBefore = Number(event.target.value || 0);
+    saveState();
+    renderFamilyBudget();
+  });
+}
+
+const familyBudgetMonthsAfter = document.getElementById("familyBudgetMonthsAfter");
+if (familyBudgetMonthsAfter) {
+  familyBudgetMonthsAfter.addEventListener("change", event => {
+    state.selectedFamilyBudgetMonthsAfter = Number(event.target.value || 0);
+    saveState();
+    renderFamilyBudget();
+  });
+}
+
+const familyBudgetCurrentButton = document.getElementById("familyBudgetCurrentButton");
+if (familyBudgetCurrentButton) {
+  familyBudgetCurrentButton.addEventListener("click", () => {
+    state.selectedFamilyBudgetReferenceMonth = getCurrentMonth();
+    state.selectedFamilyBudgetMonthsBefore = 0;
+    state.selectedFamilyBudgetMonthsAfter = 6;
+    saveState();
+    resetFamilyIncomeForm();
+    renderFamilyBudget();
+  });
+}
+
 document.getElementById("reportMonthSelect").addEventListener("change", event => {
   state.selectedReportMonth = event.target.value;
   saveState();
@@ -2899,6 +3275,7 @@ try {
   setDefaultDate();
   renderAll();
   renderMultiReport();
+  renderFamilyBudget();
   registerServiceWorker();
 } catch (error) {
   console.error("Errore avvio app", error);
