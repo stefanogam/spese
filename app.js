@@ -1,5 +1,5 @@
-const STORAGE_KEY = "spese-pwa-locale-v62";
-const APP_VERSION = "V.62";
+const STORAGE_KEY = "spese-pwa-locale-v63";
+const APP_VERSION = "V.63";
 
 const defaultCategories = [
   "Alimentari",
@@ -67,7 +67,7 @@ function loadState() {
   const saved = localStorage.getItem(STORAGE_KEY);
 
   if (!saved) {
-    const oldSaved = localStorage.getItem("spese-pwa-locale-v61") || localStorage.getItem("spese-pwa-locale-v60") || localStorage.getItem("spese-pwa-locale-v59") || localStorage.getItem("spese-pwa-locale-v58") || localStorage.getItem("spese-pwa-locale-v57") || localStorage.getItem("spese-pwa-locale-v56") || localStorage.getItem("spese-pwa-locale-v55") || localStorage.getItem("spese-pwa-locale-v54") || localStorage.getItem("spese-pwa-locale-v53") || localStorage.getItem("spese-pwa-locale-v52") || localStorage.getItem("spese-pwa-locale-v51") || localStorage.getItem("spese-pwa-locale-v50") || localStorage.getItem("spese-pwa-locale-v49") || localStorage.getItem("spese-pwa-locale-v48") || localStorage.getItem("spese-pwa-locale-v47") || localStorage.getItem("spese-pwa-locale-v46") || localStorage.getItem("spese-pwa-locale-v45") || localStorage.getItem("spese-pwa-locale-v44") || localStorage.getItem("spese-pwa-locale-v43") || localStorage.getItem("spese-pwa-locale-v42") || localStorage.getItem("spese-pwa-locale-v41") || localStorage.getItem("spese-pwa-locale-v40") || localStorage.getItem("spese-pwa-locale-v39") || localStorage.getItem("spese-pwa-locale-v38") || localStorage.getItem("spese-pwa-locale-v37") || localStorage.getItem("spese-pwa-locale-v36") || localStorage.getItem("spese-pwa-locale-v35") || localStorage.getItem("spese-pwa-locale-v34") || localStorage.getItem("spese-pwa-locale-v33") || localStorage.getItem("spese-pwa-locale-v32") || localStorage.getItem("spese-pwa-locale-v31") || localStorage.getItem("spese-pwa-locale-v30") || localStorage.getItem("spese-pwa-locale-v29") || localStorage.getItem("spese-pwa-locale-v28") || localStorage.getItem("spese-pwa-locale-v27") || localStorage.getItem("spese-pwa-locale-v26") || localStorage.getItem("spese-pwa-locale-v25") || localStorage.getItem("spese-pwa-locale-v24") || localStorage.getItem("spese-pwa-locale-v23") || localStorage.getItem("spese-pwa-locale-v22") || localStorage.getItem("spese-pwa-locale-v21") || localStorage.getItem("spese-pwa-locale-v20") || localStorage.getItem("spese-pwa-locale-v19") || localStorage.getItem("spese-pwa-locale-v18") || localStorage.getItem("spese-pwa-locale-v17") || localStorage.getItem("spese-pwa-locale-v16") || localStorage.getItem("spese-pwa-locale-v15") || localStorage.getItem("spese-pwa-locale-v14") || localStorage.getItem("spese-pwa-locale-v13") || localStorage.getItem("spese-pwa-locale-v12") || localStorage.getItem("spese-pwa-locale-v11") || localStorage.getItem("spese-pwa-locale-v10") || localStorage.getItem("spese-pwa-locale-v9") || localStorage.getItem("spese-pwa-locale-v8") || localStorage.getItem("spese-pwa-locale-v7") || localStorage.getItem("spese-pwa-locale-v6") || localStorage.getItem("spese-pwa-locale-v5") || localStorage.getItem("spese-pwa-locale-v4") || localStorage.getItem("spese-pwa-locale-v3") || localStorage.getItem("spese-pwa-locale-v2") || localStorage.getItem("spese-pwa-locale-v1");
+    const oldSaved = localStorage.getItem("spese-pwa-locale-v62") || localStorage.getItem("spese-pwa-locale-v61") || localStorage.getItem("spese-pwa-locale-v60") || localStorage.getItem("spese-pwa-locale-v59") || localStorage.getItem("spese-pwa-locale-v58") || localStorage.getItem("spese-pwa-locale-v57") || localStorage.getItem("spese-pwa-locale-v56") || localStorage.getItem("spese-pwa-locale-v55") || localStorage.getItem("spese-pwa-locale-v54") || localStorage.getItem("spese-pwa-locale-v53") || localStorage.getItem("spese-pwa-locale-v52") || localStorage.getItem("spese-pwa-locale-v51") || localStorage.getItem("spese-pwa-locale-v50") || localStorage.getItem("spese-pwa-locale-v49") || localStorage.getItem("spese-pwa-locale-v48") || localStorage.getItem("spese-pwa-locale-v47") || localStorage.getItem("spese-pwa-locale-v46") || localStorage.getItem("spese-pwa-locale-v45") || localStorage.getItem("spese-pwa-locale-v44") || localStorage.getItem("spese-pwa-locale-v43") || localStorage.getItem("spese-pwa-locale-v42") || localStorage.getItem("spese-pwa-locale-v41") || localStorage.getItem("spese-pwa-locale-v40") || localStorage.getItem("spese-pwa-locale-v39") || localStorage.getItem("spese-pwa-locale-v38") || localStorage.getItem("spese-pwa-locale-v37") || localStorage.getItem("spese-pwa-locale-v36") || localStorage.getItem("spese-pwa-locale-v35") || localStorage.getItem("spese-pwa-locale-v34") || localStorage.getItem("spese-pwa-locale-v33") || localStorage.getItem("spese-pwa-locale-v32") || localStorage.getItem("spese-pwa-locale-v31") || localStorage.getItem("spese-pwa-locale-v30") || localStorage.getItem("spese-pwa-locale-v29") || localStorage.getItem("spese-pwa-locale-v28") || localStorage.getItem("spese-pwa-locale-v27") || localStorage.getItem("spese-pwa-locale-v26") || localStorage.getItem("spese-pwa-locale-v25") || localStorage.getItem("spese-pwa-locale-v24") || localStorage.getItem("spese-pwa-locale-v23") || localStorage.getItem("spese-pwa-locale-v22") || localStorage.getItem("spese-pwa-locale-v21") || localStorage.getItem("spese-pwa-locale-v20") || localStorage.getItem("spese-pwa-locale-v19") || localStorage.getItem("spese-pwa-locale-v18") || localStorage.getItem("spese-pwa-locale-v17") || localStorage.getItem("spese-pwa-locale-v16") || localStorage.getItem("spese-pwa-locale-v15") || localStorage.getItem("spese-pwa-locale-v14") || localStorage.getItem("spese-pwa-locale-v13") || localStorage.getItem("spese-pwa-locale-v12") || localStorage.getItem("spese-pwa-locale-v11") || localStorage.getItem("spese-pwa-locale-v10") || localStorage.getItem("spese-pwa-locale-v9") || localStorage.getItem("spese-pwa-locale-v8") || localStorage.getItem("spese-pwa-locale-v7") || localStorage.getItem("spese-pwa-locale-v6") || localStorage.getItem("spese-pwa-locale-v5") || localStorage.getItem("spese-pwa-locale-v4") || localStorage.getItem("spese-pwa-locale-v3") || localStorage.getItem("spese-pwa-locale-v2") || localStorage.getItem("spese-pwa-locale-v1");
     if (oldSaved) {
       try {
         const oldState = JSON.parse(oldSaved);
@@ -1881,8 +1881,8 @@ function deleteCategoryByIndex(index) {
 
 function getFamilyBudgetMonths() {
   const referenceMonth = state.selectedFamilyBudgetReferenceMonth || getCurrentMonth();
-  const monthsBefore = Math.min(Math.max(Number(state.selectedFamilyBudgetMonthsBefore || 0), 0), 6);
-  const monthsAfter = Math.min(Math.max(Number(state.selectedFamilyBudgetMonthsAfter || 0), 0), 6);
+  const monthsBefore = Math.min(Math.max(Number(state.selectedFamilyBudgetMonthsBefore || 0), 0), 12);
+  const monthsAfter = Math.min(Math.max(Number(state.selectedFamilyBudgetMonthsAfter || 0), 0), 12);
   return getMonthRangeAround(referenceMonth, monthsBefore, monthsAfter);
 }
 
@@ -1891,8 +1891,8 @@ function updateFamilyBudgetFilterSummary() {
   if (!summary) return;
 
   const referenceMonth = state.selectedFamilyBudgetReferenceMonth || getCurrentMonth();
-  const monthsBefore = Math.min(Math.max(Number(state.selectedFamilyBudgetMonthsBefore || 0), 0), 6);
-  const monthsAfter = Math.min(Math.max(Number(state.selectedFamilyBudgetMonthsAfter || 0), 0), 6);
+  const monthsBefore = Math.min(Math.max(Number(state.selectedFamilyBudgetMonthsBefore || 0), 0), 12);
+  const monthsAfter = Math.min(Math.max(Number(state.selectedFamilyBudgetMonthsAfter || 0), 0), 12);
 
   summary.textContent = `${getMonthLabel(referenceMonth)} · -${monthsBefore} / +${monthsAfter} mesi`;
 }
@@ -1903,15 +1903,15 @@ function renderFamilyBudgetRangeSelectors() {
 
   if (!beforeSelect || !afterSelect) return;
 
-  const options = Array.from({ length: 7 }, (_, index) => {
+  const options = Array.from({ length: 13 }, (_, index) => {
     return `<option value="${index}">${index}</option>`;
   }).join("");
 
   beforeSelect.innerHTML = options;
   afterSelect.innerHTML = options;
 
-  beforeSelect.value = String(Math.min(Math.max(Number(state.selectedFamilyBudgetMonthsBefore || 0), 0), 6));
-  afterSelect.value = String(Math.min(Math.max(Number(state.selectedFamilyBudgetMonthsAfter || 0), 0), 6));
+  beforeSelect.value = String(Math.min(Math.max(Number(state.selectedFamilyBudgetMonthsBefore || 0), 0), 12));
+  afterSelect.value = String(Math.min(Math.max(Number(state.selectedFamilyBudgetMonthsAfter || 0), 0), 12));
 }
 
 function getIncomesForMonth(month) {
