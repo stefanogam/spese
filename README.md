@@ -78,13 +78,13 @@ La lista spese e l'esportazione CSV usano il mese selezionato in questa sezione.
 
 ## Modifiche v8
 
-- La Home mostra chiaramente la versione **V.63**.
+- La Home mostra chiaramente la versione **V.64**.
 - All'apertura e quando si torna alla Home viene visualizzato il mese corrente.
 - Nella sezione Aggiungi, la data viene reimpostata automaticamente al giorno corrente.
 - Nella sezione Soglie, il budget mensile totale è calcolato automaticamente come somma delle soglie delle categorie.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 - In Home è stato aggiunto un selettore mese.
 - La Home si apre sempre sul mese corrente, ma consente di scegliere tutti i mesi in cui è presente almeno una spesa.
@@ -94,12 +94,12 @@ La lista spese e l'esportazione CSV usano il mese selezionato in questa sezione.
 - Il grafico mostra istogrammi impilati per categoria/soglia e una linea del totale mensile.
 
 
-## Correzione V.63
+## Correzione V.64
 
-Corretto un problema di navigazione dal menu basso: in V.63 lo script poteva interrompersi perché cercava i pulsanti `prevMonthButton` e `nextMonthButton`, rimossi dalla Home. Ora i listener sono protetti e il menu basso cambia correttamente sezione.
+Corretto un problema di navigazione dal menu basso: in V.64 lo script poteva interrompersi perché cercava i pulsanti `prevMonthButton` e `nextMonthButton`, rimossi dalla Home. Ora i listener sono protetti e il menu basso cambia correttamente sezione.
 
 
-## Correzione V.63
+## Correzione V.64
 
 Corretto l'errore JavaScript che bloccava l'app:
 
@@ -108,7 +108,7 @@ Corretto l'errore JavaScript che bloccava l'app:
 L'assegnazione con optional chaining non è valida in JavaScript. Ora il codice verifica prima l'esistenza dell'elemento e poi aggiorna il testo. Questo permette allo script di caricarsi correttamente e al menu basso di funzionare.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Nel report plurimensile sono state aggiunte due combo box:
 
@@ -118,7 +118,7 @@ Nel report plurimensile sono state aggiunte due combo box:
 Il valore predefinito è 0 per entrambe. Il pulsante "Torna al mese corrente" riporta il mese di riferimento al mese corrente e reimposta entrambe le combo a 0.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Ottimizzato il grafico plurimensile:
 
@@ -127,7 +127,7 @@ Ottimizzato il grafico plurimensile:
 - mantenuta la linea del totale mensile centrata sulle barre.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Aggiunto il metodo di pagamento **Voucher**.
 
@@ -145,7 +145,7 @@ Logica introdotta:
 Esempio: 50 € di gasolio con metodo Voucher risultano nella categoria Trasporti, ma non riducono il budget disponibile.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Aggiunta la possibilità di modificare le spese già inserite dalla sezione **Spese**.
 
@@ -165,7 +165,7 @@ La modifica permette di aggiornare:
 Per le spese plurimensili, la modifica riguarda la singola quota visualizzata.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Migliorata la gestione delle spese plurimensili.
 
@@ -182,9 +182,9 @@ In fase di modifica di una quota plurimensile è ora possibile:
 Nota: la data resta specifica della singola quota. Per ripianificare tutte le date conviene eliminare e reinserire la spesa plurimensile.
 
 
-## Correzione V.63
+## Correzione V.64
 
-Versione ricostruita sulla base stabile V.63.
+Versione ricostruita sulla base stabile V.64.
 
 Correzioni principali:
 
@@ -194,32 +194,32 @@ Correzioni principali:
 - mantenute spese plurimensili, importo complessivo e modifica quote collegate;
 - mantenuta logica Voucher;
 - corretta generazione ID con fallback sicuro;
-- aggiunta migrazione da V.63/V.63 senza usare la logica instabile della V.63.
+- aggiunta migrazione da V.64/V.64 senza usare la logica instabile della V.64.
 
 
-## Correzione V.63
+## Correzione V.64
 
-Corretta la regressione della V.63:
+Corretta la regressione della V.64:
 
 - dichiarata correttamente la costante `APP_VERSION`;
 - riallineata la chiave di salvataggio a `spese-pwa-locale-v20`;
-- mantenuta la base stabile V.63/V.63;
+- mantenuta la base stabile V.64/V.64;
 - mantenuta la migrazione dalle versioni precedenti.
 
 
-## Correzione V.63
+## Correzione V.64
 
 Corretta la funzione mancante `renderExpensesMonthSelect()`, che bloccava l'app all'avvio e impediva il caricamento di categorie, spese e funzioni di modifica.
 
 
-## Correzione V.63
+## Correzione V.64
 
 Rimossa completamente la dipendenza dalla funzione `renderExpensesMonthSelect()`.
 
 La logica del filtro mese nella sezione Spese è ora integrata direttamente in `renderExpensesList()`, così l'app non può più bloccarsi all'avvio per quella funzione mancante.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Nella Home la sintesi del mese è stata resa più chiara:
 
@@ -228,7 +228,7 @@ Nella Home la sintesi del mese è stata resa più chiara:
 - **Di cui voucher**: totale delle spese pagate con voucher.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Nella Home sono ora visualizzate esplicitamente tre righe distinte:
 
@@ -239,7 +239,7 @@ Nella Home sono ora visualizzate esplicitamente tre righe distinte:
 Il valore principale della card resta "Spese escluse i voucher", cioè il totale che incide sul budget.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Nella Home, la sezione **Ultime spese** è ora esplicitamente solo consultiva:
 
@@ -249,7 +249,7 @@ Nella Home, la sezione **Ultime spese** è ora esplicitamente solo consultiva:
 La modifica e l'eliminazione restano disponibili nella sezione **Spese**.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Aggiunta la gestione dei **rimborsi generici per categoria**.
 
@@ -264,7 +264,7 @@ Il rimborso generico:
 - viene considerato in Home, Report mensile, Report plurimensile ed export CSV.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 La gestione dei rimborsi generici è stata integrata direttamente in **Aggiungi spesa**.
 
@@ -285,7 +285,7 @@ Se il flag è spento:
 - è disponibile il campo **Rimborso totale** per rimborsi collegati alla singola spesa.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Riorganizzata la gestione dei rimborsi.
 
@@ -302,7 +302,7 @@ Modifiche principali:
 La modifica/eliminazione delle spese resta disponibile solo nella sezione **Spese**, non nella Home.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Corretto il pulsante **Rimborso** nella sezione **Spese**.
 
@@ -314,7 +314,7 @@ Ora, quando si clicca su **Rimborso** da una spesa esistente:
 - categoria e descrizione restano precompilate dalla spesa selezionata.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Migliorata la sezione **Spese**.
 
@@ -327,7 +327,7 @@ Migliorata la sezione **Spese**.
 - Il filtro viene applicato anche ai rimborsi generici del mese e all'export CSV del mese selezionato.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Migliorato il filtro **Categorie da visualizzare** nella sezione **Spese**.
 
@@ -336,21 +336,21 @@ Migliorato il filtro **Categorie da visualizzare** nella sezione **Spese**.
 - Nel riepilogo della sezione viene mostrato se sono visibili **Tutte**, **Nessuna** oppure quante categorie sono selezionate.
 
 
-## Correzione V.63
+## Correzione V.64
 
 Corretto il pulsante **Nessuna** nel filtro **Categorie da visualizzare**.
 
 Ora il flag viene tolto realmente da tutte le categorie e la lista viene aggiornata mostrando "Nessuna categoria selezionata".
 
 
-## Correzione V.63
+## Correzione V.64
 
 La sezione **Categorie da visualizzare** nella pagina **Spese** viene impostata di default su **Tutte** ogni volta che si apre la sezione Spese.
 
 In questo modo, anche se in precedenza era stato selezionato **Nessuna** o solo alcune categorie, entrando nella sezione Spese il filtro riparte da **Tutte**.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Migliorata l'usabilità delle icone nella sezione **Spese** su smartphone.
 
@@ -360,7 +360,7 @@ Migliorata l'usabilità delle icone nella sezione **Spese** su smartphone.
 - Su schermi piccoli le tre icone occupano tutta la larghezza disponibile, così sono più facili da selezionare.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Aggiunta la possibilità di **modificare** ed **eliminare** i rimborsi.
 
@@ -372,7 +372,7 @@ Nella sezione **Spese**, nella lista **Rimborsi generici del mese**, ogni rimbor
 La modifica permette di cambiare importo, categoria, data e descrizione.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Migliorata la sezione **Spese**.
 
@@ -387,7 +387,7 @@ Migliorata la sezione **Spese**.
 - Se si duplica una quota plurimensile, viene duplicata come spesa singola.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Nel menu azioni della sezione **Spese**:
 
@@ -395,7 +395,7 @@ Nel menu azioni della sezione **Spese**:
 - l'icona 🔁 **Ripeti/Duplica** ha ora sfondo verde.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Aggiornata la funzione **Ripeti/Duplica** nella sezione Spese.
 
@@ -405,7 +405,7 @@ Aggiornata la funzione **Ripeti/Duplica** nella sezione Spese.
 - La data del duplicato viene impostata automaticamente alla data odierna.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Corretto il menu azioni nella sezione **Spese** su smartphone.
 
@@ -414,7 +414,7 @@ Corretto il menu azioni nella sezione **Spese** su smartphone.
 - Il pulsante del menu azioni resta allineato a sinistra nella riga della spesa su schermi piccoli.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Corretto l'allineamento del menu azioni nella sezione **Spese**.
 
@@ -423,7 +423,7 @@ Corretto l'allineamento del menu azioni nella sezione **Spese**.
 - Le icone si sviluppano verso il centro della card, quindi verso sinistra rispetto al pulsante, evitando lo spaginamento laterale.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Aggiunto nel **Report plurimensile** il filtro **Categorie da visualizzare** con la stessa logica della sezione Spese.
 
@@ -435,7 +435,7 @@ Aggiunto nel **Report plurimensile** il filtro **Categorie da visualizzare** con
 - Il filtro modifica grafico, legenda e tabella del report plurimensile.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Migliorato il filtro periodo nella sezione **Spese**.
 
@@ -448,7 +448,7 @@ Migliorato il filtro periodo nella sezione **Spese**.
 - L'esportazione CSV usa il periodo Dal/Al selezionato.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Migliorato il filtro periodo nella sezione **Spese**.
 
@@ -458,7 +458,7 @@ Migliorato il filtro periodo nella sezione **Spese**.
 - Il riepilogo del menu mostra il mese selezionato oppure il periodo personalizzato.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Aggiunta nella sezione **Spese** la ricerca nella descrizione.
 
@@ -471,7 +471,7 @@ Aggiunta nella sezione **Spese** la ricerca nella descrizione.
 - L'export CSV rispetta anche la ricerca nella descrizione.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Aggiunta la gestione delle spese con **metodi di pagamento multipli**.
 
@@ -483,17 +483,17 @@ Aggiunta la gestione delle spese con **metodi di pagamento multipli**.
 - Modifica, duplica, report e CSV gestiscono la suddivisione dei pagamenti.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Rifinita la gestione dei metodi di pagamento.
 
-- Con un solo metodo di pagamento, la maschera funziona come nella V.63: un solo campo **Metodo pagamento** e l'importo totale della spesa.
+- Con un solo metodo di pagamento, la maschera funziona come nella V.64: un solo campo **Metodo pagamento** e l'importo totale della spesa.
 - La gestione avanzata con righe metodo/importo compare solo quando si preme **+ Aggiungi metodo**.
-- Dal secondo metodo in poi resta la logica della V.63: la somma dei metodi deve coincidere con l'importo totale.
+- Dal secondo metodo in poi resta la logica della V.64: la somma dei metodi deve coincidere con l'importo totale.
 - La quota **Voucher** continua a essere registrata ma esclusa dal budget.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Aggiornata la sezione **Spese**.
 
@@ -503,7 +503,7 @@ Aggiornata la sezione **Spese**.
 - Accanto al titolo viene mostrata la somma in euro dei rimborsi attualmente visualizzati in base ai filtri attivi.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Aggiornata l'impaginazione della sezione **Spese**.
 
@@ -511,7 +511,7 @@ Aggiornata l'impaginazione della sezione **Spese**.
 - Il totale visualizzato dei **Rimborsi** è ora sulla stessa riga del titolo.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Ottimizzata per smartphone la riga titolo/totale nella sezione **Spese**.
 
@@ -521,7 +521,7 @@ Ottimizzata per smartphone la riga titolo/totale nella sezione **Spese**.
 - Applicata la stessa logica anche al titolo **Rimborsi**.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Aggiornata la sezione **Spese**.
 
@@ -531,7 +531,7 @@ Aggiornata la sezione **Spese**.
 - Il pulsante **CSV** è stato spostato sulla stessa riga, subito dopo il titolo **Spese**.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Aggiunta la sezione **Bilancio familiare**.
 
@@ -547,7 +547,7 @@ Aggiunta la sezione **Bilancio familiare**.
 - In fondo alla tabella viene mostrato il totale generale del periodo visualizzato.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Aggiornata la sezione **Bilancio familiare**.
 
@@ -557,7 +557,7 @@ Aggiornata la sezione **Bilancio familiare**.
 - Sistemata la barra di navigazione inferiore per far stare tutte le voci su un'unica riga.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Aggiornata la sezione **Bilancio familiare**.
 
@@ -565,7 +565,7 @@ Aggiornata la sezione **Bilancio familiare**.
 - Il pannello mostra un riepilogo dell'intervallo selezionato: mese di riferimento, mesi precedenti e mesi successivi.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Aggiornato il report **Bilancio familiare**.
 
@@ -578,7 +578,7 @@ Aggiornato il report **Bilancio familiare**.
 - Il **Risultato netto** è calcolato considerando voucher e rimborsi secondo la logica del budget.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Aggiornata la sezione **Bilancio familiare**.
 
@@ -586,7 +586,7 @@ Aggiornata la sezione **Bilancio familiare**.
 - Il pannello mostra solo il titolo **Entrate**.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Aggiornata la sezione **Bilancio familiare**.
 
@@ -595,7 +595,7 @@ Aggiornata la sezione **Bilancio familiare**.
 - Il totale generale del periodo resta disponibile nella riga finale della tabella.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Aggiornato l'ordine delle colonne nel **Report bilancio**.
 
@@ -607,7 +607,7 @@ Aggiornato l'ordine delle colonne nel **Report bilancio**.
 - Dopo queste colonne vengono mostrate le categorie di spesa e il **Totale spese**.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Aggiornato il **Report bilancio**.
 
@@ -615,7 +615,7 @@ Aggiornato il **Report bilancio**.
 - La colonna **Mese** è stata resa fissa durante lo scorrimento orizzontale della tabella, dove supportato dal browser.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Aggiornato il **Report bilancio**.
 
@@ -624,7 +624,7 @@ Aggiornato il **Report bilancio**.
 - Le categorie restano dopo le colonne riepilogative.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Aggiornato il **Report bilancio**.
 
@@ -632,7 +632,7 @@ Aggiornato il **Report bilancio**.
 - La colonna **Risultato netto** è stata rinominata in **Saldo netto**.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Aggiornata la sezione **Bilancio familiare**.
 
@@ -642,9 +642,20 @@ Aggiornata la sezione **Bilancio familiare**.
   - **0** mesi successivi.
 
 
-## Modifiche V.63
+## Modifiche V.64
 
 Aggiornata la sezione **Bilancio familiare**.
 
 - Nel filtro del report bilancio è ora possibile selezionare da **0 a 12** mesi precedenti.
 - È ora possibile selezionare da **0 a 12** mesi successivi.
+
+
+## Modifiche V.64
+
+Aggiunto il **backup giornaliero assistito**.
+
+- Alla prima apertura della giornata compare un pop-up per esportare il backup JSON.
+- Dopo aver esportato il backup, l'app torna automaticamente alla **Home**.
+- Dopo l'esportazione il promemoria non viene più mostrato nella stessa giornata.
+- Anche l'esportazione manuale dalla sezione **Backup** aggiorna la data dell'ultimo backup.
+- È presente il pulsante **Più tardi** per chiudere temporaneamente l'avviso senza segnare il backup come effettuato.

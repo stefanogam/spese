@@ -13,7 +13,7 @@
     <header class="app-header">
       <div>
         <h1>Spese Mensili</h1>
-        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.63</span></p>
+        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.64</span></p>
       </div>
       <button id="installButton" class="secondary hidden">Installa</button>
     </header>
@@ -29,7 +29,7 @@
 
         <div class="card compact version-card">
           <span>Versione app</span>
-          <strong>V.63</strong>
+          <strong>V.64</strong>
         </div>
 
         <div class="card hero">
@@ -429,6 +429,23 @@
         </div>
       </section>
     </main>
+
+
+    <div id="dailyBackupModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="dailyBackupTitle">
+      <div class="modal-card">
+        <h2 id="dailyBackupTitle">Backup giornaliero</h2>
+        <p>
+          È consigliato esportare un backup JSON dei dati una volta al giorno.
+        </p>
+        <p class="hint">
+          Dopo l'esportazione tornerai automaticamente alla Home e l'avviso non comparirà più per oggi.
+        </p>
+        <div class="modal-actions">
+          <button id="dailyBackupExportButton" type="button">Esporta backup JSON</button>
+          <button id="dailyBackupLaterButton" class="secondary" type="button">Più tardi</button>
+        </div>
+      </div>
+    </div>
 
     <nav class="bottom-nav">
       <button data-view="dashboardView" class="active">Home</button>

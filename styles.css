@@ -1550,3 +1550,46 @@ input[readonly] {
     max-width: 118px;
   }
 }
+
+/* V.64 - promemoria backup giornaliero */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(17, 24, 39, 0.55);
+}
+
+.modal-overlay.hidden {
+  display: none;
+}
+
+.modal-card {
+  width: min(440px, 100%);
+  border-radius: 20px;
+  padding: 20px;
+  background: #ffffff;
+  box-shadow: 0 20px 50px rgba(17, 24, 39, 0.25);
+}
+
+.modal-card h2 {
+  margin-bottom: 10px;
+}
+
+.modal-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+@media (max-width: 520px) {
+  .modal-card {
+    padding: 18px;
+  }
+
+  .modal-actions button {
+    width: 100%;
+  }
+}

@@ -1,5 +1,5 @@
-const STORAGE_KEY = "spese-pwa-locale-v63";
-const APP_VERSION = "V.63";
+const STORAGE_KEY = "spese-pwa-locale-v64";
+const APP_VERSION = "V.64";
 
 const defaultCategories = [
   "Alimentari",
@@ -30,6 +30,7 @@ const initialState = {
   selectedFamilyBudgetReferenceMonth: getCurrentMonth(),
   selectedFamilyBudgetMonthsBefore: 0,
   selectedFamilyBudgetMonthsAfter: 12,
+  lastBackupDate: "",
   incomes: [],
   categories: [...defaultCategories],
   expenses: [],
@@ -67,7 +68,7 @@ function loadState() {
   const saved = localStorage.getItem(STORAGE_KEY);
 
   if (!saved) {
-    const oldSaved = localStorage.getItem("spese-pwa-locale-v62") || localStorage.getItem("spese-pwa-locale-v61") || localStorage.getItem("spese-pwa-locale-v60") || localStorage.getItem("spese-pwa-locale-v59") || localStorage.getItem("spese-pwa-locale-v58") || localStorage.getItem("spese-pwa-locale-v57") || localStorage.getItem("spese-pwa-locale-v56") || localStorage.getItem("spese-pwa-locale-v55") || localStorage.getItem("spese-pwa-locale-v54") || localStorage.getItem("spese-pwa-locale-v53") || localStorage.getItem("spese-pwa-locale-v52") || localStorage.getItem("spese-pwa-locale-v51") || localStorage.getItem("spese-pwa-locale-v50") || localStorage.getItem("spese-pwa-locale-v49") || localStorage.getItem("spese-pwa-locale-v48") || localStorage.getItem("spese-pwa-locale-v47") || localStorage.getItem("spese-pwa-locale-v46") || localStorage.getItem("spese-pwa-locale-v45") || localStorage.getItem("spese-pwa-locale-v44") || localStorage.getItem("spese-pwa-locale-v43") || localStorage.getItem("spese-pwa-locale-v42") || localStorage.getItem("spese-pwa-locale-v41") || localStorage.getItem("spese-pwa-locale-v40") || localStorage.getItem("spese-pwa-locale-v39") || localStorage.getItem("spese-pwa-locale-v38") || localStorage.getItem("spese-pwa-locale-v37") || localStorage.getItem("spese-pwa-locale-v36") || localStorage.getItem("spese-pwa-locale-v35") || localStorage.getItem("spese-pwa-locale-v34") || localStorage.getItem("spese-pwa-locale-v33") || localStorage.getItem("spese-pwa-locale-v32") || localStorage.getItem("spese-pwa-locale-v31") || localStorage.getItem("spese-pwa-locale-v30") || localStorage.getItem("spese-pwa-locale-v29") || localStorage.getItem("spese-pwa-locale-v28") || localStorage.getItem("spese-pwa-locale-v27") || localStorage.getItem("spese-pwa-locale-v26") || localStorage.getItem("spese-pwa-locale-v25") || localStorage.getItem("spese-pwa-locale-v24") || localStorage.getItem("spese-pwa-locale-v23") || localStorage.getItem("spese-pwa-locale-v22") || localStorage.getItem("spese-pwa-locale-v21") || localStorage.getItem("spese-pwa-locale-v20") || localStorage.getItem("spese-pwa-locale-v19") || localStorage.getItem("spese-pwa-locale-v18") || localStorage.getItem("spese-pwa-locale-v17") || localStorage.getItem("spese-pwa-locale-v16") || localStorage.getItem("spese-pwa-locale-v15") || localStorage.getItem("spese-pwa-locale-v14") || localStorage.getItem("spese-pwa-locale-v13") || localStorage.getItem("spese-pwa-locale-v12") || localStorage.getItem("spese-pwa-locale-v11") || localStorage.getItem("spese-pwa-locale-v10") || localStorage.getItem("spese-pwa-locale-v9") || localStorage.getItem("spese-pwa-locale-v8") || localStorage.getItem("spese-pwa-locale-v7") || localStorage.getItem("spese-pwa-locale-v6") || localStorage.getItem("spese-pwa-locale-v5") || localStorage.getItem("spese-pwa-locale-v4") || localStorage.getItem("spese-pwa-locale-v3") || localStorage.getItem("spese-pwa-locale-v2") || localStorage.getItem("spese-pwa-locale-v1");
+    const oldSaved = localStorage.getItem("spese-pwa-locale-v63") || localStorage.getItem("spese-pwa-locale-v62") || localStorage.getItem("spese-pwa-locale-v61") || localStorage.getItem("spese-pwa-locale-v60") || localStorage.getItem("spese-pwa-locale-v59") || localStorage.getItem("spese-pwa-locale-v58") || localStorage.getItem("spese-pwa-locale-v57") || localStorage.getItem("spese-pwa-locale-v56") || localStorage.getItem("spese-pwa-locale-v55") || localStorage.getItem("spese-pwa-locale-v54") || localStorage.getItem("spese-pwa-locale-v53") || localStorage.getItem("spese-pwa-locale-v52") || localStorage.getItem("spese-pwa-locale-v51") || localStorage.getItem("spese-pwa-locale-v50") || localStorage.getItem("spese-pwa-locale-v49") || localStorage.getItem("spese-pwa-locale-v48") || localStorage.getItem("spese-pwa-locale-v47") || localStorage.getItem("spese-pwa-locale-v46") || localStorage.getItem("spese-pwa-locale-v45") || localStorage.getItem("spese-pwa-locale-v44") || localStorage.getItem("spese-pwa-locale-v43") || localStorage.getItem("spese-pwa-locale-v42") || localStorage.getItem("spese-pwa-locale-v41") || localStorage.getItem("spese-pwa-locale-v40") || localStorage.getItem("spese-pwa-locale-v39") || localStorage.getItem("spese-pwa-locale-v38") || localStorage.getItem("spese-pwa-locale-v37") || localStorage.getItem("spese-pwa-locale-v36") || localStorage.getItem("spese-pwa-locale-v35") || localStorage.getItem("spese-pwa-locale-v34") || localStorage.getItem("spese-pwa-locale-v33") || localStorage.getItem("spese-pwa-locale-v32") || localStorage.getItem("spese-pwa-locale-v31") || localStorage.getItem("spese-pwa-locale-v30") || localStorage.getItem("spese-pwa-locale-v29") || localStorage.getItem("spese-pwa-locale-v28") || localStorage.getItem("spese-pwa-locale-v27") || localStorage.getItem("spese-pwa-locale-v26") || localStorage.getItem("spese-pwa-locale-v25") || localStorage.getItem("spese-pwa-locale-v24") || localStorage.getItem("spese-pwa-locale-v23") || localStorage.getItem("spese-pwa-locale-v22") || localStorage.getItem("spese-pwa-locale-v21") || localStorage.getItem("spese-pwa-locale-v20") || localStorage.getItem("spese-pwa-locale-v19") || localStorage.getItem("spese-pwa-locale-v18") || localStorage.getItem("spese-pwa-locale-v17") || localStorage.getItem("spese-pwa-locale-v16") || localStorage.getItem("spese-pwa-locale-v15") || localStorage.getItem("spese-pwa-locale-v14") || localStorage.getItem("spese-pwa-locale-v13") || localStorage.getItem("spese-pwa-locale-v12") || localStorage.getItem("spese-pwa-locale-v11") || localStorage.getItem("spese-pwa-locale-v10") || localStorage.getItem("spese-pwa-locale-v9") || localStorage.getItem("spese-pwa-locale-v8") || localStorage.getItem("spese-pwa-locale-v7") || localStorage.getItem("spese-pwa-locale-v6") || localStorage.getItem("spese-pwa-locale-v5") || localStorage.getItem("spese-pwa-locale-v4") || localStorage.getItem("spese-pwa-locale-v3") || localStorage.getItem("spese-pwa-locale-v2") || localStorage.getItem("spese-pwa-locale-v1");
     if (oldSaved) {
       try {
         const oldState = JSON.parse(oldSaved);
@@ -103,6 +104,7 @@ function migrateState(rawState) {
     selectedFamilyBudgetReferenceMonth: rawState.selectedFamilyBudgetReferenceMonth || getCurrentMonth(),
     selectedFamilyBudgetMonthsBefore: Number(rawState.selectedFamilyBudgetMonthsBefore ?? 0),
     selectedFamilyBudgetMonthsAfter: Number(rawState.selectedFamilyBudgetMonthsAfter ?? 12),
+    lastBackupDate: rawState.lastBackupDate || "",
     incomes: Array.isArray(rawState.incomes) ? rawState.incomes : [],
     categories: rawState.categories || [...defaultCategories],
     expenses: Array.isArray(rawState.expenses) ? rawState.expenses : [],
@@ -2886,7 +2888,12 @@ function exportCsv() {
 }
 
 
-function exportJsonBackup() {
+function exportJsonBackup(markDailyBackup = true) {
+  if (markDailyBackup) {
+    state.lastBackupDate = getTodayDateString();
+    saveState();
+  }
+
   const backup = {
     app: "spese-pwa-locale",
     version: 3,
@@ -2904,6 +2911,32 @@ function exportJsonBackup() {
   link.click();
 
   URL.revokeObjectURL(url);
+}
+
+function shouldShowDailyBackupReminder() {
+  return state.lastBackupDate !== getTodayDateString();
+}
+
+function showDailyBackupReminderIfNeeded() {
+  const modal = document.getElementById("dailyBackupModal");
+  if (!modal) return;
+
+  if (shouldShowDailyBackupReminder()) {
+    modal.classList.remove("hidden");
+  } else {
+    modal.classList.add("hidden");
+  }
+}
+
+function closeDailyBackupReminder() {
+  const modal = document.getElementById("dailyBackupModal");
+  if (modal) modal.classList.add("hidden");
+}
+
+function exportDailyBackupAndGoHome() {
+  exportJsonBackup(true);
+  closeDailyBackupReminder();
+  showView("dashboardView");
 }
 
 function importJsonBackup(event) {
@@ -3046,8 +3079,18 @@ document.getElementById("thresholdForm").addEventListener("submit", saveThreshol
 document.getElementById("categoryForm").addEventListener("submit", addCategory);
 document.getElementById("exportCsvButton").addEventListener("click", exportCsv);
 document.getElementById("resetDataButton").addEventListener("click", resetData);
-document.getElementById("exportJsonButton").addEventListener("click", exportJsonBackup);
+document.getElementById("exportJsonButton").addEventListener("click", () => exportJsonBackup(true));
 document.getElementById("importJsonInput").addEventListener("change", importJsonBackup);
+
+const dailyBackupExportButton = document.getElementById("dailyBackupExportButton");
+if (dailyBackupExportButton) {
+  dailyBackupExportButton.addEventListener("click", exportDailyBackupAndGoHome);
+}
+
+const dailyBackupLaterButton = document.getElementById("dailyBackupLaterButton");
+if (dailyBackupLaterButton) {
+  dailyBackupLaterButton.addEventListener("click", closeDailyBackupReminder);
+}
 const homeMonthSelect = document.getElementById("homeMonthSelect");
 if (homeMonthSelect) {
   homeMonthSelect.addEventListener("change", event => {
@@ -3265,6 +3308,7 @@ try {
   renderAll();
   renderMultiReport();
   renderFamilyBudget();
+  showDailyBackupReminderIfNeeded();
   registerServiceWorker();
 } catch (error) {
   console.error("Errore avvio app", error);
