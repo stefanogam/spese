@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.68";
+const APP_VERSION = "V.69";
 
 const defaultCategories = [
   "Alimentari",
@@ -3011,9 +3011,30 @@ function resetData() {
 }
 
 function registerServiceWorker() {
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("service-worker.js");
-  }
+  if (!("serviceWorker" in navigator)) return;
+
+  let refreshing = false;
+
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (refreshing) return;
+    refreshing = true;
+    window.location.reload();
+  });
+
+  navigator.serviceWorker.register("service-worker.js").then(registration => {
+    registration.update();
+
+    registration.addEventListener("updatefound", () => {
+      const newWorker = registration.installing;
+      if (!newWorker) return;
+
+      newWorker.addEventListener("statechange", () => {
+        if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+          newWorker.postMessage({ type: "SKIP_WAITING" });
+        }
+      });
+    });
+  });
 }
 
 function roundToTwoDecimals(value) {
