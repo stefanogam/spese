@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.66";
+const APP_VERSION = "V.67";
 
 const defaultCategories = [
   "Alimentari",

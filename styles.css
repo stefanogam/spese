@@ -1594,3 +1594,435 @@ input[readonly] {
   }
 }
 
+/* V.67 - refresh UI: layout piu leggibile, controlli piu compatti e resa desktop migliore */
+:root {
+  --bg: #eef2f7;
+  --surface: #ffffff;
+  --surface-muted: #f8fafc;
+  --text: #111827;
+  --muted: #64748b;
+  --line: #dbe3ee;
+  --primary: #0f172a;
+  --primary-soft: #e2e8f0;
+  --accent: #0f766e;
+  --accent-soft: #ccfbf1;
+  --warning-soft: #fef3c7;
+  --danger: #b91c1c;
+  --danger-soft: #fee2e2;
+  --shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+  --radius: 8px;
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  background:
+    radial-gradient(circle at top left, rgba(15, 118, 110, 0.10), transparent 34rem),
+    linear-gradient(180deg, #f8fafc 0, var(--bg) 34rem);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+.app {
+  max-width: 760px;
+  padding-bottom: 96px;
+}
+
+.app-header {
+  top: 10px;
+  margin: 10px 10px 0;
+  border: 1px solid rgba(219, 227, 238, 0.82);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--text);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(16px);
+}
+
+.app-title {
+  min-width: 0;
+}
+
+.app-header h1 {
+  font-size: 1.18rem;
+  letter-spacing: 0;
+}
+
+.app-header p {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+main {
+  padding: 14px 10px 18px;
+}
+
+.card,
+.nested-box,
+.edit-expense-form,
+.edit-scope-box,
+.payment-split-box,
+.expenses-period-filter,
+.expense-category-filter,
+.expense-search-filter,
+.family-income-panel,
+.family-budget-filter-panel,
+.modal-card,
+.chart-wrapper {
+  border-radius: var(--radius);
+}
+
+.card {
+  border: 1px solid rgba(219, 227, 238, 0.96);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.card.compact {
+  padding: 10px 12px;
+}
+
+h2,
+h3 {
+  letter-spacing: 0;
+}
+
+.hero {
+  background: linear-gradient(135deg, #0f172a 0%, #164e63 100%);
+  border-color: rgba(15, 23, 42, 0.16);
+}
+
+.hero h2 {
+  font-size: clamp(2.15rem, 10vw, 3.25rem);
+  line-height: 1;
+}
+
+.hero p,
+.budget-detail span {
+  color: #cbd5e1;
+}
+
+.progress {
+  height: 10px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.progress div {
+  background: linear-gradient(90deg, #2dd4bf, #22c55e);
+}
+
+.status {
+  color: #ecfeff;
+}
+
+.budget-detail {
+  border-top-color: rgba(255, 255, 255, 0.18);
+}
+
+input,
+select,
+button,
+.import-button,
+.icon-button {
+  border-radius: var(--radius);
+}
+
+input,
+select {
+  min-height: 46px;
+  border-color: var(--line);
+  background: #ffffff;
+  color: var(--text);
+}
+
+input:focus,
+select:focus,
+button:focus-visible,
+summary:focus-visible {
+  outline: 3px solid rgba(20, 184, 166, 0.28);
+  outline-offset: 2px;
+}
+
+button {
+  min-height: 46px;
+  background: var(--primary);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+}
+
+button:hover {
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+  transform: translateY(-1px);
+}
+
+button.secondary,
+.import-button {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+button.danger {
+  background: var(--danger);
+}
+
+button.small {
+  min-height: 36px;
+}
+
+.hint {
+  color: var(--muted);
+}
+
+.ok {
+  background: var(--accent-soft);
+  color: #115e59;
+}
+
+.warning {
+  background: var(--warning-soft);
+  color: #92400e;
+}
+
+.danger-status {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.info {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.expense-row,
+.report-row,
+.category-row,
+.reimbursement-row {
+  border-bottom-color: var(--line);
+}
+
+.expense-row,
+.reimbursement-row {
+  align-items: flex-start;
+}
+
+.expense-main {
+  gap: 4px;
+}
+
+.expense-main strong {
+  font-size: 1rem;
+}
+
+.expense-main span,
+.payment-breakdown,
+.voucher-note,
+.multi-total-note,
+.locked-field-hint {
+  line-height: 1.35;
+}
+
+.amount {
+  font-size: 1.04rem;
+  color: var(--primary);
+}
+
+.filter-header {
+  margin-bottom: 0;
+}
+
+.expenses-period-filter,
+.expense-category-filter,
+.expense-search-filter,
+.family-income-panel,
+.family-budget-filter-panel {
+  border-color: var(--line);
+  background: var(--surface-muted);
+}
+
+.expenses-period-filter summary,
+.expense-category-filter summary,
+.expense-search-filter summary,
+.family-income-panel summary,
+.family-budget-filter-panel summary {
+  min-height: 48px;
+  align-items: center;
+}
+
+.filter-summary {
+  color: var(--muted);
+}
+
+.category-filter-pill {
+  border-radius: 999px;
+  border-color: var(--line);
+  background: #ffffff;
+}
+
+.chart-wrapper,
+.multi-table,
+.family-budget-table {
+  scrollbar-color: #94a3b8 #e2e8f0;
+}
+
+.multi-table table,
+.family-budget-table table {
+  background: #ffffff;
+}
+
+.multi-table th,
+.multi-table td,
+.family-budget-table th,
+.family-budget-table td {
+  border-bottom-color: var(--line);
+}
+
+.bottom-nav {
+  bottom: 10px;
+  width: calc(100% - 20px);
+  max-width: 760px;
+  border: 1px solid rgba(219, 227, 238, 0.96);
+  border-radius: var(--radius);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.16);
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(16px);
+  padding: 6px;
+}
+
+.bottom-nav button {
+  min-height: 44px;
+  border-radius: 6px;
+  color: var(--muted);
+  font-weight: 800;
+  white-space: normal;
+  line-height: 1.05;
+}
+
+.bottom-nav button:hover {
+  box-shadow: none;
+  transform: none;
+}
+
+.bottom-nav button.active {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.modal-overlay {
+  background: rgba(15, 23, 42, 0.58);
+  backdrop-filter: blur(4px);
+}
+
+.modal-card {
+  border: 1px solid var(--line);
+}
+
+@media (min-width: 860px) {
+  .app {
+    max-width: 1040px;
+  }
+
+  main {
+    padding: 18px 14px 24px;
+  }
+
+  #dashboardView.active,
+  #expensesView.active,
+  #reportView.active,
+  #familyBudgetView.active,
+  #settingsView.active {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    align-items: start;
+  }
+
+  #dashboardView .hero,
+  #reportView .card:nth-child(2),
+  #familyBudgetView .card:nth-child(2),
+  #settingsView .danger-zone {
+    grid-column: 1 / -1;
+  }
+
+  #addView.active {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .card {
+    margin-bottom: 0;
+  }
+
+  .bottom-nav {
+    max-width: 860px;
+  }
+}
+
+@media (max-width: 520px) {
+  body {
+    background: var(--bg);
+  }
+
+  .app-header {
+    top: 0;
+    margin: 0;
+    border-left: 0;
+    border-right: 0;
+    border-top: 0;
+    border-radius: 0 0 var(--radius) var(--radius);
+    padding: 14px 14px 12px;
+  }
+
+  .app-header h1 {
+    font-size: 1.08rem;
+  }
+
+  main {
+    padding: 12px 10px 18px;
+  }
+
+  .card {
+    padding: 14px;
+  }
+
+  .hero h2 {
+    margin-bottom: 14px;
+  }
+
+  .budget-detail {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .expense-row,
+  .reimbursement-row {
+    gap: 10px;
+  }
+
+  .bottom-nav {
+    bottom: 0;
+    width: 100%;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+    border-radius: var(--radius) var(--radius) 0 0;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .bottom-nav button {
+    min-height: 38px;
+    font-size: 0.72rem;
+    padding: 7px 4px;
+  }
+}
+
+@media (max-width: 360px) {
+  .bottom-nav button {
+    font-size: 0.68rem;
+  }
+
+  .card {
+    padding: 12px;
+  }
+}
