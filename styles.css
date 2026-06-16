@@ -2007,19 +2007,22 @@ button.small {
     border-right: 0;
     border-bottom: 0;
     border-radius: var(--radius) var(--radius) 0 0;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 2px;
+    padding: 5px 4px;
   }
 
   .bottom-nav button {
-    min-height: 38px;
-    font-size: 0.72rem;
-    padding: 7px 4px;
+    min-height: 42px;
+    font-size: 0.64rem;
+    padding: 6px 2px;
+    white-space: nowrap;
   }
 }
 
 @media (max-width: 360px) {
   .bottom-nav button {
-    font-size: 0.68rem;
+    font-size: 0.58rem;
   }
 
   .card {
