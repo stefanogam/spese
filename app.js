@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.67";
+const APP_VERSION = "V.68";
 
 const defaultCategories = [
   "Alimentari",
@@ -1409,7 +1409,14 @@ function renderReport() {
         <div class="report-row">
           <div class="report-line">
             <div class="section-title">
-              <strong>${escapeHtml(category)}</strong>
+              <button
+                class="report-category-link"
+                type="button"
+                onclick="openExpensesForReportCategory('${escapeAttribute(selectedReportMonth)}', '${escapeAttribute(category)}')"
+                aria-label="Apri le spese della categoria ${escapeAttributeForHtml(category)} per ${escapeAttributeForHtml(getMonthLabel(selectedReportMonth))}"
+              >
+                ${escapeHtml(category)}
+              </button>
               <span class="badge ${status.className}">${status.label}</span>
             </div>
             <span>Budget: ${formatCurrency(spent)} su ${formatCurrency(limit)}</span>
@@ -1429,6 +1436,20 @@ function renderReport() {
   container.innerHTML = summary + rows;
   renderMultiReport();
 }
+
+function openExpensesForReportCategory(month, category) {
+  if (!month || !category) return;
+
+  state.selectedExpensesMonth = month;
+  state.selectedExpensesDateFrom = getMonthStartDate(month);
+  state.selectedExpensesDateTo = getMonthEndDate(month);
+  state.selectedExpenseCategories = [category];
+  state.selectedExpenseDescriptionSearch = "";
+  saveState();
+  showView("expensesView", { preserveExpenseFilters: true });
+}
+
+window.openExpensesForReportCategory = openExpensesForReportCategory;
 
 function getCategoryColor(index) {
   const colors = [
@@ -2763,7 +2784,7 @@ function deleteCategory(categoryName) {
   renderAll();
 }
 
-function showView(viewId) {
+function showView(viewId, options = {}) {
   if (viewId === "dashboardView") {
     state.selectedMonth = getCurrentMonth();
   }
@@ -2772,7 +2793,7 @@ function showView(viewId) {
     setDefaultDate();
   }
 
-  if (viewId === "expensesView") {
+  if (viewId === "expensesView" && !options.preserveExpenseFilters) {
     resetExpenseCategoryFilterToAll();
   }
 

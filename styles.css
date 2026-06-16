@@ -259,6 +259,28 @@ button.small {
   width: 100%;
 }
 
+.report-category-link {
+  width: auto;
+  min-height: 0;
+  border: 0;
+  border-radius: 6px;
+  padding: 3px 6px;
+  background: transparent;
+  color: var(--primary, #111827);
+  font: inherit;
+  font-weight: 800;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.report-category-link:hover {
+  background: var(--accent-soft, #ccfbf1);
+  box-shadow: none;
+  transform: none;
+}
+
 .report-bar {
   height: 10px;
   background: #e5e7eb;
