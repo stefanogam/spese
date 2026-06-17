@@ -1,8 +1,9 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.71";
+const APP_VERSION = "V.72";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
+const LOCAL_BACKUP_KEY = "spese-pwa-locale-last-json-backup";
 
 const defaultCategories = [
   "Alimentari",
@@ -3032,13 +3033,38 @@ function createBackupPayload() {
   };
 }
 
-function exportJsonBackup(markDailyBackup = true) {
-  if (markDailyBackup) {
-    state.lastBackupDate = getTodayDateString();
-    saveState();
-  }
+function getBackupTimestamp(backup) {
+  const timestamp = Date.parse(backup?.exportedAt || "");
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
 
-  const json = JSON.stringify(createBackupPayload(), null, 2);
+function getBackupState(backup) {
+  return backup?.data || backup;
+}
+
+function isValidBackup(backup) {
+  const backupState = getBackupState(backup);
+  return Boolean(backupState && Array.isArray(backupState.expenses));
+}
+
+function saveLocalBackupSnapshot(backup) {
+  localStorage.setItem(LOCAL_BACKUP_KEY, JSON.stringify(backup));
+}
+
+function getLocalBackupSnapshot() {
+  const saved = localStorage.getItem(LOCAL_BACKUP_KEY);
+  if (!saved) return null;
+
+  try {
+    const parsed = JSON.parse(saved);
+    return isValidBackup(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function downloadBackupJson(backup) {
+  const json = JSON.stringify(backup, null, 2);
   const blob = new Blob([json], { type: "application/json;charset=utf-8" });
   const url = URL.createObjectURL(blob);
 
@@ -3048,6 +3074,18 @@ function exportJsonBackup(markDailyBackup = true) {
   link.click();
 
   URL.revokeObjectURL(url);
+}
+
+function exportJsonBackup(markDailyBackup = true) {
+  if (markDailyBackup) {
+    state.lastBackupDate = getTodayDateString();
+    saveState();
+  }
+
+  const backup = createBackupPayload();
+  saveLocalBackupSnapshot(backup);
+  downloadBackupJson(backup);
+  return backup;
 }
 
 function waitForGoogleIdentityServices() {
@@ -3170,19 +3208,25 @@ async function updateGoogleDriveBackupFile(fileId, json) {
   });
 }
 
+async function saveBackupToGoogleDrive(backup) {
+  const json = JSON.stringify(backup, null, 2);
+  const existingFile = await findGoogleDriveBackupFile();
+
+  if (existingFile) {
+    await updateGoogleDriveBackupFile(existingFile.id, json);
+  } else {
+    await createGoogleDriveBackupFile(json);
+  }
+}
+
 async function exportJsonBackupToGoogleDrive() {
   try {
     state.lastBackupDate = getTodayDateString();
     saveState();
 
-    const json = JSON.stringify(createBackupPayload(), null, 2);
-    const existingFile = await findGoogleDriveBackupFile();
-
-    if (existingFile) {
-      await updateGoogleDriveBackupFile(existingFile.id, json);
-    } else {
-      await createGoogleDriveBackupFile(json);
-    }
+    const backup = createBackupPayload();
+    saveLocalBackupSnapshot(backup);
+    await saveBackupToGoogleDrive(backup);
 
     closeDailyBackupReminder();
     alert("Backup salvato su Google Drive.");
@@ -3191,34 +3235,88 @@ async function exportJsonBackupToGoogleDrive() {
   }
 }
 
+async function exportJsonBackupLocalAndDrive({ goHome = false, showSuccess = true } = {}) {
+  const backup = exportJsonBackup(true);
+  let driveSaved = false;
+  let driveError = "";
+
+  try {
+    await saveBackupToGoogleDrive(backup);
+    driveSaved = true;
+  } catch (error) {
+    driveError = error.message || "Non riesco a salvare il backup su Google Drive.";
+  }
+
+  closeDailyBackupReminder();
+
+  if (goHome) {
+    showView("dashboardView");
+  }
+
+  if (driveSaved && showSuccess) {
+    alert("Backup JSON locale creato e backup salvato su Google Drive.");
+  }
+
+  if (!driveSaved) {
+    alert(`Backup JSON locale creato. Backup Google Drive non riuscito: ${driveError}`);
+  }
+}
+
+async function getGoogleDriveBackupSnapshot() {
+  const existingFile = await findGoogleDriveBackupFile();
+  if (!existingFile) return null;
+
+  const response = await googleDriveFetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(existingFile.id)}?alt=media`);
+  const parsed = await response.json();
+  return isValidBackup(parsed) ? parsed : null;
+}
+
+function restoreBackup(backup) {
+  state = migrateState(getBackupState(backup));
+  saveState();
+  saveLocalBackupSnapshot(backup);
+  renderAll();
+  showView("dashboardView");
+}
+
+function getBackupSourceLabel(source) {
+  return source === "drive" ? "Google Drive" : "locale";
+}
+
 async function importJsonBackupFromGoogleDrive() {
   try {
-    const existingFile = await findGoogleDriveBackupFile();
+    const localBackup = getLocalBackupSnapshot();
+    let driveBackup = null;
+    let driveError = "";
 
-    if (!existingFile) {
-      alert(`Non ho trovato ${GOOGLE_DRIVE_BACKUP_FILE_NAME} su Google Drive.`);
+    try {
+      driveBackup = await getGoogleDriveBackupSnapshot();
+    } catch (error) {
+      driveError = error.message || "Non riesco a leggere il backup su Google Drive.";
+    }
+
+    const candidates = [
+      localBackup ? { source: "locale", backup: localBackup } : null,
+      driveBackup ? { source: "drive", backup: driveBackup } : null
+    ].filter(Boolean);
+
+    if (candidates.length === 0) {
+      alert(driveError || "Non ho trovato backup locali o su Google Drive.");
       return;
     }
 
-    const response = await googleDriveFetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(existingFile.id)}?alt=media`);
-    const parsed = await response.json();
-    const importedState = parsed.data || parsed;
+    const newest = candidates.sort((a, b) => getBackupTimestamp(b.backup) - getBackupTimestamp(a.backup))[0];
+    const dateLabel = newest.backup.exportedAt
+      ? new Date(newest.backup.exportedAt).toLocaleString("it-IT")
+      : "data non disponibile";
 
-    if (!importedState || !Array.isArray(importedState.expenses)) {
-      alert("Il backup trovato su Google Drive non sembra valido.");
-      return;
-    }
-
-    const confirmed = confirm("Vuoi importare il backup da Google Drive? I dati attuali verranno sostituiti.");
+    const confirmed = confirm(`Vuoi ripristinare il backup più recente (${getBackupSourceLabel(newest.source)}, ${dateLabel})? I dati attuali verranno sostituiti.`);
     if (!confirmed) return;
 
-    state = migrateState(importedState);
-    saveState();
-    renderAll();
-    showView("dashboardView");
-    alert("Backup importato da Google Drive.");
+    restoreBackup(newest.backup);
+    alert(`Backup ripristinato dalla copia ${getBackupSourceLabel(newest.source)}.${driveError ? `\nNota: ${driveError}` : ""}`);
   } catch (error) {
-    alert(error.message || "Non riesco a importare il backup da Google Drive.");
+    alert(error.message || "Non riesco a ripristinare il backup.");
   }
 }
 
@@ -3242,10 +3340,8 @@ function closeDailyBackupReminder() {
   if (modal) modal.classList.add("hidden");
 }
 
-function exportDailyBackupAndGoHome() {
-  exportJsonBackup(true);
-  closeDailyBackupReminder();
-  showView("dashboardView");
+async function exportDailyBackupAndGoHome() {
+  await exportJsonBackupLocalAndDrive({ goHome: true, showSuccess: false });
 }
 
 function importJsonBackup(event) {
@@ -3255,18 +3351,38 @@ function importJsonBackup(event) {
   const reader = new FileReader();
 
   reader.onload = () => {
-    try {
+    (async () => {
+      try {
       const parsed = JSON.parse(reader.result);
-      const importedState = parsed.data || parsed;
 
-      if (!importedState || !Array.isArray(importedState.expenses)) {
+      if (!isValidBackup(parsed)) {
         alert("Il file selezionato non sembra essere un backup valido.");
         event.target.value = "";
         return;
       }
 
+      saveLocalBackupSnapshot(parsed);
+
+      let driveBackup = null;
+      let driveError = "";
+
+      try {
+        driveBackup = await getGoogleDriveBackupSnapshot();
+      } catch (error) {
+        driveError = error.message || "Non riesco a leggere il backup su Google Drive.";
+      }
+
+      const candidates = [
+        { source: "locale", backup: parsed },
+        driveBackup ? { source: "drive", backup: driveBackup } : null
+      ].filter(Boolean);
+      const newest = candidates.sort((a, b) => getBackupTimestamp(b.backup) - getBackupTimestamp(a.backup))[0];
+      const dateLabel = newest.backup.exportedAt
+        ? new Date(newest.backup.exportedAt).toLocaleString("it-IT")
+        : "data non disponibile";
+
       const confirmed = confirm(
-        "Vuoi importare questo backup? I dati attuali verranno sostituiti."
+        `Vuoi ripristinare il backup più recente (${getBackupSourceLabel(newest.source)}, ${dateLabel})? I dati attuali verranno sostituiti.`
       );
 
       if (!confirmed) {
@@ -3274,16 +3390,14 @@ function importJsonBackup(event) {
         return;
       }
 
-      state = migrateState(importedState);
-      saveState();
+      restoreBackup(newest.backup);
       event.target.value = "";
-      renderAll();
-      showView("dashboardView");
-      alert("Backup importato correttamente.");
-    } catch {
-      alert("Non riesco a leggere il file JSON selezionato.");
+      alert(`Backup ripristinato dalla copia ${getBackupSourceLabel(newest.source)}.${driveError ? `\nNota: ${driveError}` : ""}`);
+    } catch (error) {
+      alert(error.message || "Non riesco a leggere il file JSON selezionato.");
       event.target.value = "";
     }
+    })();
   };
 
   reader.readAsText(file);
@@ -3409,7 +3523,7 @@ document.getElementById("thresholdForm").addEventListener("submit", saveThreshol
 document.getElementById("categoryForm").addEventListener("submit", addCategory);
 document.getElementById("exportCsvButton").addEventListener("click", exportCsv);
 document.getElementById("resetDataButton").addEventListener("click", resetData);
-document.getElementById("exportJsonButton").addEventListener("click", () => exportJsonBackup(true));
+document.getElementById("exportJsonButton").addEventListener("click", () => exportJsonBackupLocalAndDrive());
 document.getElementById("importJsonInput").addEventListener("change", importJsonBackup);
 
 const exportDriveButton = document.getElementById("exportDriveButton");

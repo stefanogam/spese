@@ -13,7 +13,7 @@
     <header class="app-header">
       <div class="app-title">
         <h1>Spese Mensili</h1>
-        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.71</span></p>
+        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.72</span></p>
       </div>
       <button id="installButton" class="secondary hidden">Installa</button>
     </header>
@@ -29,7 +29,7 @@
 
         <div class="card compact version-card">
           <span>Versione app</span>
-          <strong>V.71</strong>
+          <strong>V.72</strong>
         </div>
 
         <div class="card hero">
@@ -413,16 +413,16 @@
         <div class="card">
           <h2>Backup</h2>
           <p class="hint">
-            Esporta un file JSON con spese, soglie, categorie ed entrate. Puoi salvarlo su Google Drive e reimportarlo in caso di cambio telefono.
+            Esporta un file JSON e tenta anche il salvataggio su Google Drive. Il ripristino usa la copia più recente tra locale e Drive.
           </p>
           <div class="backup-actions">
-            <button id="exportJsonButton" type="button">Esporta backup JSON</button>
+            <button id="exportJsonButton" type="button">Backup JSON + Google Drive</button>
             <label class="import-button">
-              Importa backup JSON
+              Ripristina da JSON/Drive
               <input id="importJsonInput" type="file" accept="application/json,.json" />
             </label>
             <button id="exportDriveButton" type="button" class="secondary">Salva su Google Drive</button>
-            <button id="importDriveButton" type="button" class="secondary">Importa da Google Drive</button>
+            <button id="importDriveButton" type="button" class="secondary">Ripristina backup più recente</button>
           </div>
         </div>
 
@@ -442,10 +442,10 @@
           È consigliato esportare un backup JSON dei dati una volta al giorno.
         </p>
         <p class="hint">
-          Dopo l'esportazione tornerai automaticamente alla Home e l'avviso non comparirà più per oggi.
+          Verrà creato il backup JSON locale e verrà tentato anche il salvataggio su Google Drive.
         </p>
         <div class="modal-actions">
-          <button id="dailyBackupExportButton" type="button">Esporta backup JSON</button>
+          <button id="dailyBackupExportButton" type="button">Backup JSON + Google Drive</button>
           <button id="dailyBackupLaterButton" class="secondary" type="button">Più tardi</button>
         </div>
       </div>
