@@ -13,7 +13,7 @@
     <header class="app-header">
       <div class="app-title">
         <h1>Spese Mensili</h1>
-        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.69</span></p>
+        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.70</span></p>
       </div>
       <button id="installButton" class="secondary hidden">Installa</button>
     </header>
@@ -29,7 +29,7 @@
 
         <div class="card compact version-card">
           <span>Versione app</span>
-          <strong>V.69</strong>
+          <strong>V.70</strong>
         </div>
 
         <div class="card hero">
@@ -419,12 +419,14 @@
               Importa backup JSON
               <input id="importJsonInput" type="file" accept="application/json,.json" />
             </label>
+            <button id="exportDriveButton" type="button" class="secondary">Salva su Google Drive</button>
+            <button id="importDriveButton" type="button" class="secondary">Importa da Google Drive</button>
           </div>
         </div>
 
         <div class="card danger-zone">
           <h3>Gestione dati</h3>
-          <p>Questa versione salva tutto solo nel browser del telefono.</p>
+          <p>I dati restano nel browser. Il backup su Google Drive è opzionale.</p>
           <button id="resetDataButton" class="danger">Cancella tutti i dati</button>
         </div>
       </section>
@@ -457,6 +459,7 @@
     </nav>
   </div>
 
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="app.js"></script>
 </body>
 </html>

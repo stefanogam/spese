@@ -1,4 +1,4 @@
-const CACHE_NAME = "spese-pwa-locale-v69";
+const CACHE_NAME = "spese-pwa-locale-v70";
 
 const APP_SHELL = [
   "./",
@@ -37,6 +37,12 @@ self.addEventListener("message", event => {
 
 self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
+
+  const requestUrl = new URL(event.request.url);
+  if (requestUrl.origin !== self.location.origin) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
 
   if (event.request.mode === "navigate") {
     event.respondWith(

@@ -1,5 +1,8 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.69";
+const APP_VERSION = "V.70";
+const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
+const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
+const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
 
 const defaultCategories = [
   "Alimentari",
@@ -55,6 +58,9 @@ let editingExpenseId = null;
 let editingReimbursementId = null;
 let editingIncomeId = null;
 let reimbursementSourceExpenseId = null;
+let googleDriveTokenClient = null;
+let googleDriveAccessToken = "";
+let googleDriveTokenExpiresAt = 0;
 
 function createId() {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -2909,20 +2915,22 @@ function exportCsv() {
 }
 
 
+function createBackupPayload() {
+  return {
+    app: "spese-pwa-locale",
+    version: 3,
+    exportedAt: new Date().toISOString(),
+    data: state
+  };
+}
+
 function exportJsonBackup(markDailyBackup = true) {
   if (markDailyBackup) {
     state.lastBackupDate = getTodayDateString();
     saveState();
   }
 
-  const backup = {
-    app: "spese-pwa-locale",
-    version: 3,
-    exportedAt: new Date().toISOString(),
-    data: state
-  };
-
-  const json = JSON.stringify(backup, null, 2);
+  const json = JSON.stringify(createBackupPayload(), null, 2);
   const blob = new Blob([json], { type: "application/json;charset=utf-8" });
   const url = URL.createObjectURL(blob);
 
@@ -2932,6 +2940,178 @@ function exportJsonBackup(markDailyBackup = true) {
   link.click();
 
   URL.revokeObjectURL(url);
+}
+
+function waitForGoogleIdentityServices() {
+  return new Promise((resolve, reject) => {
+    const startedAt = Date.now();
+
+    const check = () => {
+      if (window.google && google.accounts && google.accounts.oauth2) {
+        resolve();
+        return;
+      }
+
+      if (Date.now() - startedAt > 8000) {
+        reject(new Error("Servizi Google non disponibili. Controlla la connessione e riprova."));
+        return;
+      }
+
+      window.setTimeout(check, 100);
+    };
+
+    check();
+  });
+}
+
+async function getGoogleDriveAccessToken() {
+  if (googleDriveAccessToken && Date.now() < googleDriveTokenExpiresAt - 60000) {
+    return googleDriveAccessToken;
+  }
+
+  await waitForGoogleIdentityServices();
+
+  return new Promise((resolve, reject) => {
+    googleDriveTokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: GOOGLE_DRIVE_SCOPE,
+      callback: response => {
+        if (response.error) {
+          reject(new Error("Accesso a Google Drive non completato."));
+          return;
+        }
+
+        googleDriveAccessToken = response.access_token;
+        googleDriveTokenExpiresAt = Date.now() + Number(response.expires_in || 3600) * 1000;
+        resolve(googleDriveAccessToken);
+      }
+    });
+
+    googleDriveTokenClient.requestAccessToken({
+      prompt: googleDriveAccessToken ? "" : "consent"
+    });
+  });
+}
+
+async function googleDriveFetch(url, options = {}) {
+  const token = await getGoogleDriveAccessToken();
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+      Authorization: `Bearer ${token}`
+    }
+  });
+
+  if (!response.ok) {
+    const message = await response.text().catch(() => "");
+    throw new Error(message || `Errore Google Drive (${response.status}).`);
+  }
+
+  return response;
+}
+
+function escapeDriveQueryValue(value) {
+  return String(value).replaceAll("\\", "\\\\").replaceAll("'", "\\'");
+}
+
+async function findGoogleDriveBackupFile() {
+  const query = encodeURIComponent(`name='${escapeDriveQueryValue(GOOGLE_DRIVE_BACKUP_FILE_NAME)}' and trashed=false`);
+  const fields = encodeURIComponent("files(id,name,modifiedTime)");
+  const response = await googleDriveFetch(
+    `https://www.googleapis.com/drive/v3/files?q=${query}&spaces=drive&fields=${fields}&orderBy=modifiedTime desc&pageSize=1`
+  );
+  const data = await response.json();
+  return Array.isArray(data.files) && data.files.length > 0 ? data.files[0] : null;
+}
+
+async function createGoogleDriveBackupFile(json) {
+  const metadata = {
+    name: GOOGLE_DRIVE_BACKUP_FILE_NAME,
+    mimeType: "application/json"
+  };
+  const boundary = "spese-pwa-backup-boundary";
+  const body = [
+    `--${boundary}`,
+    "Content-Type: application/json; charset=UTF-8",
+    "",
+    JSON.stringify(metadata),
+    `--${boundary}`,
+    "Content-Type: application/json; charset=UTF-8",
+    "",
+    json,
+    `--${boundary}--`
+  ].join("\r\n");
+
+  await googleDriveFetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,modifiedTime", {
+    method: "POST",
+    headers: {
+      "Content-Type": `multipart/related; boundary=${boundary}`
+    },
+    body
+  });
+}
+
+async function updateGoogleDriveBackupFile(fileId, json) {
+  await googleDriveFetch(`https://www.googleapis.com/upload/drive/v3/files/${encodeURIComponent(fileId)}?uploadType=media&fields=id,name,modifiedTime`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json; charset=UTF-8"
+    },
+    body: json
+  });
+}
+
+async function exportJsonBackupToGoogleDrive() {
+  try {
+    state.lastBackupDate = getTodayDateString();
+    saveState();
+
+    const json = JSON.stringify(createBackupPayload(), null, 2);
+    const existingFile = await findGoogleDriveBackupFile();
+
+    if (existingFile) {
+      await updateGoogleDriveBackupFile(existingFile.id, json);
+    } else {
+      await createGoogleDriveBackupFile(json);
+    }
+
+    closeDailyBackupReminder();
+    alert("Backup salvato su Google Drive.");
+  } catch (error) {
+    alert(error.message || "Non riesco a salvare il backup su Google Drive.");
+  }
+}
+
+async function importJsonBackupFromGoogleDrive() {
+  try {
+    const existingFile = await findGoogleDriveBackupFile();
+
+    if (!existingFile) {
+      alert(`Non ho trovato ${GOOGLE_DRIVE_BACKUP_FILE_NAME} su Google Drive.`);
+      return;
+    }
+
+    const response = await googleDriveFetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(existingFile.id)}?alt=media`);
+    const parsed = await response.json();
+    const importedState = parsed.data || parsed;
+
+    if (!importedState || !Array.isArray(importedState.expenses)) {
+      alert("Il backup trovato su Google Drive non sembra valido.");
+      return;
+    }
+
+    const confirmed = confirm("Vuoi importare il backup da Google Drive? I dati attuali verranno sostituiti.");
+    if (!confirmed) return;
+
+    state = migrateState(importedState);
+    saveState();
+    renderAll();
+    showView("dashboardView");
+    alert("Backup importato da Google Drive.");
+  } catch (error) {
+    alert(error.message || "Non riesco a importare il backup da Google Drive.");
+  }
 }
 
 function shouldShowDailyBackupReminder() {
@@ -3123,6 +3303,16 @@ document.getElementById("exportCsvButton").addEventListener("click", exportCsv);
 document.getElementById("resetDataButton").addEventListener("click", resetData);
 document.getElementById("exportJsonButton").addEventListener("click", () => exportJsonBackup(true));
 document.getElementById("importJsonInput").addEventListener("change", importJsonBackup);
+
+const exportDriveButton = document.getElementById("exportDriveButton");
+if (exportDriveButton) {
+  exportDriveButton.addEventListener("click", exportJsonBackupToGoogleDrive);
+}
+
+const importDriveButton = document.getElementById("importDriveButton");
+if (importDriveButton) {
+  importDriveButton.addEventListener("click", importJsonBackupFromGoogleDrive);
+}
 
 const dailyBackupExportButton = document.getElementById("dailyBackupExportButton");
 if (dailyBackupExportButton) {

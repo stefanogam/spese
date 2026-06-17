@@ -358,6 +358,12 @@ button.small {
   margin-top: 14px;
 }
 
+#exportDriveButton,
+#importDriveButton {
+  background: var(--accent-soft, #ccfbf1);
+  color: #115e59;
+}
+
 .import-button {
   display: block;
   text-align: center;
