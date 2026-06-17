@@ -13,7 +13,7 @@
     <header class="app-header">
       <div class="app-title">
         <h1>Spese Mensili</h1>
-        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.70</span></p>
+        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.71</span></p>
       </div>
       <button id="installButton" class="secondary hidden">Installa</button>
     </header>
@@ -29,7 +29,7 @@
 
         <div class="card compact version-card">
           <span>Versione app</span>
-          <strong>V.70</strong>
+          <strong>V.71</strong>
         </div>
 
         <div class="card hero">
@@ -297,7 +297,9 @@
             Gli istogrammi rappresentano le spese per categoria/soglia; la linea rappresenta il totale mensile.
           </p>
 
-          <div class="chart-wrapper">
+          <div id="multiReportSummary" class="multi-report-summary"></div>
+
+          <div class="chart-wrapper" aria-label="Grafico report plurimensile">
             <canvas id="multiReportChart" width="900" height="520"></canvas>
           </div>
 

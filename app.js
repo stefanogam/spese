@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.70";
+const APP_VERSION = "V.71";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
@@ -1459,9 +1459,9 @@ window.openExpensesForReportCategory = openExpensesForReportCategory;
 
 function getCategoryColor(index) {
   const colors = [
-    "#2563eb", "#16a34a", "#f97316", "#9333ea",
-    "#dc2626", "#0891b2", "#ca8a04", "#4b5563",
-    "#be185d", "#0f766e", "#7c3aed", "#65a30d"
+    "#2563eb", "#0f766e", "#f97316", "#7c3aed",
+    "#dc2626", "#0891b2", "#ca8a04", "#475569",
+    "#be185d", "#16a34a", "#9333ea", "#ea580c"
   ];
   return colors[index % colors.length];
 }
@@ -1630,9 +1630,46 @@ function renderMultiReport() {
   renderMultiReportCategoryFilter();
 
   const data = getMultiReportData();
+  renderMultiReportSummary(data);
   drawMultiReportChart(data);
   renderMultiReportLegend();
   renderMultiReportTable(data);
+}
+
+function renderMultiReportSummary(data) {
+  const container = document.getElementById("multiReportSummary");
+  if (!container) return;
+
+  if (!Array.isArray(data) || data.length === 0) {
+    container.innerHTML = "";
+    return;
+  }
+
+  const total = roundToTwoDecimals(data.reduce((sum, item) => sum + Number(item.total || 0), 0));
+  const average = roundToTwoDecimals(total / data.length);
+  const peak = data.reduce((highest, item) => Number(item.total || 0) > Number(highest.total || 0) ? item : highest, data[0]);
+  const period = data.length === 1
+    ? getMonthLabel(data[0].month)
+    : `${getMonthLabel(data[0].month)} - ${getMonthLabel(data[data.length - 1].month)}`;
+
+  container.innerHTML = `
+    <div class="multi-summary-item">
+      <span>Periodo</span>
+      <strong>${escapeHtml(period)}</strong>
+    </div>
+    <div class="multi-summary-item">
+      <span>Totale budget</span>
+      <strong>${formatCurrency(total)}</strong>
+    </div>
+    <div class="multi-summary-item">
+      <span>Media mensile</span>
+      <strong>${formatCurrency(average)}</strong>
+    </div>
+    <div class="multi-summary-item">
+      <span>Mese più alto</span>
+      <strong>${escapeHtml(getMonthLabel(peak.month))} · ${formatCurrency(peak.total)}</strong>
+    </div>
+  `;
 }
 
 function drawMultiReportChart(data) {
@@ -1640,18 +1677,28 @@ function drawMultiReportChart(data) {
   if (!canvas) return;
 
   const ctx = canvas.getContext("2d");
-  const width = canvas.width;
-  const height = canvas.height;
+  const selectedCategories = getSelectedMultiReportCategories();
+  const monthCount = Math.max(data.length, 1);
+  const cssWidth = Math.max(940, monthCount * 78 + 180);
+  const cssHeight = 560;
+  const pixelRatio = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+
+  canvas.style.width = `${cssWidth}px`;
+  canvas.style.height = `${cssHeight}px`;
+  canvas.width = Math.round(cssWidth * pixelRatio);
+  canvas.height = Math.round(cssHeight * pixelRatio);
+  ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+
+  const width = cssWidth;
+  const height = cssHeight;
 
   ctx.clearRect(0, 0, width, height);
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = "#f8fafc";
   ctx.fillRect(0, 0, width, height);
 
-  const padding = { top: 34, right: 46, bottom: 86, left: 70 };
+  const padding = { top: 62, right: 34, bottom: 96, left: 92 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
-
-  const selectedCategories = getSelectedMultiReportCategories();
 
   const maxStack = Math.max(
     ...data.map(item => selectedCategories.reduce((sum, category) => sum + Number(item.totalsByCategory[category] || 0), 0)),
@@ -1660,30 +1707,65 @@ function drawMultiReportChart(data) {
     1
   );
 
-  const niceMax = Math.ceil(maxStack / 100) * 100 || 100;
+  const roughStep = maxStack / 5;
+  const stepBase = Math.pow(10, Math.floor(Math.log10(roughStep || 1)));
+  const step = Math.ceil(roughStep / stepBase) * stepBase;
+  const niceMax = Math.max(step, Math.ceil(maxStack / step) * step);
 
   function yScale(value) {
     return padding.top + chartHeight - (value / niceMax) * chartHeight;
   }
 
-  ctx.strokeStyle = "#e5e7eb";
-  ctx.fillStyle = "#6b7280";
-  ctx.font = "12px system-ui";
+  function shortCurrency(value) {
+    if (value >= 1000) return `${Math.round(value / 100) / 10}k €`.replace(".", ",");
+    return `${Math.round(value)} €`;
+  }
+
+  function roundedRect(x, y, rectWidth, rectHeight, radius) {
+    const safeRadius = Math.min(radius, Math.abs(rectHeight) / 2, rectWidth / 2);
+    ctx.beginPath();
+    ctx.roundRect(x, y, rectWidth, rectHeight, safeRadius);
+  }
+
+  ctx.strokeStyle = "#dbe3ee";
+  ctx.lineWidth = 1;
+  ctx.fillStyle = "#64748b";
+  ctx.font = "600 12px system-ui";
   ctx.textAlign = "right";
   ctx.textBaseline = "middle";
 
   for (let i = 0; i <= 5; i++) {
-    const value = (niceMax / 5) * i;
+    const value = step * i;
     const y = yScale(value);
     ctx.beginPath();
     ctx.moveTo(padding.left, y);
     ctx.lineTo(width - padding.right, y);
     ctx.stroke();
-    ctx.fillText(formatCurrency(value).replace(",00", ""), padding.left - 8, y);
+    ctx.fillText(shortCurrency(value), padding.left - 12, y);
+  }
+
+  const totalLimit = Number(state.thresholds.totalLimit || 0);
+  if (totalLimit > 0 && totalLimit <= niceMax) {
+    const y = yScale(totalLimit);
+    ctx.save();
+    ctx.setLineDash([7, 7]);
+    ctx.strokeStyle = "#dc2626";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(padding.left, y);
+    ctx.lineTo(width - padding.right, y);
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.fillStyle = "#991b1b";
+    ctx.font = "700 12px system-ui";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "bottom";
+    ctx.fillText(`Soglia ${shortCurrency(totalLimit)}`, padding.left + 8, y - 6);
   }
 
   const groupWidth = chartWidth / data.length;
-  const barWidth = Math.min(42, groupWidth * 0.56);
+  const barWidth = Math.min(46, groupWidth * 0.52);
 
   data.forEach((item, index) => {
     const x = padding.left + index * groupWidth + (groupWidth - barWidth) / 2;
@@ -1699,23 +1781,38 @@ function drawMultiReportChart(data) {
       const segmentHeight = yBottom - yTop;
 
       ctx.fillStyle = getCategoryColor(categoryIndex);
-      ctx.fillRect(x, yTop, barWidth, Math.max(segmentHeight, 1));
+      if (typeof ctx.roundRect === "function") {
+        roundedRect(x, yTop, barWidth, Math.max(segmentHeight, 1), 5);
+        ctx.fill();
+      } else {
+        ctx.fillRect(x, yTop, barWidth, Math.max(segmentHeight, 1));
+      }
       accumulated += value;
     });
 
+    if (accumulated === 0) {
+      ctx.fillStyle = "#e2e8f0";
+      ctx.fillRect(x, yScale(0) - 2, barWidth, 2);
+    }
+
     const label = item.month.slice(5, 7) + "/" + item.month.slice(2, 4);
-    ctx.save();
-    ctx.translate(x + barWidth / 2, height - padding.bottom + 22);
-    ctx.rotate(-Math.PI / 4);
-    ctx.fillStyle = "#374151";
-    ctx.font = "12px system-ui";
-    ctx.textAlign = "right";
-    ctx.fillText(label, 0, 0);
-    ctx.restore();
+    ctx.fillStyle = "#334155";
+    ctx.font = "700 12px system-ui";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillText(label, x + barWidth / 2, height - padding.bottom + 20);
+
+    if (item.total > 0) {
+      ctx.fillStyle = "#64748b";
+      ctx.font = "600 11px system-ui";
+      ctx.fillText(shortCurrency(item.total), x + barWidth / 2, height - padding.bottom + 40);
+    }
   });
 
-  ctx.strokeStyle = "#111827";
+  ctx.strokeStyle = "#0f172a";
   ctx.lineWidth = 3;
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
   ctx.beginPath();
 
   data.forEach((item, index) => {
@@ -1731,25 +1828,32 @@ function drawMultiReportChart(data) {
     const x = padding.left + index * groupWidth + groupWidth / 2;
     const y = yScale(item.total);
 
-    ctx.fillStyle = "#111827";
+    ctx.fillStyle = "#ffffff";
+    ctx.strokeStyle = "#0f172a";
+    ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.arc(x, y, 5, 0, Math.PI * 2);
     ctx.fill();
+    ctx.stroke();
 
     if (item.total > 0) {
-      ctx.fillStyle = "#111827";
-      ctx.font = "11px system-ui";
+      ctx.fillStyle = "#0f172a";
+      ctx.font = "700 12px system-ui";
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
-      ctx.fillText(Math.round(item.total).toString(), x, y - 7);
+      ctx.fillText(shortCurrency(item.total), x, y - 10);
     }
   });
 
-  ctx.fillStyle = "#111827";
-  ctx.font = "bold 15px system-ui";
+  ctx.fillStyle = "#0f172a";
+  ctx.font = "800 18px system-ui";
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
-  ctx.fillText("Budget per categoria e totale mensile utilizzato", padding.left, 10);
+  ctx.fillText("Budget per categoria e totale mensile", padding.left, 18);
+
+  ctx.fillStyle = "#64748b";
+  ctx.font = "600 12px system-ui";
+  ctx.fillText("Barre: categorie selezionate · Linea: totale budget · Linea rossa: soglia mensile", padding.left, 42);
 }
 
 function renderMultiReportLegend() {
@@ -1772,6 +1876,10 @@ function renderMultiReportLegend() {
     <span class="legend-item">
       <span class="legend-line"></span>
       Totale budget mensile
+    </span>
+    <span class="legend-item">
+      <span class="legend-threshold"></span>
+      Soglia mensile
     </span>
   `;
 }
