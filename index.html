@@ -13,7 +13,7 @@
     <header class="app-header">
       <div class="app-title">
         <h1>Spese Mensili</h1>
-        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.76</span></p>
+        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.77</span></p>
       </div>
       <button id="installButton" class="secondary hidden">Installa</button>
     </header>
@@ -29,7 +29,7 @@
 
         <div class="card compact version-card">
           <span>Versione app</span>
-          <strong>V.76</strong>
+          <strong>V.77</strong>
         </div>
 
         <div class="card hero">
@@ -252,6 +252,20 @@
           </label>
 
           <div id="categoryReport"></div>
+
+          <div class="category-trend-panel">
+            <div class="section-title">
+              <h3>Andamento categoria</h3>
+            </div>
+            <label class="report-month-selector">
+              Categoria da analizzare
+              <select id="categoryTrendSelect"></select>
+            </label>
+            <div id="categoryTrendSummary" class="multi-report-summary"></div>
+            <div class="chart-wrapper category-trend-wrapper" aria-label="Grafico andamento categoria">
+              <canvas id="categoryTrendChart" width="760" height="360"></canvas>
+            </div>
+          </div>
         </div>
 
         <div class="card">
@@ -423,7 +437,9 @@
             </label>
             <button id="exportDriveButton" type="button" class="secondary">Salva su Google Drive</button>
             <button id="importDriveButton" type="button" class="secondary">Ripristina backup più recente</button>
+            <button id="verifyDriveButton" type="button" class="secondary">Verifica Google Drive</button>
           </div>
+          <div id="backupStatusPanel" class="backup-status-panel"></div>
         </div>
 
         <div class="card danger-zone">
@@ -448,6 +464,14 @@
           <button id="dailyBackupExportButton" type="button">Backup JSON + Google Drive</button>
           <button id="dailyBackupLaterButton" class="secondary" type="button">Più tardi</button>
         </div>
+      </div>
+    </div>
+
+    <div id="appModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="appModalTitle">
+      <div class="modal-card app-modal-card">
+        <h2 id="appModalTitle"></h2>
+        <p id="appModalMessage"></p>
+        <div id="appModalActions" class="modal-actions"></div>
       </div>
     </div>
 

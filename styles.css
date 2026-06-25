@@ -413,6 +413,43 @@ button.small {
   margin-top: 14px;
 }
 
+.backup-status-panel {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.backup-status-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid #dbe3ee;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 10px;
+}
+
+.backup-status-row span {
+  color: #64748b;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.backup-status-row strong {
+  color: #0f172a;
+  font-size: 0.9rem;
+  text-align: right;
+}
+
+.backup-status-row.warning strong {
+  color: #92400e;
+}
+
+.backup-status-row.ok strong {
+  color: #0f766e;
+}
+
 #exportDriveButton,
 #importDriveButton {
   background: var(--accent-soft, #ccfbf1);
@@ -524,6 +561,24 @@ input[readonly] {
   background: #f8fafc;
   padding: 10px;
   margin-top: 14px;
+}
+
+.category-trend-panel {
+  border-top: 1px solid #e5e7eb;
+  margin-top: 18px;
+  padding-top: 16px;
+}
+
+.category-trend-wrapper {
+  margin-top: 10px;
+}
+
+#categoryTrendChart {
+  width: 760px;
+  max-width: none;
+  height: 360px;
+  display: block;
+  border-radius: 8px;
 }
 
 #multiReportChart {
@@ -1698,6 +1753,13 @@ input[readonly] {
   padding: 20px;
   background: #ffffff;
   box-shadow: 0 20px 50px rgba(17, 24, 39, 0.25);
+}
+
+.app-modal-card p {
+  color: #374151;
+  line-height: 1.45;
+  margin: 0;
+  white-space: pre-line;
 }
 
 .modal-card h2 {

@@ -1,9 +1,10 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.76";
+const APP_VERSION = "V.77";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
 const LOCAL_BACKUP_KEY = "spese-pwa-locale-last-json-backup";
+const BACKUP_STATUS_KEY = "spese-pwa-locale-backup-status";
 
 const defaultCategories = [
   "Alimentari",
@@ -173,6 +174,58 @@ function saveState() {
 }
 
 let state = loadState();
+
+function showAppModal({ title, message, actions }) {
+  return new Promise(resolve => {
+    const modal = document.getElementById("appModal");
+    const titleElement = document.getElementById("appModalTitle");
+    const messageElement = document.getElementById("appModalMessage");
+    const actionsElement = document.getElementById("appModalActions");
+
+    if (!modal || !titleElement || !messageElement || !actionsElement) {
+      resolve(actions?.[0]?.value ?? true);
+      return;
+    }
+
+    titleElement.textContent = title;
+    messageElement.textContent = message;
+    actionsElement.innerHTML = "";
+
+    actions.forEach(action => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = action.label;
+      if (action.className) button.className = action.className;
+      button.addEventListener("click", () => {
+        modal.classList.add("hidden");
+        actionsElement.innerHTML = "";
+        resolve(action.value);
+      }, { once: true });
+      actionsElement.appendChild(button);
+    });
+
+    modal.classList.remove("hidden");
+  });
+}
+
+function appAlert(message, title = "Avviso") {
+  return showAppModal({
+    title,
+    message,
+    actions: [{ label: "OK", value: true }]
+  });
+}
+
+function appConfirm(message, title = "Conferma") {
+  return showAppModal({
+    title,
+    message,
+    actions: [
+      { label: "Conferma", value: true },
+      { label: "Annulla", value: false, className: "secondary" }
+    ]
+  });
+}
 
 function formatCurrency(value) {
   return new Intl.NumberFormat("it-IT", {
@@ -1401,6 +1454,7 @@ function renderReport() {
 
   if (!selectedReportMonth) {
     container.innerHTML = `<p class="empty">Non ci sono ancora spese registrate.</p>`;
+    renderCategoryTrendPanel(getCurrentMonth());
     renderMultiReport();
     return;
   }
@@ -1418,6 +1472,7 @@ function renderReport() {
 
   if (expenses.length === 0) {
     container.innerHTML = `<p class="empty">Nessuna spesa presente per il mese selezionato.</p>`;
+    renderCategoryTrendPanel(selectedReportMonth);
     renderMultiReport();
     return;
   }
@@ -1456,6 +1511,13 @@ function renderReport() {
               >
                 ${escapeHtml(category)}
               </button>
+              <button
+                class="secondary small"
+                type="button"
+                onclick="selectCategoryTrend('${escapeAttribute(category)}')"
+              >
+                Andamento
+              </button>
               <span class="badge ${status.className}">${status.label}</span>
             </div>
             <span>Budget: ${formatCurrency(spent)} su ${formatCurrency(limit)}</span>
@@ -1473,8 +1535,205 @@ function renderReport() {
     .join("");
 
   container.innerHTML = summary + rows;
+  renderCategoryTrendPanel(selectedReportMonth);
   renderMultiReport();
 }
+
+function getSelectedCategoryTrend() {
+  const select = document.getElementById("categoryTrendSelect");
+  const selected = select?.value || state.categories[0] || "";
+  return state.categories.includes(selected) ? selected : (state.categories[0] || "");
+}
+
+function renderCategoryTrendPanel(referenceMonth = state.selectedReportMonth || getCurrentMonth()) {
+  const select = document.getElementById("categoryTrendSelect");
+  const summary = document.getElementById("categoryTrendSummary");
+  const canvas = document.getElementById("categoryTrendChart");
+  if (!select || !summary || !canvas) return;
+
+  const currentValue = getSelectedCategoryTrend();
+  select.innerHTML = state.categories
+    .map(category => `<option value="${escapeAttributeForHtml(category)}" ${category === currentValue ? "selected" : ""}>${escapeHtml(category)}</option>`)
+    .join("");
+
+  const category = getSelectedCategoryTrend();
+  if (!category) {
+    summary.innerHTML = `<p class="empty">Aggiungi almeno una categoria per visualizzare l'andamento.</p>`;
+    return;
+  }
+
+  const months = getMonthRangeAround(referenceMonth || getCurrentMonth(), 11, 0);
+  const data = months.map(month => {
+    const expenses = getMonthlyExpenses(month);
+    const reimbursements = getGenericReimbursementsForMonth(month);
+    const totals = getNetBudgetTotalsByCategory(expenses, reimbursements);
+    return {
+      month,
+      amount: roundToTwoDecimals(Number(totals[category] || 0))
+    };
+  });
+
+  const total = roundToTwoDecimals(data.reduce((sum, item) => sum + item.amount, 0));
+  const average = roundToTwoDecimals(total / data.length);
+  const peak = data.reduce((highest, item) => item.amount > highest.amount ? item : highest, data[0]);
+
+  summary.innerHTML = `
+    <div class="multi-summary-item">
+      <span>Categoria</span>
+      <strong>${escapeHtml(category)}</strong>
+    </div>
+    <div class="multi-summary-item">
+      <span>Totale 12 mesi</span>
+      <strong>${formatCurrency(total)}</strong>
+    </div>
+    <div class="multi-summary-item">
+      <span>Media mensile</span>
+      <strong>${formatCurrency(average)}</strong>
+    </div>
+    <div class="multi-summary-item">
+      <span>Mese più alto</span>
+      <strong>${escapeHtml(getMonthLabel(peak.month))} · ${formatCurrency(peak.amount)}</strong>
+    </div>
+  `;
+
+  drawCategoryTrendChart(data, category);
+}
+
+function drawCategoryTrendChart(data, category) {
+  const canvas = document.getElementById("categoryTrendChart");
+  if (!canvas) return;
+
+  const ctx = canvas.getContext("2d");
+  const cssWidth = Math.max(760, data.length * 68 + 120);
+  const cssHeight = 360;
+  const pixelRatio = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+
+  canvas.style.width = `${cssWidth}px`;
+  canvas.style.height = `${cssHeight}px`;
+  canvas.width = Math.round(cssWidth * pixelRatio);
+  canvas.height = Math.round(cssHeight * pixelRatio);
+  ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+
+  const width = cssWidth;
+  const height = cssHeight;
+  const padding = { top: 54, right: 28, bottom: 70, left: 82 };
+  const chartWidth = width - padding.left - padding.right;
+  const chartHeight = height - padding.top - padding.bottom;
+  const maxValue = Math.max(...data.map(item => item.amount), Number(state.thresholds.categoryLimits[category] || 0), 1);
+  const roughStep = maxValue / 4;
+  const stepBase = Math.pow(10, Math.floor(Math.log10(roughStep || 1)));
+  const step = Math.ceil(roughStep / stepBase) * stepBase;
+  const niceMax = Math.max(step, Math.ceil(maxValue / step) * step);
+
+  function yScale(value) {
+    return padding.top + chartHeight - (value / niceMax) * chartHeight;
+  }
+
+  function shortCurrency(value) {
+    if (value >= 1000) return `${Math.round(value / 100) / 10}k €`.replace(".", ",");
+    return `${Math.round(value)} €`;
+  }
+
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = "#f8fafc";
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.strokeStyle = "#dbe3ee";
+  ctx.fillStyle = "#64748b";
+  ctx.lineWidth = 1;
+  ctx.font = "600 12px system-ui";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+
+  for (let i = 0; i <= 4; i++) {
+    const value = step * i;
+    const y = yScale(value);
+    ctx.beginPath();
+    ctx.moveTo(padding.left, y);
+    ctx.lineTo(width - padding.right, y);
+    ctx.stroke();
+    ctx.fillText(shortCurrency(value), padding.left - 12, y);
+  }
+
+  const limit = Number(state.thresholds.categoryLimits[category] || 0);
+  if (limit > 0 && limit <= niceMax) {
+    const y = yScale(limit);
+    ctx.save();
+    ctx.setLineDash([7, 7]);
+    ctx.strokeStyle = "#dc2626";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(padding.left, y);
+    ctx.lineTo(width - padding.right, y);
+    ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = "#991b1b";
+    ctx.font = "700 12px system-ui";
+    ctx.textAlign = "left";
+    ctx.fillText(`Soglia ${shortCurrency(limit)}`, padding.left + 8, y - 8);
+  }
+
+  const pointGap = chartWidth / Math.max(data.length - 1, 1);
+  const points = data.map((item, index) => ({
+    x: padding.left + index * pointGap,
+    y: yScale(item.amount),
+    ...item
+  }));
+
+  ctx.strokeStyle = "#0f766e";
+  ctx.lineWidth = 3;
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  points.forEach((point, index) => {
+    if (index === 0) ctx.moveTo(point.x, point.y);
+    else ctx.lineTo(point.x, point.y);
+  });
+  ctx.stroke();
+
+  points.forEach(point => {
+    ctx.fillStyle = "#ffffff";
+    ctx.strokeStyle = "#0f766e";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    if (point.amount > 0) {
+      ctx.fillStyle = "#0f172a";
+      ctx.font = "700 11px system-ui";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+      ctx.fillText(shortCurrency(point.amount), point.x, point.y - 9);
+    }
+
+    ctx.fillStyle = "#334155";
+    ctx.font = "700 11px system-ui";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillText(`${point.month.slice(5, 7)}/${point.month.slice(2, 4)}`, point.x, height - padding.bottom + 20);
+  });
+
+  ctx.fillStyle = "#0f172a";
+  ctx.font = "800 17px system-ui";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  ctx.fillText(`Andamento ${category}`, padding.left, 16);
+  ctx.fillStyle = "#64748b";
+  ctx.font = "600 12px system-ui";
+  ctx.fillText("Ultimi 12 mesi rispetto al mese selezionato", padding.left, 40);
+}
+
+function selectCategoryTrend(category) {
+  const select = document.getElementById("categoryTrendSelect");
+  if (select && state.categories.includes(category)) {
+    select.value = category;
+  }
+  renderCategoryTrendPanel(state.selectedReportMonth || getCurrentMonth());
+}
+
+window.selectCategoryTrend = selectCategoryTrend;
 
 function openExpensesForReportCategory(month, category) {
   if (!month || !category) return;
@@ -2349,6 +2608,7 @@ function renderAll() {
   renderFamilyBudget();
   renderThresholdForm();
   renderCategoriesList();
+  renderBackupStatus();
 }
 
 function updateGenericReimbursementMode() {
@@ -2424,11 +2684,11 @@ function resetAddExpenseForm(form) {
   }
 }
 
-function handleExpenseSaved(form) {
+async function handleExpenseSaved(form) {
   resetAddExpenseForm(form);
   renderAll();
 
-  const addAnother = confirm("Spesa salvata. Vuoi inserire una nuova spesa?");
+  const addAnother = await appConfirm("Spesa salvata. Vuoi inserire una nuova spesa?", "Spesa salvata");
 
   if (addAnother) {
     showView("addView");
@@ -3095,8 +3355,86 @@ function isValidBackup(backup) {
   return Boolean(backupState && Array.isArray(backupState.expenses));
 }
 
+function getBackupStatus() {
+  const saved = localStorage.getItem(BACKUP_STATUS_KEY);
+  if (!saved) {
+    return {
+      localSavedAt: "",
+      driveSavedAt: "",
+      driveCheckedAt: "",
+      driveError: ""
+    };
+  }
+
+  try {
+    return {
+      localSavedAt: "",
+      driveSavedAt: "",
+      driveCheckedAt: "",
+      driveError: "",
+      ...JSON.parse(saved)
+    };
+  } catch {
+    return {
+      localSavedAt: "",
+      driveSavedAt: "",
+      driveCheckedAt: "",
+      driveError: ""
+    };
+  }
+}
+
+function updateBackupStatus(patch) {
+  localStorage.setItem(BACKUP_STATUS_KEY, JSON.stringify({
+    ...getBackupStatus(),
+    ...patch
+  }));
+  renderBackupStatus();
+}
+
+function formatBackupDate(value) {
+  if (!value) return "Mai";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Non disponibile";
+  return date.toLocaleString("it-IT", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+function renderBackupStatus() {
+  const container = document.getElementById("backupStatusPanel");
+  if (!container) return;
+
+  const status = getBackupStatus();
+  container.innerHTML = `
+    <div class="backup-status-row ok">
+      <span>Ultimo backup locale</span>
+      <strong>${escapeHtml(formatBackupDate(status.localSavedAt))}</strong>
+    </div>
+    <div class="backup-status-row ${status.driveSavedAt ? "ok" : "warning"}">
+      <span>Ultimo backup Google Drive</span>
+      <strong>${escapeHtml(formatBackupDate(status.driveSavedAt))}</strong>
+    </div>
+    <div class="backup-status-row">
+      <span>Ultimo controllo Drive</span>
+      <strong>${escapeHtml(formatBackupDate(status.driveCheckedAt))}</strong>
+    </div>
+    ${status.driveError ? `
+      <div class="backup-status-row warning">
+        <span>Ultimo errore Drive</span>
+        <strong>${escapeHtml(status.driveError)}</strong>
+      </div>
+    ` : ""}
+  `;
+}
+
 function saveLocalBackupSnapshot(backup) {
   localStorage.setItem(LOCAL_BACKUP_KEY, JSON.stringify(backup));
+  updateBackupStatus({ localSavedAt: backup.exportedAt || new Date().toISOString() });
 }
 
 function getLocalBackupSnapshot() {
@@ -3265,6 +3603,12 @@ async function saveBackupToGoogleDrive(backup) {
   } else {
     await createGoogleDriveBackupFile(json);
   }
+
+  updateBackupStatus({
+    driveSavedAt: backup.exportedAt || new Date().toISOString(),
+    driveCheckedAt: new Date().toISOString(),
+    driveError: ""
+  });
 }
 
 async function exportJsonBackupToGoogleDrive() {
@@ -3277,9 +3621,14 @@ async function exportJsonBackupToGoogleDrive() {
     await saveBackupToGoogleDrive(backup);
 
     closeDailyBackupReminder();
-    alert("Backup salvato su Google Drive.");
+    await appAlert("Backup salvato su Google Drive.", "Backup completato");
   } catch (error) {
-    alert(error.message || "Non riesco a salvare il backup su Google Drive.");
+    const message = error.message || "Non riesco a salvare il backup su Google Drive.";
+    updateBackupStatus({
+      driveCheckedAt: new Date().toISOString(),
+      driveError: message
+    });
+    await appAlert(message, "Backup Drive non riuscito");
   }
 }
 
@@ -3293,6 +3642,10 @@ async function exportJsonBackupLocalAndDrive({ goHome = false, showSuccess = tru
     driveSaved = true;
   } catch (error) {
     driveError = error.message || "Non riesco a salvare il backup su Google Drive.";
+    updateBackupStatus({
+      driveCheckedAt: new Date().toISOString(),
+      driveError
+    });
   }
 
   closeDailyBackupReminder();
@@ -3302,11 +3655,11 @@ async function exportJsonBackupLocalAndDrive({ goHome = false, showSuccess = tru
   }
 
   if (driveSaved && showSuccess) {
-    alert("Backup JSON locale creato e backup salvato su Google Drive.");
+    await appAlert("Backup JSON locale creato e backup salvato su Google Drive.", "Backup completato");
   }
 
   if (!driveSaved) {
-    alert(`Backup JSON locale creato. Backup Google Drive non riuscito: ${driveError}`);
+    await appAlert(`Backup JSON locale creato.\nBackup Google Drive non riuscito: ${driveError}`, "Backup parziale");
   }
 }
 
@@ -3316,6 +3669,10 @@ async function getGoogleDriveBackupSnapshot() {
 
   const response = await googleDriveFetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(existingFile.id)}?alt=media`);
   const parsed = await response.json();
+  updateBackupStatus({
+    driveCheckedAt: new Date().toISOString(),
+    driveError: ""
+  });
   return isValidBackup(parsed) ? parsed : null;
 }
 
@@ -3349,7 +3706,7 @@ async function importJsonBackupFromGoogleDrive() {
     ].filter(Boolean);
 
     if (candidates.length === 0) {
-      alert(driveError || "Non ho trovato backup locali o su Google Drive.");
+      await appAlert(driveError || "Non ho trovato backup locali o su Google Drive.", "Nessun backup trovato");
       return;
     }
 
@@ -3358,13 +3715,36 @@ async function importJsonBackupFromGoogleDrive() {
       ? new Date(newest.backup.exportedAt).toLocaleString("it-IT")
       : "data non disponibile";
 
-    const confirmed = confirm(`Vuoi ripristinare il backup più recente (${getBackupSourceLabel(newest.source)}, ${dateLabel})? I dati attuali verranno sostituiti.`);
+    const confirmed = await appConfirm(`Vuoi ripristinare il backup più recente (${getBackupSourceLabel(newest.source)}, ${dateLabel})?\nI dati attuali verranno sostituiti.`, "Ripristino backup");
     if (!confirmed) return;
 
     restoreBackup(newest.backup);
-    alert(`Backup ripristinato dalla copia ${getBackupSourceLabel(newest.source)}.${driveError ? `\nNota: ${driveError}` : ""}`);
+    await appAlert(`Backup ripristinato dalla copia ${getBackupSourceLabel(newest.source)}.${driveError ? `\nNota: ${driveError}` : ""}`, "Ripristino completato");
   } catch (error) {
-    alert(error.message || "Non riesco a ripristinare il backup.");
+    await appAlert(error.message || "Non riesco a ripristinare il backup.", "Ripristino non riuscito");
+  }
+}
+
+async function verifyGoogleDriveBackup() {
+  try {
+    const backup = await getGoogleDriveBackupSnapshot();
+    updateBackupStatus({
+      driveCheckedAt: new Date().toISOString(),
+      driveError: ""
+    });
+
+    if (backup) {
+      await appAlert(`Connessione Google Drive riuscita.\nBackup trovato: ${formatBackupDate(backup.exportedAt)}`, "Google Drive OK");
+    } else {
+      await appAlert("Connessione Google Drive riuscita, ma non ho trovato un backup salvato.", "Google Drive OK");
+    }
+  } catch (error) {
+    const message = error.message || "Non riesco a verificare Google Drive.";
+    updateBackupStatus({
+      driveCheckedAt: new Date().toISOString(),
+      driveError: message
+    });
+    await appAlert(message, "Verifica Drive non riuscita");
   }
 }
 
@@ -3404,7 +3784,7 @@ function importJsonBackup(event) {
       const parsed = JSON.parse(reader.result);
 
       if (!isValidBackup(parsed)) {
-        alert("Il file selezionato non sembra essere un backup valido.");
+        await appAlert("Il file selezionato non sembra essere un backup valido.", "Backup non valido");
         event.target.value = "";
         return;
       }
@@ -3429,8 +3809,9 @@ function importJsonBackup(event) {
         ? new Date(newest.backup.exportedAt).toLocaleString("it-IT")
         : "data non disponibile";
 
-      const confirmed = confirm(
-        `Vuoi ripristinare il backup più recente (${getBackupSourceLabel(newest.source)}, ${dateLabel})? I dati attuali verranno sostituiti.`
+      const confirmed = await appConfirm(
+        `Vuoi ripristinare il backup più recente (${getBackupSourceLabel(newest.source)}, ${dateLabel})?\nI dati attuali verranno sostituiti.`,
+        "Ripristino backup"
       );
 
       if (!confirmed) {
@@ -3440,9 +3821,9 @@ function importJsonBackup(event) {
 
       restoreBackup(newest.backup);
       event.target.value = "";
-      alert(`Backup ripristinato dalla copia ${getBackupSourceLabel(newest.source)}.${driveError ? `\nNota: ${driveError}` : ""}`);
+      await appAlert(`Backup ripristinato dalla copia ${getBackupSourceLabel(newest.source)}.${driveError ? `\nNota: ${driveError}` : ""}`, "Ripristino completato");
     } catch (error) {
-      alert(error.message || "Non riesco a leggere il file JSON selezionato.");
+      await appAlert(error.message || "Non riesco a leggere il file JSON selezionato.", "Ripristino non riuscito");
       event.target.value = "";
     }
     })();
@@ -3582,6 +3963,11 @@ if (exportDriveButton) {
 const importDriveButton = document.getElementById("importDriveButton");
 if (importDriveButton) {
   importDriveButton.addEventListener("click", importJsonBackupFromGoogleDrive);
+}
+
+const verifyDriveButton = document.getElementById("verifyDriveButton");
+if (verifyDriveButton) {
+  verifyDriveButton.addEventListener("click", verifyGoogleDriveBackup);
 }
 
 const dailyBackupExportButton = document.getElementById("dailyBackupExportButton");
@@ -3777,6 +4163,14 @@ document.getElementById("reportMonthSelect").addEventListener("change", event =>
   saveState();
   renderReport();
 });
+
+const categoryTrendSelect = document.getElementById("categoryTrendSelect");
+if (categoryTrendSelect) {
+  categoryTrendSelect.addEventListener("change", () => {
+    renderCategoryTrendPanel(state.selectedReportMonth || getCurrentMonth());
+  });
+}
+
 const prevMonthButton = document.getElementById("prevMonthButton");
 if (prevMonthButton) {
   prevMonthButton.addEventListener("click", () => shiftSelectedMonth(-1));
