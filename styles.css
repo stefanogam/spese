@@ -221,6 +221,61 @@ button.small {
   font-size: 0.85rem;
 }
 
+.latest-expense-section {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 10px 12px;
+  margin-top: 10px;
+}
+
+.latest-expense-section + .latest-expense-section {
+  margin-top: 12px;
+}
+
+.today-expense-section {
+  border-color: #99f6e4;
+  background: #f0fdfa;
+}
+
+.latest-expense-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.latest-expense-heading strong {
+  color: #0f172a;
+  font-size: 0.92rem;
+}
+
+.latest-expense-heading span {
+  min-width: 28px;
+  border-radius: 999px;
+  background: #0f172a;
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1;
+  padding: 5px 8px;
+  text-align: center;
+}
+
+.today-expense-section .latest-expense-heading span {
+  background: #0f766e;
+}
+
+.latest-expense-section .expense-row {
+  padding: 10px 0;
+}
+
+.latest-expense-section .expense-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
 .amount {
   font-weight: 800;
   white-space: nowrap;

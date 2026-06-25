@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.74";
+const APP_VERSION = "V.75";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
@@ -893,16 +893,44 @@ function renderCriticalCategories(expenses, genericReimbursements = []) {
 
 function renderLatestExpenses(expenses) {
   const container = document.getElementById("latestExpenses");
-  const latest = [...expenses]
+  const today = getTodayDateString();
+  const sortedExpenses = [...expenses]
     .sort((a, b) => new Date(b.date) - new Date(a.date))
+  const todayExpenses = sortedExpenses.filter(expense => expense.date === today);
+  const otherLatestExpenses = sortedExpenses
+    .filter(expense => expense.date !== today)
     .slice(0, 5);
 
-  if (latest.length === 0) {
+  if (todayExpenses.length === 0 && otherLatestExpenses.length === 0) {
     container.innerHTML = `<p class="empty">Non hai ancora inserito spese questo mese.</p>`;
     return;
   }
 
-  container.innerHTML = latest.map(expense => renderExpenseRow(expense, false, { markToday: true })).join("");
+  const todaySection = `
+    <div class="latest-expense-section today-expense-section">
+      <div class="latest-expense-heading">
+        <strong>Spese di oggi</strong>
+        <span>${todayExpenses.length}</span>
+      </div>
+      ${todayExpenses.length > 0
+        ? todayExpenses.map(expense => renderExpenseRow(expense, false, { markToday: true })).join("")
+        : `<p class="empty">Nessuna spesa con competenza oggi.</p>`}
+    </div>
+  `;
+
+  const otherSection = otherLatestExpenses.length > 0
+    ? `
+      <div class="latest-expense-section">
+        <div class="latest-expense-heading">
+          <strong>Altre ultime spese</strong>
+          <span>${otherLatestExpenses.length}</span>
+        </div>
+        ${otherLatestExpenses.map(expense => renderExpenseRow(expense, false)).join("")}
+      </div>
+    `
+    : "";
+
+  container.innerHTML = todaySection + otherSection;
 }
 
 function renderExpenseRow(expense, showDelete = false, options = {}) {
