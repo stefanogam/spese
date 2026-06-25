@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.72";
+const APP_VERSION = "V.74";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
@@ -902,10 +902,14 @@ function renderLatestExpenses(expenses) {
     return;
   }
 
-  container.innerHTML = latest.map(expense => renderExpenseRow(expense, false)).join("");
+  container.innerHTML = latest.map(expense => renderExpenseRow(expense, false, { markToday: true })).join("");
 }
 
-function renderExpenseRow(expense, showDelete = false) {
+function renderExpenseRow(expense, showDelete = false, options = {}) {
+  const dateLabel = options.markToday && expense.date === getTodayDateString()
+    ? `${expense.date} (oggi)`
+    : expense.date;
+
   const multiInfo = expense.type === "multi"
     ? `<span><span class="badge info">Quota ${expense.installmentNumber}/${expense.installmentTotal}</span></span>`
     : "";
@@ -942,7 +946,7 @@ function renderExpenseRow(expense, showDelete = false) {
     <div class="expense-row">
       <div class="expense-main">
         <strong>${escapeHtml(expense.category)}</strong>
-        <span>${expense.date} · ${escapeHtml(getPaymentMethodLabel(getPaymentBreakdown(expense)))}</span>
+        <span>${escapeHtml(dateLabel)} · ${escapeHtml(getPaymentMethodLabel(getPaymentBreakdown(expense)))}</span>
         ${paymentInfo}
         <span>${escapeHtml(expense.description || "Nessuna descrizione")}</span>
         ${multiInfo}
@@ -2379,6 +2383,34 @@ function resetReimbursementSourceMode() {
   if (genericCheckbox) genericCheckbox.disabled = false;
 }
 
+function resetAddExpenseForm(form) {
+  form.reset();
+  resetReimbursementSourceMode();
+  setDefaultDate();
+  updateGenericReimbursementMode();
+  resetPaymentSplitRows();
+
+  const multiMonthOptions = document.getElementById("multiMonthOptions");
+  if (multiMonthOptions) {
+    multiMonthOptions.classList.add("hidden");
+  }
+}
+
+function handleExpenseSaved(form) {
+  resetAddExpenseForm(form);
+  renderAll();
+
+  const addAnother = confirm("Spesa salvata. Vuoi inserire una nuova spesa?");
+
+  if (addAnother) {
+    showView("addView");
+    const amountInput = document.getElementById("amount");
+    if (amountInput) amountInput.focus();
+  } else {
+    showView("dashboardView");
+  }
+}
+
 
 function addExpense(event) {
   event.preventDefault();
@@ -2418,12 +2450,7 @@ function addExpense(event) {
     });
 
     saveState();
-    event.target.reset();
-    resetReimbursementSourceMode();
-    setDefaultDate();
-    updateGenericReimbursementMode();
-    showView("dashboardView");
-    renderAll();
+    handleExpenseSaved(event.target);
     return;
   }
 
@@ -2475,14 +2502,7 @@ function addExpense(event) {
 
   saveState();
 
-  event.target.reset();
-  resetReimbursementSourceMode();
-  setDefaultDate();
-  updateGenericReimbursementMode();
-  resetPaymentSplitRows();
-  document.getElementById("multiMonthOptions").classList.add("hidden");
-  showView("dashboardView");
-  renderAll();
+  handleExpenseSaved(event.target);
 }
 
 
