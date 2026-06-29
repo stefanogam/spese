@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.77";
+const APP_VERSION = "V.78";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
@@ -38,6 +38,7 @@ const initialState = {
   lastBackupDate: "",
   incomes: [],
   categories: [...defaultCategories],
+  categorySettings: {},
   expenses: [],
   reimbursements: [],
   thresholds: {
@@ -70,6 +71,50 @@ function createId() {
   }
 
   return `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function normalizeCategoryName(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function getDefaultCategorySettings(category) {
+  if (normalizeCategoryName(category) === "vacanze") {
+    return {
+      splitMode: "calendar-year",
+      months: 12
+    };
+  }
+
+  return {
+    splitMode: "none",
+    months: 2
+  };
+}
+
+function normalizeCategorySettings(settings, category) {
+  const fallback = getDefaultCategorySettings(category);
+  const splitMode = ["none", "custom-months", "calendar-year"].includes(settings?.splitMode)
+    ? settings.splitMode
+    : fallback.splitMode;
+  const months = Math.max(2, Math.min(12, Number(settings?.months || fallback.months || 2)));
+
+  return {
+    splitMode,
+    months: splitMode === "calendar-year" ? 12 : months
+  };
+}
+
+function getCategorySettings(category) {
+  if (!state.categorySettings) {
+    state.categorySettings = {};
+  }
+
+  if (!state.categorySettings[category]) {
+    state.categorySettings[category] = getDefaultCategorySettings(category);
+  }
+
+  state.categorySettings[category] = normalizeCategorySettings(state.categorySettings[category], category);
+  return state.categorySettings[category];
 }
 
 function loadState() {
@@ -115,6 +160,7 @@ function migrateState(rawState) {
     lastBackupDate: rawState.lastBackupDate || "",
     incomes: Array.isArray(rawState.incomes) ? rawState.incomes : [],
     categories: rawState.categories || [...defaultCategories],
+    categorySettings: rawState.categorySettings && typeof rawState.categorySettings === "object" ? rawState.categorySettings : {},
     expenses: Array.isArray(rawState.expenses) ? rawState.expenses : [],
     reimbursements: Array.isArray(rawState.reimbursements) ? rawState.reimbursements : [],
     thresholds: rawState.thresholds || structuredClone(initialState.thresholds)
@@ -127,6 +173,18 @@ function migrateState(rawState) {
   migrated.categories.forEach(category => {
     if (migrated.thresholds.categoryLimits[category] === undefined) {
       migrated.thresholds.categoryLimits[category] = 0;
+    }
+
+    if (!migrated.categorySettings[category]) {
+      migrated.categorySettings[category] = getDefaultCategorySettings(category);
+    } else {
+      migrated.categorySettings[category] = normalizeCategorySettings(migrated.categorySettings[category], category);
+    }
+  });
+
+  Object.keys(migrated.categorySettings).forEach(category => {
+    if (!migrated.categories.includes(category)) {
+      delete migrated.categorySettings[category];
     }
   });
 
@@ -2249,10 +2307,25 @@ function renderCategoriesList() {
 
   container.innerHTML = state.categories.map((category, index) => {
     const used = state.expenses.some(expense => expense.category === category);
+    const settings = getCategorySettings(category);
 
     return `
       <div class="category-row">
-        <input class="category-name-input" value="${escapeAttributeForHtml(category)}" data-category-index="${index}" data-category-old-name="${escapeAttributeForHtml(category)}" />
+        <div class="category-settings-row">
+          <input class="category-name-input" value="${escapeAttributeForHtml(category)}" data-category-index="${index}" data-category-old-name="${escapeAttributeForHtml(category)}" />
+          <label>
+            Ripartizione predefinita
+            <select data-category-split-mode="${index}" onchange="updateCategorySplitMode(${index}, this.value)">
+              <option value="none" ${settings.splitMode === "none" ? "selected" : ""}>Nessuna</option>
+              <option value="custom-months" ${settings.splitMode === "custom-months" ? "selected" : ""}>Mensile personalizzata</option>
+              <option value="calendar-year" ${settings.splitMode === "calendar-year" ? "selected" : ""}>Annuale su anno solare</option>
+            </select>
+          </label>
+          <label class="${settings.splitMode === "custom-months" ? "" : "hidden"}" data-category-months-box="${index}">
+            Mesi
+            <input type="number" min="2" max="12" step="1" value="${settings.months || 2}" data-category-split-months="${index}" onchange="updateCategorySplitMonths(${index}, this.value)" />
+          </label>
+        </div>
         <div class="category-actions">
           <button class="secondary small" onclick="renameCategoryByIndex(${index})">Salva</button>
           <button class="danger small" onclick="deleteCategoryByIndex(${index})" ${used ? "title='Categoria usata da alcune spese'" : ""}>Elimina</button>
@@ -2260,6 +2333,37 @@ function renderCategoriesList() {
       </div>
     `;
   }).join("");
+}
+
+function updateCategorySplitMode(index, splitMode) {
+  const category = state.categories[index];
+  if (!category) return;
+
+  const current = getCategorySettings(category);
+  state.categorySettings[category] = normalizeCategorySettings({
+    ...current,
+    splitMode,
+    months: splitMode === "calendar-year" ? 12 : current.months
+  }, category);
+
+  saveState();
+  renderCategoriesList();
+  applyCategoryDefaultSplit();
+}
+
+function updateCategorySplitMonths(index, value) {
+  const category = state.categories[index];
+  if (!category) return;
+
+  const current = getCategorySettings(category);
+  state.categorySettings[category] = normalizeCategorySettings({
+    ...current,
+    splitMode: "custom-months",
+    months: Number(value || current.months || 2)
+  }, category);
+
+  saveState();
+  applyCategoryDefaultSplit();
 }
 
 function renameCategoryByIndex(index) {
@@ -2290,10 +2394,13 @@ function renameCategoryByIndex(index) {
     category: expense.category === oldName ? newName : expense.category
   }));
 
+  if (!state.categorySettings) state.categorySettings = {};
   state.thresholds.categoryLimits[newName] = state.thresholds.categoryLimits[oldName] || 0;
+  state.categorySettings[newName] = state.categorySettings[oldName] || getDefaultCategorySettings(newName);
 
   if (newName !== oldName) {
     delete state.thresholds.categoryLimits[oldName];
+    delete state.categorySettings[oldName];
   }
 
   syncTotalLimitWithCategories();
@@ -2671,6 +2778,44 @@ function resetReimbursementSourceMode() {
   if (genericCheckbox) genericCheckbox.disabled = false;
 }
 
+function applyCategoryDefaultSplit(options = {}) {
+  const categorySelect = document.getElementById("category");
+  const isGeneric = document.getElementById("isGenericReimbursement")?.checked || false;
+  const isMultiMonth = document.getElementById("isMultiMonth");
+  const numberOfMonths = document.getElementById("numberOfMonths");
+  const multiMonthOptions = document.getElementById("multiMonthOptions");
+  const hint = document.getElementById("categorySplitHint");
+
+  if (!categorySelect || !isMultiMonth || !numberOfMonths || !multiMonthOptions) return;
+
+  const settings = getCategorySettings(categorySelect.value);
+
+  if (isGeneric || settings.splitMode === "none") {
+    if (options.forceDefault) {
+      isMultiMonth.checked = false;
+      multiMonthOptions.classList.add("hidden");
+    }
+    if (hint) hint.textContent = "";
+    return;
+  }
+
+  isMultiMonth.checked = true;
+  multiMonthOptions.classList.remove("hidden");
+
+  if (settings.splitMode === "calendar-year") {
+    numberOfMonths.value = "12";
+    if (hint) {
+      hint.textContent = "Questa categoria è configurata per ripartire la spesa su tutto l'anno solare.";
+    }
+    return;
+  }
+
+  numberOfMonths.value = String(settings.months || 2);
+  if (hint) {
+    hint.textContent = `Questa categoria è configurata per ripartire la spesa su ${settings.months || 2} mesi.`;
+  }
+}
+
 function resetAddExpenseForm(form) {
   form.reset();
   resetReimbursementSourceMode();
@@ -2682,6 +2827,8 @@ function resetAddExpenseForm(form) {
   if (multiMonthOptions) {
     multiMonthOptions.classList.add("hidden");
   }
+
+  applyCategoryDefaultSplit({ forceDefault: true });
 }
 
 async function handleExpenseSaved(form) {
@@ -2709,6 +2856,8 @@ function addExpense(event) {
   const isMultiMonth = !isGenericReimbursement && document.getElementById("isMultiMonth").checked;
   const numberOfMonths = Number(document.getElementById("numberOfMonths").value || 1);
   const category = document.getElementById("category").value;
+  const categorySettings = getCategorySettings(category);
+  const splitMode = isMultiMonth ? categorySettings.splitMode : "none";
   const description = document.getElementById("description").value.trim();
 
   if (!Number.isFinite(totalAmount) || totalAmount <= 0) {
@@ -2755,26 +2904,37 @@ function addExpense(event) {
       type: "single"
     });
   } else {
-    if (numberOfMonths < 2) {
+    const effectiveNumberOfMonths = splitMode === "calendar-year" ? 12 : numberOfMonths;
+
+    if (effectiveNumberOfMonths < 2) {
       alert("Per una spesa plurimensile indica almeno 2 mesi.");
       return;
     }
 
     const groupId = createId();
-    const baseAmount = Math.floor((totalAmount / numberOfMonths) * 100) / 100;
-    const amounts = Array(numberOfMonths).fill(baseAmount);
-    const remainder = roundToTwoDecimals(totalAmount - baseAmount * numberOfMonths);
-    amounts[numberOfMonths - 1] = roundToTwoDecimals(amounts[numberOfMonths - 1] + remainder);
+    const baseAmount = Math.floor((totalAmount / effectiveNumberOfMonths) * 100) / 100;
+    const amounts = Array(effectiveNumberOfMonths).fill(baseAmount);
+    const remainder = roundToTwoDecimals(totalAmount - baseAmount * effectiveNumberOfMonths);
+    amounts[effectiveNumberOfMonths - 1] = roundToTwoDecimals(amounts[effectiveNumberOfMonths - 1] + remainder);
 
-    for (let i = 0; i < numberOfMonths; i++) {
-      const installmentTarget = getTargetYearMonth(date, i);
-      const installmentDate = getInstallmentDate(date, i);
+    for (let i = 0; i < effectiveNumberOfMonths; i++) {
+      const installmentTarget = splitMode === "calendar-year"
+        ? {
+          monthKey: `${date.slice(0, 4)}-${String(i + 1).padStart(2, "0")}`
+        }
+        : getTargetYearMonth(date, i);
+      const installmentDate = splitMode === "calendar-year"
+        ? `${installmentTarget.monthKey}-01`
+        : getInstallmentDate(date, i);
 
       state.expenses.push({
         id: createId(),
         groupId,
         amount: amounts[i],
         originalAmount: totalAmount,
+        originalDate: date,
+        paidDate: date,
+        splitMode,
         category,
         date: installmentDate,
         month: installmentTarget.monthKey,
@@ -2783,7 +2943,7 @@ function addExpense(event) {
         description: description || `Spesa plurimensile`,
         type: "multi",
         installmentNumber: i + 1,
-        installmentTotal: numberOfMonths
+        installmentTotal: effectiveNumberOfMonths
       });
     }
   }
@@ -3143,6 +3303,8 @@ function addCategory(event) {
 
   state.categories.push(name);
   state.thresholds.categoryLimits[name] = 0;
+  if (!state.categorySettings) state.categorySettings = {};
+  state.categorySettings[name] = getDefaultCategorySettings(name);
   syncTotalLimitWithCategories();
   input.value = "";
 
@@ -3177,10 +3339,13 @@ function renameCategory(oldName) {
     category: expense.category === oldName ? newName : expense.category
   }));
 
+  if (!state.categorySettings) state.categorySettings = {};
   state.thresholds.categoryLimits[newName] = state.thresholds.categoryLimits[oldName] || 0;
+  state.categorySettings[newName] = state.categorySettings[oldName] || getDefaultCategorySettings(newName);
 
   if (newName !== oldName) {
     delete state.thresholds.categoryLimits[oldName];
+    delete state.categorySettings[oldName];
   }
 
   syncTotalLimitWithCategories();
@@ -3201,6 +3366,8 @@ function deleteCategory(categoryName) {
 
   state.categories = state.categories.filter(category => category !== categoryName);
   delete state.thresholds.categoryLimits[categoryName];
+  if (!state.categorySettings) state.categorySettings = {};
+  delete state.categorySettings[categoryName];
   syncTotalLimitWithCategories();
 
   saveState();
@@ -3214,6 +3381,7 @@ function showView(viewId, options = {}) {
 
   if (viewId === "addView") {
     setDefaultDate();
+    applyCategoryDefaultSplit({ forceDefault: true });
   }
 
   if (viewId === "expensesView" && !options.preserveExpenseFilters) {
@@ -3947,6 +4115,11 @@ if (amountInputForPaymentSplit) {
   });
 }
 
+const expenseCategorySelect = document.getElementById("category");
+if (expenseCategorySelect) {
+  expenseCategorySelect.addEventListener("change", () => applyCategoryDefaultSplit({ forceDefault: true }));
+}
+
 
 document.getElementById("thresholdForm").addEventListener("submit", saveThresholds);
 document.getElementById("categoryForm").addEventListener("submit", addCategory);
@@ -4183,6 +4356,12 @@ if (nextMonthButton) {
 
 document.getElementById("isMultiMonth").addEventListener("change", event => {
   document.getElementById("multiMonthOptions").classList.toggle("hidden", !event.target.checked);
+  if (event.target.checked) {
+    applyCategoryDefaultSplit();
+  } else {
+    const hint = document.getElementById("categorySplitHint");
+    if (hint) hint.textContent = "";
+  }
 });
 
 const isGenericReimbursement = document.getElementById("isGenericReimbursement");
