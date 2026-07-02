@@ -13,7 +13,7 @@
     <header class="app-header">
       <div class="app-title">
         <h1>Spese Mensili</h1>
-        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.86</span></p>
+        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.87</span></p>
       </div>
       <button id="installButton" class="secondary hidden">Installa</button>
     </header>
@@ -30,7 +30,7 @@
 
         <div class="card compact version-card">
           <span>Versione app</span>
-          <strong>V.86</strong>
+          <strong>V.87</strong>
         </div>
 
         <div class="card hero">
@@ -96,11 +96,58 @@
             </label>
 
             <label>
-              Data
+              Data competenza
               <input id="date" type="date" required />
             </label>
 
             <div id="expenseOnlyFields">
+              <div class="analytics-fields">
+                <label>
+                  Data pagamento
+                  <input id="paidDate" type="date" />
+                </label>
+
+                <label>
+                  Fornitore / negozio
+                  <input id="merchant" type="text" list="merchantSuggestions" placeholder="Es. Coop, Amazon, bar, assicurazione" />
+                </label>
+
+                <label>
+                  Tipo spesa
+                  <select id="needType">
+                    <option>Necessaria</option>
+                    <option selected>Utile</option>
+                    <option>Rimandabile</option>
+                    <option>Superflua</option>
+                  </select>
+                </label>
+
+                <label>
+                  Ricorrenza
+                  <select id="recurrenceType">
+                    <option selected>Una tantum</option>
+                    <option>Ricorrente</option>
+                    <option>Annuale</option>
+                    <option>Plurimensile</option>
+                    <option>Abbonamento</option>
+                  </select>
+                </label>
+
+                <label>
+                  Risparmiabile
+                  <select id="savingPotential">
+                    <option>No</option>
+                    <option selected>Parzialmente</option>
+                    <option>Sì</option>
+                  </select>
+                </label>
+
+                <label class="analytics-tags-field">
+                  Tag
+                  <input id="expenseTags" type="text" placeholder="Es. lavoro, figli, auto, weekend" />
+                </label>
+              </div>
+
               <div id="singlePaymentMethodBox">
                 <label>
                   Metodo pagamento
@@ -145,8 +192,10 @@
 
             <label>
               Descrizione
-              <input id="description" type="text" placeholder="Es. Assicurazione auto / rimborso carburante" />
+              <input id="description" type="text" list="descriptionSuggestions" placeholder="Es. Assicurazione auto / rimborso carburante" />
             </label>
+            <datalist id="descriptionSuggestions"></datalist>
+            <datalist id="merchantSuggestions"></datalist>
 
             <button id="saveExpenseButton" type="submit">Salva spesa</button>
           </form>
@@ -324,6 +373,11 @@
 
           <div id="multiReportLegend" class="chart-legend"></div>
           <div id="multiReportTable"></div>
+        </div>
+
+        <div class="card">
+          <h2>Opportunità di risparmio</h2>
+          <div id="savingsOpportunityReport"></div>
         </div>
       </section>
 
