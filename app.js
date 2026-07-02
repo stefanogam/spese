@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.82";
+const APP_VERSION = "V.83";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
@@ -36,6 +36,7 @@ const initialState = {
   selectedFamilyBudgetMonthsBefore: 0,
   selectedFamilyBudgetMonthsAfter: 12,
   lastBackupDate: "",
+  migrations: {},
   incomes: [],
   categories: [...defaultCategories],
   categorySettings: {},
@@ -145,6 +146,47 @@ function getExpenseActivityDate(expense) {
     || new Date().toISOString();
 }
 
+function isDateStringAfter(dateString, cutoffDateString) {
+  return Boolean(dateString && /^\d{4}-\d{2}-\d{2}$/.test(dateString) && dateString > cutoffDateString);
+}
+
+function isExpenseCreatedOnOrBefore(expense, cutoffDateString) {
+  const rawActivity = expense?.activityAt || expense?.updatedAt || expense?.createdAt || expense?.insertedAt;
+  if (!rawActivity) return true;
+
+  const normalizedDate = String(rawActivity).slice(0, 10);
+  if (normalizedDate === expense?.date && isDateStringAfter(expense.date, "2026-07-02")) return true;
+
+  return /^\d{4}-\d{2}-\d{2}$/.test(normalizedDate) ? normalizedDate <= cutoffDateString : true;
+}
+
+function applyOneTimeFutureExpenseDateWorkaround(migrated) {
+  const migrationKey = "futureExpensesAfter2026-07-02To2026-06-30";
+  if (migrated.migrations?.[migrationKey]) return migrated;
+
+  migrated.expenses = migrated.expenses.map(expense => {
+    if (
+      isDateStringAfter(expense.date, "2026-07-02")
+      && isExpenseCreatedOnOrBefore(expense, "2026-07-01")
+    ) {
+      return {
+        ...expense,
+        date: "2026-06-30",
+        month: "2026-06"
+      };
+    }
+
+    return expense;
+  });
+
+  migrated.migrations = {
+    ...(migrated.migrations || {}),
+    [migrationKey]: new Date().toISOString()
+  };
+
+  return migrated;
+}
+
 function loadState() {
   const saved = localStorage.getItem(STORAGE_KEY);
 
@@ -186,6 +228,7 @@ function migrateState(rawState) {
     selectedFamilyBudgetMonthsBefore: Number(rawState.selectedFamilyBudgetMonthsBefore ?? 0),
     selectedFamilyBudgetMonthsAfter: Number(rawState.selectedFamilyBudgetMonthsAfter ?? 12),
     lastBackupDate: rawState.lastBackupDate || "",
+    migrations: rawState.migrations && typeof rawState.migrations === "object" ? rawState.migrations : {},
     incomes: Array.isArray(rawState.incomes) ? rawState.incomes : [],
     categories: rawState.categories || [...defaultCategories],
     categorySettings: rawState.categorySettings && typeof rawState.categorySettings === "object" ? rawState.categorySettings : {},
@@ -258,6 +301,8 @@ function migrateState(rawState) {
     return sum + Number(migrated.thresholds.categoryLimits[category] || 0);
   }, 0);
 
+  applyOneTimeFutureExpenseDateWorkaround(migrated);
+
   migrated.categories = [...migrated.categories].sort((a, b) => {
     const settingsA = migrated.categorySettings[a] || getDefaultCategorySettings(a);
     const settingsB = migrated.categorySettings[b] || getDefaultCategorySettings(b);
@@ -272,6 +317,7 @@ function saveState() {
 }
 
 let state = loadState();
+saveState();
 
 function showAppModal({ title, message, contentHtml = "", actions }) {
   return new Promise(resolve => {
