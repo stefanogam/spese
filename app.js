@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.80";
+const APP_VERSION = "V.81";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
@@ -2995,7 +2995,14 @@ async function handleExpenseSaved(form) {
   resetAddExpenseForm(form);
   renderAll();
 
-  const addAnother = await appConfirm("Spesa salvata. Vuoi inserire una nuova spesa?", "Spesa salvata");
+  const addAnother = await showAppModal({
+    title: "Spesa salvata",
+    message: "Vuoi inserire una nuova spesa?",
+    actions: [
+      { label: "Sì", value: true },
+      { label: "No", value: false, className: "secondary" }
+    ]
+  });
 
   if (addAnother) {
     showView("addView");
