@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.81";
+const APP_VERSION = "V.82";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
@@ -136,6 +136,15 @@ function sortCategoriesByOrder() {
   state.categories = getOrderedCategories();
 }
 
+function getExpenseActivityDate(expense) {
+  return expense?.activityAt
+    || expense?.updatedAt
+    || expense?.createdAt
+    || expense?.insertedAt
+    || expense?.date
+    || new Date().toISOString();
+}
+
 function loadState() {
   const saved = localStorage.getItem(STORAGE_KEY);
 
@@ -221,6 +230,7 @@ function migrateState(rawState) {
       ...expense,
       amount,
       createdAt: expense.createdAt || expense.insertedAt || expense.date || new Date().toISOString(),
+      activityAt: getExpenseActivityDate(expense),
       month: expense.month || getMonthFromDate(expense.date),
       type: expense.type || "single",
       paymentMethod: getPaymentMethodLabel(paymentBreakdown),
@@ -1116,8 +1126,10 @@ function renderCriticalCategories(expenses, genericReimbursements = []) {
 }
 
 function getExpenseInsertedAt(expense) {
-  if (expense.createdAt) return new Date(expense.createdAt).getTime();
-  const dateValue = expense.date ? new Date(expense.date).getTime() : 0;
+  const activityValue = new Date(getExpenseActivityDate(expense)).getTime();
+  if (Number.isFinite(activityValue)) return activityValue;
+
+  const dateValue = expense?.date ? new Date(expense.date).getTime() : 0;
   return Number.isFinite(dateValue) ? dateValue : 0;
 }
 
@@ -3048,6 +3060,7 @@ function addExpense(event) {
       id: createId(),
       amount: roundToTwoDecimals(totalAmount),
       createdAt,
+      activityAt: createdAt,
       category,
       date,
       month: getMonthFromDate(date),
@@ -3065,6 +3078,7 @@ function addExpense(event) {
       id: createId(),
       amount: roundToTwoDecimals(totalAmount),
       createdAt,
+      activityAt: createdAt,
       category,
       date,
       month: getMonthFromDate(date),
@@ -3102,6 +3116,7 @@ function addExpense(event) {
         groupId,
         amount: amounts[i],
         createdAt,
+        activityAt: createdAt,
         originalAmount: totalAmount,
         originalDate: date,
         paidDate: date,
@@ -3286,6 +3301,7 @@ function saveEditedExpense(event, id) {
   const description = document.getElementById(`editDescription-${id}`).value.trim();
   const editPaymentBreakdown = getEditPaymentBreakdownRows(id);
   const editPaymentTotal = roundToTwoDecimals(editPaymentBreakdown.reduce((sum, row) => sum + Number(row.amount || 0), 0));
+  const activityAt = new Date().toISOString();
 
   const isMulti = existingExpense.type === "multi" && existingExpense.groupId;
   const applyTextToAll = isMulti && document.getElementById(`editApplyText-${id}`)?.checked;
@@ -3314,6 +3330,7 @@ function saveEditedExpense(event, id) {
     state.expenses[expenseIndex] = {
       ...existingExpense,
       amount: roundToTwoDecimals(amount),
+      activityAt,
       category,
       date,
       month: getMonthFromDate(date),
@@ -3332,6 +3349,7 @@ function saveEditedExpense(event, id) {
         return {
           ...expense,
           category,
+          activityAt,
           paymentMethod: getPaymentMethodLabel(splitPaymentBreakdownForInstallment(editPaymentBreakdown, expense.amount, getMultiTotalAmount(existingExpense))),
           paymentBreakdown: splitPaymentBreakdownForInstallment(editPaymentBreakdown, expense.amount, getMultiTotalAmount(existingExpense)),
           description
@@ -3359,6 +3377,7 @@ function saveEditedExpense(event, id) {
         return {
           ...expense,
           amount: amountById.get(expense.id),
+          activityAt,
           paymentBreakdown: splitPaymentBreakdownForInstallment(applyTextToAll ? editPaymentBreakdown : getPaymentBreakdown(expense), amountById.get(expense.id), totalAmount),
           paymentMethod: getPaymentMethodLabel(splitPaymentBreakdownForInstallment(applyTextToAll ? editPaymentBreakdown : getPaymentBreakdown(expense), amountById.get(expense.id), totalAmount)),
           originalAmount: roundToTwoDecimals(totalAmount)
@@ -3371,6 +3390,7 @@ function saveEditedExpense(event, id) {
       state.expenses[updatedIndex] = {
         ...state.expenses[updatedIndex],
         amount: redistributeAmount ? state.expenses[updatedIndex].amount : roundToTwoDecimals(amount),
+        activityAt,
         category: applyTextToAll ? state.expenses[updatedIndex].category : category,
         date,
         month: getMonthFromDate(date),
@@ -3397,9 +3417,12 @@ function duplicateExpense(id) {
   }
 
   const today = getTodayDateString();
+  const activityAt = new Date().toISOString();
   const duplicatedExpense = {
     ...expense,
     id: createId(),
+    createdAt: activityAt,
+    activityAt,
     date: today,
     month: getMonthFromDate(today),
     description: expense.description || "Spesa duplicata"
