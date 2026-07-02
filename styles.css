@@ -359,22 +359,32 @@ button.small {
   margin-top: 14px;
 }
 
+.category-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  align-items: stretch;
+  min-width: 0;
+}
+
 .category-name-input {
   flex: 1;
 }
 
 .category-actions {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(96px, auto));
+  justify-content: end;
   gap: 8px;
-  flex-shrink: 0;
+  width: 100%;
 }
 
 .category-settings-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(92px, 0.45fr);
+  grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
   gap: 10px;
   align-items: end;
-  flex: 1;
+  width: 100%;
   min-width: 0;
 }
 
@@ -385,6 +395,7 @@ button.small {
 
 .category-settings-row input,
 .category-settings-row select {
+  width: 100%;
   min-width: 0;
 }
 
@@ -523,6 +534,48 @@ input[readonly] {
 
 .home-month-selector {
   margin: 0;
+}
+
+.month-picker-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.month-picker-trigger {
+  width: 100%;
+  text-align: left;
+}
+
+.month-picker {
+  display: grid;
+  gap: 14px;
+}
+
+.month-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.month-picker-option {
+  width: 100%;
+  padding: 10px 8px;
+}
+
+.month-picker-option.active {
+  background: #111827;
+  color: #ffffff;
+}
+
+.threshold-total-box {
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f8fafc;
 }
 
 .multi-report-controls {
@@ -1774,7 +1827,8 @@ input[readonly] {
   box-shadow: 0 20px 50px rgba(17, 24, 39, 0.25);
 }
 
-.app-modal-card p {
+.app-modal-card p,
+#appModalMessage {
   color: #374151;
   line-height: 1.45;
   margin: 0;

@@ -13,7 +13,7 @@
     <header class="app-header">
       <div class="app-title">
         <h1>Spese Mensili</h1>
-        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.78</span></p>
+        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.80</span></p>
       </div>
       <button id="installButton" class="secondary hidden">Installa</button>
     </header>
@@ -23,13 +23,14 @@
         <div class="card compact">
           <label class="home-month-selector">
             Mese da visualizzare
-            <select id="homeMonthSelect"></select>
+            <button id="homeMonthPickerButton" class="month-picker-trigger secondary" type="button">Seleziona mese</button>
+            <select id="homeMonthSelect" class="month-picker-hidden" aria-hidden="true" tabindex="-1"></select>
           </label>
         </div>
 
         <div class="card compact version-card">
           <span>Versione app</span>
-          <strong>V.78</strong>
+          <strong>V.80</strong>
         </div>
 
         <div class="card hero">
@@ -174,7 +175,8 @@
             <div class="expenses-period-content">
               <label class="expenses-month-selector">
                 Selezione rapida mese
-                <select id="expensesMonthSelect"></select>
+                <button id="expensesMonthPickerButton" class="month-picker-trigger secondary" type="button">Seleziona mese</button>
+                <select id="expensesMonthSelect" class="month-picker-hidden" aria-hidden="true" tabindex="-1"></select>
               </label>
 
               <div class="expenses-date-range">
@@ -249,7 +251,8 @@
 
           <label class="report-month-selector">
             Mese da visualizzare
-            <select id="reportMonthSelect"></select>
+            <button id="reportMonthPickerButton" class="month-picker-trigger secondary" type="button">Seleziona mese</button>
+            <select id="reportMonthSelect" class="month-picker-hidden" aria-hidden="true" tabindex="-1"></select>
           </label>
 
           <div id="categoryReport"></div>
@@ -275,7 +278,8 @@
           <div class="multi-report-controls">
             <label>
               Mese di riferimento
-              <input id="multiReportReferenceMonth" type="month" />
+              <button id="multiReportReferenceMonthButton" class="month-picker-trigger secondary" type="button">Seleziona mese</button>
+              <input id="multiReportReferenceMonth" class="month-picker-hidden" type="month" />
             </label>
 
             <div class="multi-report-selectors">
@@ -338,7 +342,8 @@
 
               <label>
                 Mese
-                <input id="incomeMonth" type="month" required />
+                <button id="incomeMonthButton" class="month-picker-trigger secondary" type="button">Seleziona mese</button>
+                <input id="incomeMonth" class="month-picker-hidden" type="month" required />
               </label>
 
               <label>
@@ -375,7 +380,8 @@
             <div class="multi-report-controls family-budget-controls">
               <label>
                 Mese di riferimento
-                <input id="familyBudgetReferenceMonth" type="month" />
+                <button id="familyBudgetReferenceMonthButton" class="month-picker-trigger secondary" type="button">Seleziona mese</button>
+                <input id="familyBudgetReferenceMonth" class="month-picker-hidden" type="month" />
               </label>
 
               <div class="multi-report-selectors">
@@ -400,20 +406,7 @@
 
       <section id="settingsView" class="view">
         <div class="card">
-          <h2>Soglie</h2>
-          <form id="thresholdForm">
-            <label>
-              Budget mensile totale
-              <input id="totalLimit" type="number" step="0.01" min="0" readonly />
-              <span class="hint">Calcolato automaticamente come somma delle soglie delle categorie.</span>
-            </label>
-            <div id="categoryLimitsForm"></div>
-            <button type="submit">Salva soglie</button>
-          </form>
-        </div>
-
-        <div class="card">
-          <h2>Categorie</h2>
+          <h2>Soglie e categorie</h2>
           <form id="categoryForm">
             <label>
               Nuova categoria
@@ -421,6 +414,14 @@
             </label>
             <button type="submit">Aggiungi categoria</button>
           </form>
+
+          <div class="threshold-total-box">
+            <label>
+              Budget mensile totale
+              <input id="totalLimit" type="number" step="0.01" min="0" readonly />
+              <span class="hint">Calcolato automaticamente come somma delle soglie delle categorie.</span>
+            </label>
+          </div>
 
           <div id="categoriesList" class="settings-list"></div>
         </div>
@@ -471,7 +472,7 @@
     <div id="appModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="appModalTitle">
       <div class="modal-card app-modal-card">
         <h2 id="appModalTitle"></h2>
-        <p id="appModalMessage"></p>
+        <div id="appModalMessage"></div>
         <div id="appModalActions" class="modal-actions"></div>
       </div>
     </div>

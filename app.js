@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.78";
+const APP_VERSION = "V.80";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
@@ -78,16 +78,21 @@ function normalizeCategoryName(value) {
 }
 
 function getDefaultCategorySettings(category) {
+  const defaultIndex = defaultCategories.findIndex(item => normalizeCategoryName(item) === normalizeCategoryName(category));
+  const order = defaultIndex >= 0 ? (defaultIndex + 1) * 10 : 999;
+
   if (normalizeCategoryName(category) === "vacanze") {
     return {
       splitMode: "calendar-year",
-      months: 12
+      months: 12,
+      order
     };
   }
 
   return {
     splitMode: "none",
-    months: 2
+    months: 2,
+    order
   };
 }
 
@@ -97,10 +102,12 @@ function normalizeCategorySettings(settings, category) {
     ? settings.splitMode
     : fallback.splitMode;
   const months = Math.max(2, Math.min(12, Number(settings?.months || fallback.months || 2)));
+  const order = Number(settings?.order ?? fallback.order);
 
   return {
     splitMode,
-    months: splitMode === "calendar-year" ? 12 : months
+    months: splitMode === "calendar-year" ? 12 : months,
+    order: Number.isFinite(order) ? order : fallback.order
   };
 }
 
@@ -115,6 +122,18 @@ function getCategorySettings(category) {
 
   state.categorySettings[category] = normalizeCategorySettings(state.categorySettings[category], category);
   return state.categorySettings[category];
+}
+
+function getOrderedCategories() {
+  return [...state.categories].sort((a, b) => {
+    const settingsA = getCategorySettings(a);
+    const settingsB = getCategorySettings(b);
+    return Number(settingsA.order || 999) - Number(settingsB.order || 999) || a.localeCompare(b, "it");
+  });
+}
+
+function sortCategoriesByOrder() {
+  state.categories = getOrderedCategories();
 }
 
 function loadState() {
@@ -170,7 +189,7 @@ function migrateState(rawState) {
     migrated.thresholds.categoryLimits = {};
   }
 
-  migrated.categories.forEach(category => {
+  migrated.categories.forEach((category, index) => {
     if (migrated.thresholds.categoryLimits[category] === undefined) {
       migrated.thresholds.categoryLimits[category] = 0;
     }
@@ -179,6 +198,10 @@ function migrateState(rawState) {
       migrated.categorySettings[category] = getDefaultCategorySettings(category);
     } else {
       migrated.categorySettings[category] = normalizeCategorySettings(migrated.categorySettings[category], category);
+    }
+
+    if (migrated.categorySettings[category].order === undefined) {
+      migrated.categorySettings[category].order = (index + 1) * 10;
     }
   });
 
@@ -197,6 +220,7 @@ function migrateState(rawState) {
     return {
       ...expense,
       amount,
+      createdAt: expense.createdAt || expense.insertedAt || expense.date || new Date().toISOString(),
       month: expense.month || getMonthFromDate(expense.date),
       type: expense.type || "single",
       paymentMethod: getPaymentMethodLabel(paymentBreakdown),
@@ -224,6 +248,12 @@ function migrateState(rawState) {
     return sum + Number(migrated.thresholds.categoryLimits[category] || 0);
   }, 0);
 
+  migrated.categories = [...migrated.categories].sort((a, b) => {
+    const settingsA = migrated.categorySettings[a] || getDefaultCategorySettings(a);
+    const settingsB = migrated.categorySettings[b] || getDefaultCategorySettings(b);
+    return Number(settingsA.order || 999) - Number(settingsB.order || 999) || a.localeCompare(b, "it");
+  });
+
   return migrated;
 }
 
@@ -233,7 +263,7 @@ function saveState() {
 
 let state = loadState();
 
-function showAppModal({ title, message, actions }) {
+function showAppModal({ title, message, contentHtml = "", actions }) {
   return new Promise(resolve => {
     const modal = document.getElementById("appModal");
     const titleElement = document.getElementById("appModalTitle");
@@ -246,7 +276,11 @@ function showAppModal({ title, message, actions }) {
     }
 
     titleElement.textContent = title;
-    messageElement.textContent = message;
+    if (contentHtml) {
+      messageElement.innerHTML = contentHtml;
+    } else {
+      messageElement.textContent = message;
+    }
     actionsElement.innerHTML = "";
 
     actions.forEach(action => {
@@ -282,6 +316,83 @@ function appConfirm(message, title = "Conferma") {
       { label: "Conferma", value: true },
       { label: "Annulla", value: false, className: "secondary" }
     ]
+  });
+}
+
+function renderMonthPickerButton(buttonId, month, fallbackText = "Seleziona mese") {
+  const button = document.getElementById(buttonId);
+  if (!button) return;
+  button.textContent = month ? getMonthLabel(month) : fallbackText;
+}
+
+function getMonthPickerYears(selectedMonth = getCurrentMonth()) {
+  const selectedYear = Number((selectedMonth || getCurrentMonth()).slice(0, 4));
+  const years = new Set([selectedYear, new Date().getFullYear()]);
+  state.expenses.forEach(expense => {
+    if (expense.month) years.add(Number(expense.month.slice(0, 4)));
+  });
+  state.incomes.forEach(income => {
+    if (income.month) years.add(Number(income.month.slice(0, 4)));
+  });
+  for (let offset = -2; offset <= 2; offset++) {
+    years.add(selectedYear + offset);
+  }
+  return [...years].filter(Number.isFinite).sort((a, b) => b - a);
+}
+
+function showMonthPicker({ title = "Seleziona mese", selectedMonth = getCurrentMonth(), onSelect }) {
+  const current = selectedMonth || getCurrentMonth();
+  const selectedYear = Number(current.slice(0, 4));
+  const selectedMonthNumber = Number(current.slice(5, 7));
+  const monthNames = Array.from({ length: 12 }, (_, index) => {
+    const month = String(index + 1).padStart(2, "0");
+    return {
+      month,
+      label: getMonthLabel(`${selectedYear}-${month}`).replace(` ${selectedYear}`, "")
+    };
+  });
+
+  const contentHtml = `
+    <div class="month-picker">
+      <label>
+        Anno
+        <select id="monthPickerYear">
+          ${getMonthPickerYears(current).map(year => `<option value="${year}" ${year === selectedYear ? "selected" : ""}>${year}</option>`).join("")}
+        </select>
+      </label>
+      <div class="month-picker-grid">
+        ${monthNames.map(item => `
+          <button
+            type="button"
+            class="secondary month-picker-option ${Number(item.month) === selectedMonthNumber ? "active" : ""}"
+            data-month-value="${item.month}"
+          >
+            ${escapeHtml(item.label)}
+          </button>
+        `).join("")}
+      </div>
+    </div>
+  `;
+
+  return new Promise(resolve => {
+    showAppModal({
+      title,
+      contentHtml,
+      actions: [{ label: "Annulla", value: null, className: "secondary" }]
+    }).then(resolve);
+
+    setTimeout(() => {
+      document.querySelectorAll(".month-picker-option").forEach(button => {
+        button.addEventListener("click", () => {
+          const year = document.getElementById("monthPickerYear")?.value || String(selectedYear);
+          const month = `${year}-${button.dataset.monthValue}`;
+          document.getElementById("appModal")?.classList.add("hidden");
+          document.getElementById("appModalActions").innerHTML = "";
+          if (typeof onSelect === "function") onSelect(month);
+          resolve(month);
+        }, { once: true });
+      });
+    }, 0);
   });
 }
 
@@ -895,6 +1006,7 @@ function setDefaultDate() {
 }
 
 function renderCategoryOptions() {
+  sortCategoriesByOrder();
   const options = state.categories
     .map(category => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`)
     .join("");
@@ -925,6 +1037,7 @@ function renderHomeMonthSelect() {
       </option>
     `)
     .join("");
+  renderMonthPickerButton("homeMonthPickerButton", state.selectedMonth);
 }
 
 function renderDashboard() {
@@ -961,7 +1074,7 @@ function renderDashboard() {
       : "Imposta le soglie nella sezione Soglie";
 
   renderCriticalCategories(expenses, genericReimbursements);
-  renderLatestExpenses(expenses);
+  renderLatestExpenses();
 }
 
 function renderCriticalCategories(expenses, genericReimbursements = []) {
@@ -1002,18 +1115,24 @@ function renderCriticalCategories(expenses, genericReimbursements = []) {
     .join("");
 }
 
-function renderLatestExpenses(expenses) {
+function getExpenseInsertedAt(expense) {
+  if (expense.createdAt) return new Date(expense.createdAt).getTime();
+  const dateValue = expense.date ? new Date(expense.date).getTime() : 0;
+  return Number.isFinite(dateValue) ? dateValue : 0;
+}
+
+function renderLatestExpenses() {
   const container = document.getElementById("latestExpenses");
   const today = getTodayDateString();
-  const sortedExpenses = [...expenses]
-    .sort((a, b) => new Date(b.date) - new Date(a.date))
+  const sortedExpenses = [...state.expenses]
+    .sort((a, b) => getExpenseInsertedAt(b) - getExpenseInsertedAt(a) || new Date(b.date) - new Date(a.date));
   const todayExpenses = sortedExpenses.filter(expense => expense.date === today);
   const otherLatestExpenses = sortedExpenses
     .filter(expense => expense.date !== today)
-    .slice(0, 5);
+    .slice(0, 8);
 
   if (todayExpenses.length === 0 && otherLatestExpenses.length === 0) {
-    container.innerHTML = `<p class="empty">Non hai ancora inserito spese questo mese.</p>`;
+    container.innerHTML = `<p class="empty">Non hai ancora inserito spese.</p>`;
     return;
   }
 
@@ -1024,7 +1143,7 @@ function renderLatestExpenses(expenses) {
         <span>${todayExpenses.length}</span>
       </div>
       ${todayExpenses.length > 0
-        ? todayExpenses.map(expense => renderExpenseRow(expense, false, { markToday: true })).join("")
+        ? todayExpenses.map(expense => renderExpenseRow(expense, true, { markToday: true })).join("")
         : `<p class="empty">Nessuna spesa con competenza oggi.</p>`}
     </div>
   `;
@@ -1036,7 +1155,7 @@ function renderLatestExpenses(expenses) {
           <strong>Altre ultime spese</strong>
           <span>${otherLatestExpenses.length}</span>
         </div>
-        ${otherLatestExpenses.map(expense => renderExpenseRow(expense, false)).join("")}
+        ${otherLatestExpenses.map(expense => renderExpenseRow(expense, true)).join("")}
       </div>
     `
     : "";
@@ -1294,6 +1413,11 @@ function renderExpensesList() {
       customOption.selected = true;
       select.prepend(customOption);
     }
+    renderMonthPickerButton(
+      "expensesMonthPickerButton",
+      state.selectedExpensesMonth && isSelectedExpensesRangeEqualToMonth(state.selectedExpensesMonth) ? state.selectedExpensesMonth : "",
+      "Periodo personalizzato"
+    );
   }
 
   if (fromInput) fromInput.value = state.selectedExpensesDateFrom || "";
@@ -1491,6 +1615,7 @@ function renderReportMonthSelect() {
   if (months.length === 0) {
     select.innerHTML = `<option value="">Nessuna spesa registrata</option>`;
     select.disabled = true;
+    renderMonthPickerButton("reportMonthPickerButton", "", "Nessuna spesa registrata");
     return;
   }
 
@@ -1502,6 +1627,7 @@ function renderReportMonthSelect() {
       </option>
     `)
     .join("");
+  renderMonthPickerButton("reportMonthPickerButton", state.selectedReportMonth);
 }
 
 function renderReport() {
@@ -1976,6 +2102,7 @@ function renderMultiReport() {
   }
 
   input.value = state.selectedMultiReportReferenceMonth;
+  renderMonthPickerButton("multiReportReferenceMonthButton", state.selectedMultiReportReferenceMonth);
   renderMultiReportRangeSelectors();
   renderMultiReportCategoryFilter();
 
@@ -2278,9 +2405,11 @@ function renderMultiReportTable(data) {
 
 function renderThresholdForm() {
   syncTotalLimitWithCategories();
-  document.getElementById("totalLimit").value = state.thresholds.totalLimit || "";
+  const totalLimitInput = document.getElementById("totalLimit");
+  if (totalLimitInput) totalLimitInput.value = state.thresholds.totalLimit || "";
 
   const container = document.getElementById("categoryLimitsForm");
+  if (!container) return;
   container.innerHTML = state.categories
     .map(category => `
       <label>
@@ -2299,6 +2428,7 @@ function renderThresholdForm() {
 
 function renderCategoriesList() {
   const container = document.getElementById("categoriesList");
+  sortCategoriesByOrder();
 
   if (state.categories.length === 0) {
     container.innerHTML = `<p class="empty">Nessuna categoria presente.</p>`;
@@ -2312,7 +2442,18 @@ function renderCategoriesList() {
     return `
       <div class="category-row">
         <div class="category-settings-row">
-          <input class="category-name-input" value="${escapeAttributeForHtml(category)}" data-category-index="${index}" data-category-old-name="${escapeAttributeForHtml(category)}" />
+          <label>
+            Categoria
+            <input class="category-name-input" value="${escapeAttributeForHtml(category)}" data-category-index="${index}" data-category-old-name="${escapeAttributeForHtml(category)}" />
+          </label>
+          <label>
+            Ordine
+            <input type="number" step="1" value="${Number(settings.order || (index + 1) * 10)}" data-category-order="${index}" />
+          </label>
+          <label>
+            Soglia mensile
+            <input type="number" step="0.01" min="0" value="${state.thresholds.categoryLimits[category] || ""}" data-category-inline-limit="${index}" />
+          </label>
           <label>
             Ripartizione predefinita
             <select data-category-split-mode="${index}" onchange="updateCategorySplitMode(${index}, this.value)">
@@ -2327,7 +2468,7 @@ function renderCategoriesList() {
           </label>
         </div>
         <div class="category-actions">
-          <button class="secondary small" onclick="renameCategoryByIndex(${index})">Salva</button>
+          <button class="secondary small" onclick="saveCategoryByIndex(${index})">Salva</button>
           <button class="danger small" onclick="deleteCategoryByIndex(${index})" ${used ? "title='Categoria usata da alcune spese'" : ""}>Elimina</button>
         </div>
       </div>
@@ -2366,14 +2507,18 @@ function updateCategorySplitMonths(index, value) {
   applyCategoryDefaultSplit();
 }
 
-function renameCategoryByIndex(index) {
+function saveCategoryByIndex(index) {
   const oldName = state.categories[index];
   if (!oldName) return;
 
   const input = document.querySelector(`[data-category-index="${index}"]`);
+  const orderInput = document.querySelector(`[data-category-order="${index}"]`);
+  const limitInput = document.querySelector(`[data-category-inline-limit="${index}"]`);
   if (!input) return;
 
   const newName = input.value.trim();
+  const order = Number(orderInput?.value || getCategorySettings(oldName).order || (index + 1) * 10);
+  const limit = Number(limitInput?.value || 0);
 
   if (!newName) {
     alert("Il nome della categoria non può essere vuoto.");
@@ -2397,16 +2542,26 @@ function renameCategoryByIndex(index) {
   if (!state.categorySettings) state.categorySettings = {};
   state.thresholds.categoryLimits[newName] = state.thresholds.categoryLimits[oldName] || 0;
   state.categorySettings[newName] = state.categorySettings[oldName] || getDefaultCategorySettings(newName);
+  state.categorySettings[newName] = normalizeCategorySettings(state.categorySettings[newName], newName);
+  state.categorySettings[newName] = normalizeCategorySettings({
+    ...state.categorySettings[newName],
+    order: Number.isFinite(order) ? order : (index + 1) * 10
+  }, newName);
+  state.thresholds.categoryLimits[newName] = Number.isFinite(limit) ? limit : 0;
 
   if (newName !== oldName) {
     delete state.thresholds.categoryLimits[oldName];
     delete state.categorySettings[oldName];
   }
 
+  sortCategoriesByOrder();
   syncTotalLimitWithCategories();
+  sortCategoriesByOrder();
   saveState();
   renderAll();
 }
+
+const renameCategoryByIndex = saveCategoryByIndex;
 
 function deleteCategoryByIndex(index) {
   const categoryName = state.categories[index];
@@ -2474,6 +2629,7 @@ function resetFamilyIncomeForm() {
 
   if (idInput) idInput.value = "";
   if (monthInput) monthInput.value = state.selectedFamilyBudgetReferenceMonth || getCurrentMonth();
+  renderMonthPickerButton("incomeMonthButton", monthInput?.value || state.selectedFamilyBudgetReferenceMonth || getCurrentMonth());
   if (descriptionInput) descriptionInput.value = "";
   if (amountInput) amountInput.value = "";
   if (saveButton) saveButton.textContent = "Salva entrata";
@@ -2539,6 +2695,7 @@ function startEditIncome(id) {
 
   if (idInput) idInput.value = income.id;
   if (monthInput) monthInput.value = income.month;
+  renderMonthPickerButton("incomeMonthButton", income.month);
   if (descriptionInput) descriptionInput.value = income.description || "";
   if (amountInput) amountInput.value = Number(income.amount || 0);
   if (saveButton) saveButton.textContent = "Aggiorna entrata";
@@ -2694,6 +2851,7 @@ function renderFamilyBudget() {
   if (referenceInput) {
     referenceInput.value = state.selectedFamilyBudgetReferenceMonth;
   }
+  renderMonthPickerButton("familyBudgetReferenceMonthButton", state.selectedFamilyBudgetReferenceMonth);
 
   renderFamilyBudgetRangeSelectors();
   updateFamilyBudgetFilterSummary();
@@ -2702,12 +2860,14 @@ function renderFamilyBudget() {
   if (incomeMonth && !incomeMonth.value) {
     incomeMonth.value = state.selectedFamilyBudgetReferenceMonth;
   }
+  renderMonthPickerButton("incomeMonthButton", incomeMonth?.value || state.selectedFamilyBudgetReferenceMonth);
 
   renderFamilyIncomeList();
   renderFamilyBudgetReport();
 }
 
 function renderAll() {
+  sortCategoriesByOrder();
   renderCategoryOptions();
   renderDashboard();
   renderExpensesList();
@@ -2859,6 +3019,7 @@ function addExpense(event) {
   const categorySettings = getCategorySettings(category);
   const splitMode = isMultiMonth ? categorySettings.splitMode : "none";
   const description = document.getElementById("description").value.trim();
+  const createdAt = new Date().toISOString();
 
   if (!Number.isFinite(totalAmount) || totalAmount <= 0) {
     alert(isGenericReimbursement ? "Inserisci un importo rimborso maggiore di zero." : "Inserisci un importo spesa maggiore di zero.");
@@ -2879,6 +3040,7 @@ function addExpense(event) {
     state.reimbursements.push({
       id: createId(),
       amount: roundToTwoDecimals(totalAmount),
+      createdAt,
       category,
       date,
       month: getMonthFromDate(date),
@@ -2895,6 +3057,7 @@ function addExpense(event) {
     state.expenses.push({
       id: createId(),
       amount: roundToTwoDecimals(totalAmount),
+      createdAt,
       category,
       date,
       month: getMonthFromDate(date),
@@ -2931,6 +3094,7 @@ function addExpense(event) {
         id: createId(),
         groupId,
         amount: amounts[i],
+        createdAt,
         originalAmount: totalAmount,
         originalDate: date,
         paidDate: date,
@@ -3089,12 +3253,12 @@ function renderEditExpenseForm(expense) {
 function startEditExpense(id) {
   editingExpenseId = id;
   editingReimbursementId = null;
-  renderExpensesList();
+  renderAll();
 }
 
 function cancelEditExpense() {
   editingExpenseId = null;
-  renderExpensesList();
+  renderAll();
 }
 
 function saveEditedExpense(event, id) {
@@ -3304,7 +3468,14 @@ function addCategory(event) {
   state.categories.push(name);
   state.thresholds.categoryLimits[name] = 0;
   if (!state.categorySettings) state.categorySettings = {};
-  state.categorySettings[name] = getDefaultCategorySettings(name);
+  const maxOrder = state.categories.reduce((highest, category) => {
+    return Math.max(highest, Number(state.categorySettings?.[category]?.order || 0));
+  }, 0);
+  state.categorySettings[name] = normalizeCategorySettings({
+    ...getDefaultCategorySettings(name),
+    order: maxOrder + 10
+  }, name);
+  sortCategoriesByOrder();
   syncTotalLimitWithCategories();
   input.value = "";
 
@@ -4121,7 +4292,10 @@ if (expenseCategorySelect) {
 }
 
 
-document.getElementById("thresholdForm").addEventListener("submit", saveThresholds);
+const thresholdForm = document.getElementById("thresholdForm");
+if (thresholdForm) {
+  thresholdForm.addEventListener("submit", saveThresholds);
+}
 document.getElementById("categoryForm").addEventListener("submit", addCategory);
 document.getElementById("exportCsvButton").addEventListener("click", exportCsv);
 document.getElementById("resetDataButton").addEventListener("click", resetData);
@@ -4160,12 +4334,40 @@ if (homeMonthSelect) {
     renderDashboard();
   });
 }
+const homeMonthPickerButton = document.getElementById("homeMonthPickerButton");
+if (homeMonthPickerButton) {
+  homeMonthPickerButton.addEventListener("click", () => {
+    showMonthPicker({
+      title: "Mese da visualizzare",
+      selectedMonth: state.selectedMonth || getCurrentMonth(),
+      onSelect: month => {
+        state.selectedMonth = month;
+        saveState();
+        renderDashboard();
+      }
+    });
+  });
+}
 const multiReportReferenceMonth = document.getElementById("multiReportReferenceMonth");
 if (multiReportReferenceMonth) {
   multiReportReferenceMonth.addEventListener("change", event => {
     state.selectedMultiReportReferenceMonth = event.target.value || getCurrentMonth();
     saveState();
     renderMultiReport();
+  });
+}
+const multiReportReferenceMonthButton = document.getElementById("multiReportReferenceMonthButton");
+if (multiReportReferenceMonthButton) {
+  multiReportReferenceMonthButton.addEventListener("click", () => {
+    showMonthPicker({
+      title: "Mese di riferimento",
+      selectedMonth: state.selectedMultiReportReferenceMonth || getCurrentMonth(),
+      onSelect: month => {
+        state.selectedMultiReportReferenceMonth = month;
+        saveState();
+        renderMultiReport();
+      }
+    });
   });
 }
 const multiReportMonthsBefore = document.getElementById("multiReportMonthsBefore");
@@ -4203,6 +4405,20 @@ if (expensesMonthSelect) {
     syncExpensesDateRangeWithMonth(event.target.value);
     saveState();
     renderExpensesList();
+  });
+}
+const expensesMonthPickerButton = document.getElementById("expensesMonthPickerButton");
+if (expensesMonthPickerButton) {
+  expensesMonthPickerButton.addEventListener("click", () => {
+    showMonthPicker({
+      title: "Selezione rapida mese",
+      selectedMonth: state.selectedExpensesMonth || getCurrentMonth(),
+      onSelect: month => {
+        syncExpensesDateRangeWithMonth(month);
+        saveState();
+        renderExpensesList();
+      }
+    });
   });
 }
 
@@ -4300,6 +4516,21 @@ if (familyBudgetReferenceMonth) {
     renderFamilyBudget();
   });
 }
+const familyBudgetReferenceMonthButton = document.getElementById("familyBudgetReferenceMonthButton");
+if (familyBudgetReferenceMonthButton) {
+  familyBudgetReferenceMonthButton.addEventListener("click", () => {
+    showMonthPicker({
+      title: "Mese di riferimento",
+      selectedMonth: state.selectedFamilyBudgetReferenceMonth || getCurrentMonth(),
+      onSelect: month => {
+        state.selectedFamilyBudgetReferenceMonth = month;
+        saveState();
+        resetFamilyIncomeForm();
+        renderFamilyBudget();
+      }
+    });
+  });
+}
 
 const familyBudgetMonthsBefore = document.getElementById("familyBudgetMonthsBefore");
 if (familyBudgetMonthsBefore) {
@@ -4336,6 +4567,35 @@ document.getElementById("reportMonthSelect").addEventListener("change", event =>
   saveState();
   renderReport();
 });
+const reportMonthPickerButton = document.getElementById("reportMonthPickerButton");
+if (reportMonthPickerButton) {
+  reportMonthPickerButton.addEventListener("click", () => {
+    showMonthPicker({
+      title: "Mese da visualizzare",
+      selectedMonth: state.selectedReportMonth || getCurrentMonth(),
+      onSelect: month => {
+        state.selectedReportMonth = month;
+        saveState();
+        renderReport();
+      }
+    });
+  });
+}
+
+const incomeMonthButton = document.getElementById("incomeMonthButton");
+if (incomeMonthButton) {
+  incomeMonthButton.addEventListener("click", () => {
+    const input = document.getElementById("incomeMonth");
+    showMonthPicker({
+      title: "Mese entrata",
+      selectedMonth: input?.value || state.selectedFamilyBudgetReferenceMonth || getCurrentMonth(),
+      onSelect: month => {
+        if (input) input.value = month;
+        renderMonthPickerButton("incomeMonthButton", month);
+      }
+    });
+  });
+}
 
 const categoryTrendSelect = document.getElementById("categoryTrendSelect");
 if (categoryTrendSelect) {
