@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.83";
+const APP_VERSION = "V.84";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
@@ -150,38 +150,34 @@ function isDateStringAfter(dateString, cutoffDateString) {
   return Boolean(dateString && /^\d{4}-\d{2}-\d{2}$/.test(dateString) && dateString > cutoffDateString);
 }
 
-function isExpenseCreatedOnOrBefore(expense, cutoffDateString) {
-  const rawActivity = expense?.activityAt || expense?.updatedAt || expense?.createdAt || expense?.insertedAt;
-  if (!rawActivity) return true;
+function restoreFutureExpensesMovedByV83(migrated) {
+  const v83MigrationKey = "futureExpensesAfter2026-07-02To2026-06-30";
+  const restoreMigrationKey = "restoreFutureExpensesMovedByV83";
 
-  const normalizedDate = String(rawActivity).slice(0, 10);
-  if (normalizedDate === expense?.date && isDateStringAfter(expense.date, "2026-07-02")) return true;
-
-  return /^\d{4}-\d{2}-\d{2}$/.test(normalizedDate) ? normalizedDate <= cutoffDateString : true;
-}
-
-function applyOneTimeFutureExpenseDateWorkaround(migrated) {
-  const migrationKey = "futureExpensesAfter2026-07-02To2026-06-30";
-  if (migrated.migrations?.[migrationKey]) return migrated;
+  if (!migrated.migrations?.[v83MigrationKey] || migrated.migrations?.[restoreMigrationKey]) {
+    return migrated;
+  }
 
   migrated.expenses = migrated.expenses.map(expense => {
-    if (
-      isDateStringAfter(expense.date, "2026-07-02")
-      && isExpenseCreatedOnOrBefore(expense, "2026-07-01")
-    ) {
-      return {
-        ...expense,
-        date: "2026-06-30",
-        month: "2026-06"
-      };
-    }
+    const activityDate = String(expense.activityAt || "").slice(0, 10);
+    const createdDate = String(expense.createdAt || "").slice(0, 10);
+    const canRestoreOriginalDate = expense.date === "2026-06-30"
+      && expense.month === "2026-06"
+      && isDateStringAfter(activityDate, "2026-07-02")
+      && activityDate === createdDate;
 
-    return expense;
+    if (!canRestoreOriginalDate) return expense;
+
+    return {
+      ...expense,
+      date: activityDate,
+      month: getMonthFromDate(activityDate)
+    };
   });
 
   migrated.migrations = {
     ...(migrated.migrations || {}),
-    [migrationKey]: new Date().toISOString()
+    [restoreMigrationKey]: new Date().toISOString()
   };
 
   return migrated;
@@ -301,7 +297,7 @@ function migrateState(rawState) {
     return sum + Number(migrated.thresholds.categoryLimits[category] || 0);
   }, 0);
 
-  applyOneTimeFutureExpenseDateWorkaround(migrated);
+  restoreFutureExpensesMovedByV83(migrated);
 
   migrated.categories = [...migrated.categories].sort((a, b) => {
     const settingsA = migrated.categorySettings[a] || getDefaultCategorySettings(a);
