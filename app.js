@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.87";
+const APP_VERSION = "V.88";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
@@ -139,10 +139,13 @@ function getTagsText(tags) {
 
 function normalizeExpenseAnalytics(expense) {
   const recurrenceFallback = expense?.type === "multi" ? "Plurimensile" : "Una tantum";
+  const recurrenceType = expense?.type === "multi"
+    ? "Plurimensile"
+    : normalizeChoice(expense?.recurrenceType, recurrenceTypes, recurrenceFallback);
 
   return {
     needType: normalizeChoice(expense?.needType || expense?.expenseType, expenseNeedTypes, "Utile"),
-    recurrenceType: normalizeChoice(expense?.recurrenceType, recurrenceTypes, recurrenceFallback),
+    recurrenceType,
     merchant: String(expense?.merchant || expense?.vendor || "").trim(),
     tags: normalizeTags(expense?.tags),
     savingPotential: normalizeChoice(expense?.savingPotential || expense?.isSaveable, savingPotentialLevels, "Parzialmente")
@@ -833,12 +836,29 @@ function getSelectOptions(values, selectedValue) {
 function collectExpenseAnalyticsFromForm(isMultiMonth = false) {
   const selectedRecurrence = document.getElementById("recurrenceType")?.value || (isMultiMonth ? "Plurimensile" : "Una tantum");
   return normalizeExpenseAnalytics({
+    type: isMultiMonth ? "multi" : "single",
     merchant: document.getElementById("merchant")?.value || "",
     needType: document.getElementById("needType")?.value || "Utile",
-    recurrenceType: isMultiMonth && selectedRecurrence === "Una tantum" ? "Plurimensile" : selectedRecurrence,
+    recurrenceType: selectedRecurrence,
     savingPotential: document.getElementById("savingPotential")?.value || "Parzialmente",
     tags: document.getElementById("expenseTags")?.value || ""
   });
+}
+
+function syncRecurrenceWithMultiMonth() {
+  const isMultiMonth = document.getElementById("isMultiMonth");
+  const recurrenceType = document.getElementById("recurrenceType");
+  if (!isMultiMonth || !recurrenceType) return;
+
+  if (isMultiMonth.checked) {
+    recurrenceType.value = "Plurimensile";
+    recurrenceType.disabled = true;
+  } else {
+    recurrenceType.disabled = false;
+    if (recurrenceType.value === "Plurimensile") {
+      recurrenceType.value = "Una tantum";
+    }
+  }
 }
 
 function isPaymentSplitModeActive() {
@@ -3323,11 +3343,13 @@ function applyCategoryDefaultSplit(options = {}) {
       multiMonthOptions.classList.add("hidden");
     }
     if (hint) hint.textContent = "";
+    syncRecurrenceWithMultiMonth();
     return;
   }
 
   isMultiMonth.checked = true;
   multiMonthOptions.classList.remove("hidden");
+  syncRecurrenceWithMultiMonth();
 
   if (settings.splitMode === "calendar-year") {
     numberOfMonths.value = "12";
@@ -3356,6 +3378,7 @@ function resetAddExpenseForm(form) {
   }
 
   applyCategoryDefaultSplit({ forceDefault: true });
+  syncRecurrenceWithMultiMonth();
 }
 
 async function handleExpenseSaved(form) {
@@ -3627,12 +3650,13 @@ function renderEditExpenseForm(expense) {
           </select>
         </label>
 
-        <label>
+        <label class="${isMulti ? "hidden" : ""}">
           Ricorrenza
           <select id="editRecurrenceType-${expense.id}">
             ${getSelectOptions(recurrenceTypes, analytics.recurrenceType)}
           </select>
         </label>
+        ${isMulti ? `<p class="hint">Ricorrenza: Plurimensile, ricavata automaticamente dalla spesa plurimensile.</p>` : ""}
 
         <label>
           Risparmiabile
@@ -3705,6 +3729,7 @@ function saveEditedExpense(event, id) {
   const editPaymentTotal = roundToTwoDecimals(editPaymentBreakdown.reduce((sum, row) => sum + Number(row.amount || 0), 0));
   const activityAt = new Date().toISOString();
   const analytics = normalizeExpenseAnalytics({
+    type: existingExpense.type || "single",
     merchant: document.getElementById(`editMerchant-${id}`)?.value || "",
     needType: document.getElementById(`editNeedType-${id}`)?.value || "Utile",
     recurrenceType: document.getElementById(`editRecurrenceType-${id}`)?.value || (existingExpense.type === "multi" ? "Plurimensile" : "Una tantum"),
@@ -5085,15 +5110,13 @@ if (nextMonthButton) {
 
 document.getElementById("isMultiMonth").addEventListener("change", event => {
   document.getElementById("multiMonthOptions").classList.toggle("hidden", !event.target.checked);
-  const recurrenceType = document.getElementById("recurrenceType");
   if (event.target.checked) {
-    if (recurrenceType) recurrenceType.value = "Plurimensile";
     applyCategoryDefaultSplit();
   } else {
-    if (recurrenceType && recurrenceType.value === "Plurimensile") recurrenceType.value = "Una tantum";
     const hint = document.getElementById("categorySplitHint");
     if (hint) hint.textContent = "";
   }
+  syncRecurrenceWithMultiMonth();
 });
 
 const isGenericReimbursement = document.getElementById("isGenericReimbursement");
