@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.84";
+const APP_VERSION = "V.86";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
@@ -36,6 +36,7 @@ const initialState = {
   selectedFamilyBudgetMonthsBefore: 0,
   selectedFamilyBudgetMonthsAfter: 12,
   lastBackupDate: "",
+  lastCategoryAutoOrderDate: "",
   migrations: {},
   incomes: [],
   categories: [...defaultCategories],
@@ -150,6 +151,51 @@ function isDateStringAfter(dateString, cutoffDateString) {
   return Boolean(dateString && /^\d{4}-\d{2}-\d{2}$/.test(dateString) && dateString > cutoffDateString);
 }
 
+function getDateMonthsAgoString(monthsAgo) {
+  const date = new Date();
+  date.setMonth(date.getMonth() - monthsAgo);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function applyDailyCategoryAutoOrder() {
+  const today = getTodayDateString();
+  if (state.lastCategoryAutoOrderDate === today) return;
+
+  const fromDate = getDateMonthsAgoString(2);
+  const toDate = today;
+  const counts = {};
+
+  state.categories.forEach(category => {
+    counts[category] = 0;
+  });
+
+  state.expenses.forEach(expense => {
+    if (!state.categories.includes(expense.category)) return;
+    const activityDate = String(getExpenseActivityDate(expense)).slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(activityDate)) return;
+    if (activityDate < fromDate || activityDate > toDate) return;
+    counts[expense.category] = (counts[expense.category] || 0) + 1;
+  });
+
+  state.categories = [...state.categories].sort((a, b) => {
+    const countDifference = Number(counts[b] || 0) - Number(counts[a] || 0);
+    if (countDifference !== 0) return countDifference;
+    return a.localeCompare(b, "it", { sensitivity: "base" });
+  });
+
+  state.categories.forEach((category, index) => {
+    state.categorySettings[category] = normalizeCategorySettings({
+      ...getCategorySettings(category),
+      order: (index + 1) * 10
+    }, category);
+  });
+
+  state.lastCategoryAutoOrderDate = today;
+}
+
 function restoreFutureExpensesMovedByV83(migrated) {
   const v83MigrationKey = "futureExpensesAfter2026-07-02To2026-06-30";
   const restoreMigrationKey = "restoreFutureExpensesMovedByV83";
@@ -224,6 +270,7 @@ function migrateState(rawState) {
     selectedFamilyBudgetMonthsBefore: Number(rawState.selectedFamilyBudgetMonthsBefore ?? 0),
     selectedFamilyBudgetMonthsAfter: Number(rawState.selectedFamilyBudgetMonthsAfter ?? 12),
     lastBackupDate: rawState.lastBackupDate || "",
+    lastCategoryAutoOrderDate: rawState.lastCategoryAutoOrderDate || "",
     migrations: rawState.migrations && typeof rawState.migrations === "object" ? rawState.migrations : {},
     incomes: Array.isArray(rawState.incomes) ? rawState.incomes : [],
     categories: rawState.categories || [...defaultCategories],
@@ -313,6 +360,7 @@ function saveState() {
 }
 
 let state = loadState();
+applyDailyCategoryAutoOrder();
 saveState();
 
 function showAppModal({ title, message, contentHtml = "", actions }) {
