@@ -1,5 +1,14 @@
 # Spese Mensili - PWA locale v16
 
+## Modifiche V.97
+
+Migliorato il grafico del Report plurimensile:
+
+- Palette colori ampliata da 12 a 20 colori: con 13+ categorie selezionate, prima due coppie di categorie finivano con lo stesso colore ed erano indistinguibili nel grafico.
+- Rimossa la ripetizione del totale mensile (era scritto sia sotto le barre che sopra il pallino della linea).
+- Tocca una colonna del grafico per vedere il dettaglio di spesa per categoria di quel mese.
+- La legenda ora è cliccabile: toccare una categoria la nasconde dal grafico, sincronizzato con il filtro categorie sopra.
+
 ## Modifiche V.96
 
 Fix urgente: rimosso il campo `"id"` dal manifest, aggiunto in V.90. Su una PWA già installata, cambiare l'id del manifest può rompere il riconoscimento dell'app da parte del browser, bloccando l'aggiornamento sulla schermata di splash. Se l'app resta bloccata sul logo anche dopo questo aggiornamento, va disinstallata e reinstallata una volta (vedi istruzioni di recupero fornite).

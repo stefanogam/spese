@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.96";
+const APP_VERSION = "V.97";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
@@ -2398,8 +2398,10 @@ window.openExpensesForReportCategory = openExpensesForReportCategory;
 function getCategoryColor(index) {
   const colors = [
     "#2563eb", "#0f766e", "#f97316", "#7c3aed",
-    "#dc2626", "#0891b2", "#ca8a04", "#475569",
-    "#be185d", "#16a34a", "#9333ea", "#ea580c"
+    "#0891b2", "#ca8a04", "#475569", "#be185d",
+    "#16a34a", "#9333ea", "#ea580c", "#0d9488",
+    "#4338ca", "#c2410c", "#059669", "#a21caf",
+    "#65a30d", "#1d4ed8", "#b45309", "#334155"
   ];
   return colors[index % colors.length];
 }
@@ -2571,6 +2573,7 @@ function renderMultiReport() {
   const data = getMultiReportData();
   renderMultiReportSummary(data);
   drawMultiReportChart(data);
+  renderMultiReportMonthDetail(null);
   renderMultiReportLegend();
   renderMultiReportTable(data);
 }
@@ -2704,6 +2707,12 @@ function drawMultiReportChart(data) {
   }
 
   const groupWidth = chartWidth / data.length;
+
+  canvas._multiReportLayout = { data, selectedCategories, padding, groupWidth, cssWidth };
+  if (!canvas._multiReportClickBound) {
+    canvas.addEventListener("click", handleMultiReportChartClick);
+    canvas._multiReportClickBound = true;
+  }
   const barWidth = Math.min(46, groupWidth * 0.52);
 
   data.forEach((item, index) => {
@@ -2740,12 +2749,6 @@ function drawMultiReportChart(data) {
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
     ctx.fillText(label, x + barWidth / 2, height - padding.bottom + 20);
-
-    if (item.total > 0) {
-      ctx.fillStyle = "#64748b";
-      ctx.font = "600 11px system-ui";
-      ctx.fillText(shortCurrency(item.total), x + barWidth / 2, height - padding.bottom + 40);
-    }
   });
 
   ctx.strokeStyle = "#0f172a";
@@ -2795,6 +2798,59 @@ function drawMultiReportChart(data) {
   ctx.fillText("Barre: categorie selezionate · Linea: totale budget · Linea rossa: soglia mensile", padding.left, 42);
 }
 
+function handleMultiReportChartClick(event) {
+  const canvas = event.currentTarget;
+  const layout = canvas._multiReportLayout;
+  if (!layout || !layout.data.length) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = rect.width / layout.cssWidth;
+  const x = (event.clientX - rect.left) / (scaleX || 1);
+  const relativeX = x - layout.padding.left;
+  if (relativeX < 0) return;
+
+  const index = Math.floor(relativeX / layout.groupWidth);
+  if (index < 0 || index >= layout.data.length) return;
+
+  renderMultiReportMonthDetail(layout.data[index], layout.selectedCategories);
+}
+
+function renderMultiReportMonthDetail(item, selectedCategories) {
+  const container = document.getElementById("multiReportMonthDetail");
+  if (!container) return;
+
+  if (!item) {
+    container.classList.add("hidden");
+    container.innerHTML = "";
+    return;
+  }
+
+  const rows = selectedCategories
+    .map(category => ({ category, amount: Number(item.totalsByCategory[category] || 0) }))
+    .filter(row => row.amount > 0)
+    .sort((a, b) => b.amount - a.amount);
+
+  container.classList.remove("hidden");
+  container.innerHTML = `
+    <div class="month-detail-header">
+      <strong>${escapeHtml(getMonthLabel(item.month))}</strong>
+      <span>Totale: ${formatCurrency(item.total)}</span>
+    </div>
+    <div class="month-detail-rows">
+      ${rows.length ? rows.map(row => {
+        const categoryIndex = state.categories.indexOf(row.category);
+        return `
+          <div class="month-detail-row">
+            <span class="legend-color" style="background:${getCategoryColor(categoryIndex)}"></span>
+            <span class="month-detail-category">${escapeHtml(row.category)}</span>
+            <span class="month-detail-amount">${formatCurrency(row.amount)}</span>
+          </div>
+        `;
+      }).join("") : `<p class="empty">Nessuna spesa nelle categorie selezionate per questo mese.</p>`}
+    </div>
+  `;
+}
+
 function renderMultiReportLegend() {
   const container = document.getElementById("multiReportLegend");
   if (!container) return;
@@ -2804,10 +2860,15 @@ function renderMultiReportLegend() {
   const categoryItems = selectedCategories.map(category => {
     const index = state.categories.indexOf(category);
     return `
-      <span class="legend-item">
+      <button
+        type="button"
+        class="legend-item legend-item-toggle"
+        onclick="toggleMultiReportCategoryFilter('${escapeAttribute(category)}', false)"
+        aria-label="Nascondi ${escapeAttributeForHtml(category)} dal grafico"
+      >
         <span class="legend-color" style="background:${getCategoryColor(index)}"></span>
         ${escapeHtml(category)}
-      </span>
+      </button>
     `;
   }).join("");
 

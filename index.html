@@ -13,7 +13,7 @@
     <header class="app-header">
       <div class="app-title">
         <h1>Spese Mensili</h1>
-        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.96</span></p>
+        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.97</span></p>
       </div>
       <button id="installButton" class="secondary hidden">Installa</button>
     </header>
@@ -30,7 +30,7 @@
 
         <div class="card compact version-card">
           <span>Versione app</span>
-          <strong>V.96</strong>
+          <strong>V.97</strong>
         </div>
 
         <div class="card hero">
@@ -375,6 +375,8 @@
           <div class="chart-wrapper" aria-label="Grafico report plurimensile">
             <canvas id="multiReportChart" width="900" height="520"></canvas>
           </div>
+          <p class="hint">Tocca una colonna per vedere il dettaglio per categoria di quel mese.</p>
+          <div id="multiReportMonthDetail" class="month-detail-panel hidden"></div>
 
           <div id="multiReportLegend" class="chart-legend"></div>
           <div id="multiReportTable"></div>
