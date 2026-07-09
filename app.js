@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.88";
+const APP_VERSION = "V.89";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
@@ -22,6 +22,7 @@ const expenseNeedTypes = ["Necessaria", "Utile", "Rimandabile", "Superflua"];
 const recurrenceTypes = ["Una tantum", "Ricorrente", "Annuale", "Plurimensile", "Abbonamento"];
 const savingPotentialLevels = ["No", "Parzialmente", "Sì"];
 let paymentSplitRows = [];
+let lastCompetenceDateValue = "";
 
 const initialState = {
   selectedMonth: getCurrentMonth(),
@@ -1175,14 +1176,31 @@ function getTodayDateString() {
 }
 
 function setDefaultDate() {
-  document.getElementById("date").value = getTodayDateString();
+  const today = getTodayDateString();
+  document.getElementById("date").value = today;
   const paidDate = document.getElementById("paidDate");
-  if (paidDate) paidDate.value = getTodayDateString();
+  if (paidDate) paidDate.value = today;
+  lastCompetenceDateValue = today;
 
   const genericReimbursementDate = document.getElementById("genericReimbursementDate");
   if (genericReimbursementDate) {
-    genericReimbursementDate.value = getTodayDateString();
+    genericReimbursementDate.value = today;
   }
+}
+
+function syncPaidDateWithCompetenceDate() {
+  const competenceDate = document.getElementById("date");
+  const paidDate = document.getElementById("paidDate");
+  if (!competenceDate || !paidDate) return;
+
+  const nextCompetenceDate = competenceDate.value;
+  const canAutoAlign = !paidDate.value || paidDate.value === lastCompetenceDateValue;
+
+  if (canAutoAlign) {
+    paidDate.value = nextCompetenceDate;
+  }
+
+  lastCompetenceDateValue = nextCompetenceDate;
 }
 
 function renderCategoryOptions() {
@@ -4756,6 +4774,11 @@ document.querySelectorAll(".bottom-nav button").forEach(button => {
 });
 
 document.getElementById("expenseForm").addEventListener("submit", addExpense);
+
+const competenceDateInput = document.getElementById("date");
+if (competenceDateInput) {
+  competenceDateInput.addEventListener("change", syncPaidDateWithCompetenceDate);
+}
 
 const addPaymentMethodButton = document.getElementById("addPaymentMethodButton");
 if (addPaymentMethodButton) {
