@@ -1,5 +1,9 @@
 # Spese Mensili - PWA locale v16
 
+## Modifiche V.96
+
+Fix urgente: rimosso il campo `"id"` dal manifest, aggiunto in V.90. Su una PWA già installata, cambiare l'id del manifest può rompere il riconoscimento dell'app da parte del browser, bloccando l'aggiornamento sulla schermata di splash. Se l'app resta bloccata sul logo anche dopo questo aggiornamento, va disinstallata e reinstallata una volta (vedi istruzioni di recupero fornite).
+
 ## Modifiche V.95
 
 - "Risparmio stimato" in Opportunità di risparmio è ora "Risparmio potenziale (oltre soglia)", calcolato sulle spese reali che superano soglia/obiettivo di categoria, invece che come 20% fisso di quasi ogni spesa (che dipendeva dal valore precompilato "Parzialmente", mai cambiato nel 98% dei casi). La vecchia stima resta visibile, etichettata come "spese marcate come risparmiabili".
