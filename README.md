@@ -1,5 +1,13 @@
 # Spese Mensili - PWA locale v16
 
+## Modifiche V.91
+
+Riorganizzata la sezione "Soglie e categorie", troppo dispersiva. Nessuna funzionalità rimossa:
+
+- Ogni categoria è ora un pannello a comparsa: la riga mostra solo nome e soglia mensile, mentre ordine, soglia obiettivo, riduzione %, ripartizione predefinita e mesi si aprono al tocco invece di stare sempre visibili.
+- Il box "Budget mensile totale" è stato spostato in cima alla sezione come riepilogo.
+- Il pannello di una categoria resta aperto dopo aver premuto "Salva" (invece di richiudersi), e si apre automaticamente quando aggiungi una nuova categoria.
+
 ## Modifiche V.90
 
 Ottimizzazioni interne, nessuna modifica alle funzionalità visibili:

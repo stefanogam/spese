@@ -13,7 +13,7 @@
     <header class="app-header">
       <div class="app-title">
         <h1>Spese Mensili</h1>
-        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.90</span></p>
+        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.91</span></p>
       </div>
       <button id="installButton" class="secondary hidden">Installa</button>
     </header>
@@ -30,7 +30,7 @@
 
         <div class="card compact version-card">
           <span>Versione app</span>
-          <strong>V.90</strong>
+          <strong>V.91</strong>
         </div>
 
         <div class="card hero">
@@ -461,13 +461,6 @@
       <section id="settingsView" class="view">
         <div class="card">
           <h2>Soglie e categorie</h2>
-          <form id="categoryForm">
-            <label>
-              Nuova categoria
-              <input id="newCategoryName" type="text" placeholder="Es. Viaggi" />
-            </label>
-            <button type="submit">Aggiungi categoria</button>
-          </form>
 
           <div class="threshold-total-box">
             <label>
@@ -477,6 +470,15 @@
             </label>
           </div>
 
+          <form id="categoryForm">
+            <label>
+              Nuova categoria
+              <input id="newCategoryName" type="text" placeholder="Es. Viaggi" />
+            </label>
+            <button type="submit">Aggiungi categoria</button>
+          </form>
+
+          <p class="hint category-list-hint">Tocca una categoria per modificarne soglia, obiettivo e ripartizione.</p>
           <div id="categoriesList" class="settings-list"></div>
         </div>
 

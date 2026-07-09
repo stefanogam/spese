@@ -399,6 +399,13 @@ button.small {
 
 .settings-list {
   margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.category-list-hint {
+  margin-top: 12px;
 }
 
 .category-row {
@@ -407,6 +414,60 @@ button.small {
   gap: 12px;
   align-items: stretch;
   min-width: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.category-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.category-summary::-webkit-details-marker {
+  display: none;
+}
+
+.category-summary::after {
+  content: "▾";
+  font-size: 0.9rem;
+  color: #6b7280;
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+.category-row[open] .category-summary::after {
+  transform: rotate(180deg);
+}
+
+.category-summary-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.category-summary-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.category-row[open] .category-settings-row {
+  margin-top: 2px;
+}
+
+.category-row:not([open]) .category-settings-row,
+.category-row:not([open]) .category-actions {
+  display: none;
 }
 
 .category-name-input {

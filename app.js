@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.90";
+const APP_VERSION = "V.91";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
@@ -2864,6 +2864,18 @@ function renderThresholdForm() {
     .join("");
 }
 
+// Tiene traccia, solo per la sessione corrente (non salvato), di quali
+// pannelli categoria sono aperti, così restano aperti dopo un salvataggio.
+const openCategoryPanels = new Set();
+
+function toggleCategoryPanel(category, isOpen) {
+  if (isOpen) {
+    openCategoryPanels.add(category);
+  } else {
+    openCategoryPanels.delete(category);
+  }
+}
+
 function renderCategoriesList() {
   const container = document.getElementById("categoriesList");
   sortCategoriesByOrder();
@@ -2876,9 +2888,18 @@ function renderCategoriesList() {
   container.innerHTML = state.categories.map((category, index) => {
     const used = state.expenses.some(expense => expense.category === category);
     const settings = getCategorySettings(category);
+    const monthlyLimit = state.thresholds.categoryLimits[category];
+    const summaryLimitText = monthlyLimit ? `${formatCurrency(monthlyLimit)}/mese` : "Nessuna soglia";
+    const isOpen = openCategoryPanels.has(category);
 
     return `
-      <div class="category-row">
+      <details class="category-row" ${isOpen ? "open" : ""} ontoggle="toggleCategoryPanel('${escapeAttributeForHtml(category)}', this.open)">
+        <summary class="category-summary">
+          <span class="category-summary-name">${escapeHtml(category)}</span>
+          <span class="category-summary-meta">
+            <span class="category-summary-limit">${summaryLimitText}</span>
+          </span>
+        </summary>
         <div class="category-settings-row">
           <label>
             Categoria
@@ -2917,7 +2938,7 @@ function renderCategoriesList() {
           <button class="secondary small" onclick="saveCategoryByIndex(${index})">Salva</button>
           <button class="danger small" onclick="deleteCategoryByIndex(${index})" ${used ? "title='Categoria usata da alcune spese'" : ""}>Elimina</button>
         </div>
-      </div>
+      </details>
     `;
   }).join("");
 }
@@ -3004,6 +3025,10 @@ function saveCategoryByIndex(index) {
   if (newName !== oldName) {
     delete state.thresholds.categoryLimits[oldName];
     delete state.categorySettings[oldName];
+    if (openCategoryPanels.has(oldName)) {
+      openCategoryPanels.delete(oldName);
+      openCategoryPanels.add(newName);
+    }
   }
 
   sortCategoriesByOrder();
@@ -4027,6 +4052,7 @@ function addCategory(event) {
   sortCategoriesByOrder();
   syncTotalLimitWithCategories();
   input.value = "";
+  openCategoryPanels.add(name);
 
   saveState();
   renderAll();
@@ -4088,6 +4114,7 @@ function deleteCategory(categoryName) {
   delete state.thresholds.categoryLimits[categoryName];
   if (!state.categorySettings) state.categorySettings = {};
   delete state.categorySettings[categoryName];
+  openCategoryPanels.delete(categoryName);
   syncTotalLimitWithCategories();
 
   saveState();
