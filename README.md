@@ -1,5 +1,17 @@
 # Spese Mensili - PWA locale v16
 
+## Modifiche V.94
+
+- Corretto un altro bug di stile: le righe delle entrate nel Bilancio familiare (`.settings-row`) non avevano mai avuto una regola di layout, restando impilate invece che allineate su una riga.
+- Condensata la card "Categorie critiche" in Home, con lo stesso stile già applicato al Report per voucher/rimborsi generici.
+
+## Modifiche V.93
+
+Sulla base dell'analisi del backup JSON: Fornitore, Tag e Rimborso generico erano usati in meno del 5% delle spese registrate. Nessun dato o funzionalità è stato rimosso, solo nascosto di default:
+
+- Nel form "Aggiungi spesa" e nel form di modifica, "Fornitore / negozio" e "Tag" sono ora dentro una sezione richiudibile "Fornitore e tag", chiusa di default.
+- Il checkbox "Rimborso generico" è ora dentro una sezione richiudibile in cima al form "Aggiungi spesa", invece di essere il primo campo sempre visibile.
+
 ## Modifiche V.92
 
 Rivista la sezione "Report" per renderla più leggibile. Nessuna funzionalità rimossa:

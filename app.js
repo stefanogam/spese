@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.92";
+const APP_VERSION = "V.94";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
@@ -1381,8 +1381,12 @@ function renderCriticalCategories(expenses, genericReimbursements = []) {
         <div>
           <strong>${escapeHtml(item.category)}</strong><br>
           <span>Budget: ${formatCurrency(item.spent)} su ${formatCurrency(item.limit)}</span>
-          ${item.voucherSpent > 0 ? `<br><span class="voucher-note">Voucher esclusi: ${formatCurrency(item.voucherSpent)}</span>` : ""}
-          ${item.genericReimbursementSpent > 0 ? `<br><span class="reimbursement-note">Rimborsi generici detratti: ${formatCurrency(item.genericReimbursementSpent)}</span>` : ""}
+          ${(item.voucherSpent > 0 || item.genericReimbursementSpent > 0) ? `
+            <br>
+            ${item.voucherSpent > 0 ? `<span class="voucher-note">Voucher esclusi: ${formatCurrency(item.voucherSpent)}</span>` : ""}
+            ${item.voucherSpent > 0 && item.genericReimbursementSpent > 0 ? " · " : ""}
+            ${item.genericReimbursementSpent > 0 ? `<span class="reimbursement-note">Rimborsi generici detratti: ${formatCurrency(item.genericReimbursementSpent)}</span>` : ""}
+          ` : ""}
         </div>
         <span class="badge ${item.status.className}">${item.status.label}</span>
       </div>
@@ -3757,11 +3761,6 @@ function renderEditExpenseForm(expense) {
 
       <div class="analytics-fields">
         <label>
-          Fornitore / negozio
-          <input id="editMerchant-${expense.id}" type="text" value="${escapeAttributeForHtml(analytics.merchant)}" />
-        </label>
-
-        <label>
           Tipo spesa
           <select id="editNeedType-${expense.id}">
             ${getSelectOptions(expenseNeedTypes, analytics.needType)}
@@ -3782,12 +3781,20 @@ function renderEditExpenseForm(expense) {
             ${getSelectOptions(savingPotentialLevels, analytics.savingPotential)}
           </select>
         </label>
+      </div>
+
+      <details class="optional-fields">
+        <summary>Fornitore e tag</summary>
+        <label>
+          Fornitore / negozio
+          <input id="editMerchant-${expense.id}" type="text" value="${escapeAttributeForHtml(analytics.merchant)}" />
+        </label>
 
         <label class="analytics-tags-field">
           Tag
           <input id="editTags-${expense.id}" type="text" value="${escapeAttributeForHtml(getTagsText(analytics.tags))}" />
         </label>
-      </div>
+      </details>
 
       <div class="payment-split-box">
         <div class="section-title compact-title">

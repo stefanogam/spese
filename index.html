@@ -13,7 +13,7 @@
     <header class="app-header">
       <div class="app-title">
         <h1>Spese Mensili</h1>
-        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.92</span></p>
+        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.94</span></p>
       </div>
       <button id="installButton" class="secondary hidden">Installa</button>
     </header>
@@ -30,7 +30,7 @@
 
         <div class="card compact version-card">
           <span>Versione app</span>
-          <strong>V.92</strong>
+          <strong>V.94</strong>
         </div>
 
         <div class="card hero">
@@ -78,10 +78,13 @@
         <div class="card">
           <h2>Aggiungi spesa</h2>
           <form id="expenseForm">
-            <label class="checkbox-row">
-              <input id="isGenericReimbursement" type="checkbox" />
-              <span>Questo inserimento è un rimborso generico</span>
-            </label>
+            <details class="optional-fields">
+              <summary>Rimborso generico</summary>
+              <label class="checkbox-row">
+                <input id="isGenericReimbursement" type="checkbox" />
+                <span>Questo inserimento è un rimborso generico</span>
+              </label>
+            </details>
 
             <label>
               Importo totale
@@ -105,11 +108,6 @@
                 <label>
                   Data pagamento
                   <input id="paidDate" type="date" />
-                </label>
-
-                <label>
-                  Fornitore / negozio
-                  <input id="merchant" type="text" list="merchantSuggestions" placeholder="Es. Coop, Amazon, bar, assicurazione" />
                 </label>
 
                 <label>
@@ -141,12 +139,20 @@
                     <option>Sì</option>
                   </select>
                 </label>
+              </div>
+
+              <details class="optional-fields">
+                <summary>Fornitore e tag</summary>
+                <label>
+                  Fornitore / negozio
+                  <input id="merchant" type="text" list="merchantSuggestions" placeholder="Es. Coop, Amazon, bar, assicurazione" />
+                </label>
 
                 <label class="analytics-tags-field">
                   Tag
                   <input id="expenseTags" type="text" placeholder="Es. lavoro, figli, auto, weekend" />
                 </label>
-              </div>
+              </details>
 
               <div id="singlePaymentMethodBox">
                 <label>

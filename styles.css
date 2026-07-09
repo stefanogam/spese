@@ -87,6 +87,7 @@ main {
 .section-title,
 .expense-row,
 .report-row,
+.settings-row,
 .category-row {
   display: flex;
   justify-content: space-between;
@@ -959,6 +960,43 @@ input[readonly] {
   border: 1px solid #e5e7eb;
   border-radius: 14px;
   background: #f9fafb;
+}
+
+.optional-fields {
+  margin: 14px 0;
+  padding: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #f9fafb;
+}
+
+.optional-fields summary {
+  list-style: none;
+  cursor: pointer;
+  font-weight: 700;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.optional-fields summary::-webkit-details-marker {
+  display: none;
+}
+
+.optional-fields summary::after {
+  content: "▾";
+  font-size: 0.9rem;
+  color: #6b7280;
+  transition: transform 0.15s ease;
+}
+
+.optional-fields[open] summary {
+  margin-bottom: 10px;
+}
+
+.optional-fields[open] summary::after {
+  transform: rotate(180deg);
 }
 
 .filter-header {
