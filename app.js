@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.94";
+const APP_VERSION = "V.95";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
@@ -40,6 +40,7 @@ const initialState = {
   selectedFamilyBudgetMonthsBefore: 0,
   selectedFamilyBudgetMonthsAfter: 12,
   lastBackupDate: "",
+  lastIncomeReminderDismissedMonth: "",
   lastCategoryAutoOrderDate: "",
   migrations: {},
   incomes: [],
@@ -329,6 +330,7 @@ function migrateState(rawState) {
     selectedFamilyBudgetMonthsBefore: Number(rawState.selectedFamilyBudgetMonthsBefore ?? 0),
     selectedFamilyBudgetMonthsAfter: Number(rawState.selectedFamilyBudgetMonthsAfter ?? 12),
     lastBackupDate: rawState.lastBackupDate || "",
+    lastIncomeReminderDismissedMonth: rawState.lastIncomeReminderDismissedMonth || "",
     lastCategoryAutoOrderDate: rawState.lastCategoryAutoOrderDate || "",
     migrations: rawState.migrations && typeof rawState.migrations === "object" ? rawState.migrations : {},
     incomes: Array.isArray(rawState.incomes) ? rawState.incomes : [],
@@ -2115,14 +2117,14 @@ function renderSavingsOpportunityReport(referenceMonth = state.selectedReportMon
   }
 
   const rows = getAnalysisRows(expenses);
-  const totalEstimatedSaving = roundToTwoDecimals(rows.reduce((sum, row) => sum + Number(row.estimatedSaving || 0), 0));
+  const taggedEstimatedSaving = roundToTwoDecimals(rows.reduce((sum, row) => sum + Number(row.estimatedSaving || 0), 0));
   const superfluous = rows.filter(row => ["Superflua", "Rimandabile"].includes(row.needType));
   const recurring = rows.filter(row => ["Ricorrente", "Abbonamento"].includes(row.recurrenceType));
   const merchantTotals = Object.entries(sumAnalysisBy(rows, "merchant"))
     .filter(([merchant]) => merchant && merchant !== "Non indicato")
     .sort((a, b) => b[1].amount - a[1].amount)
     .slice(0, 5);
-  const categoryOverTargets = state.categories.map(category => {
+  const categoryOverage = state.categories.map(category => {
     const spent = rows
       .filter(row => row.category === category)
       .reduce((sum, row) => roundToTwoDecimals(sum + Number(row.budgetAmount || 0)), 0);
@@ -2137,7 +2139,12 @@ function renderSavingsOpportunityReport(referenceMonth = state.selectedReportMon
       over: baseline > 0 ? roundToTwoDecimals(spent - baseline) : 0,
       reductionGoal: Number(settings.reductionGoal || 0)
     };
-  }).filter(item => item.over > 0 || item.reductionGoal > 0)
+  });
+  const totalThresholdOverage = roundToTwoDecimals(
+    categoryOverage.reduce((sum, item) => sum + Math.max(0, item.over), 0)
+  );
+  const categoryOverTargets = categoryOverage
+    .filter(item => item.over > 0 || item.reductionGoal > 0)
     .sort((a, b) => b.over - a.over)
     .slice(0, 5);
 
@@ -2148,8 +2155,8 @@ function renderSavingsOpportunityReport(referenceMonth = state.selectedReportMon
         <strong>${escapeHtml(getMonthLabel(referenceMonth))}</strong>
       </div>
       <div class="multi-summary-item">
-        <span>Risparmio stimato</span>
-        <strong>${formatCurrency(totalEstimatedSaving)}</strong>
+        <span>Risparmio potenziale (oltre soglia)</span>
+        <strong>${formatCurrency(totalThresholdOverage)}</strong>
       </div>
       <div class="multi-summary-item">
         <span>Spese rimandabili/superflue</span>
@@ -2164,7 +2171,7 @@ function renderSavingsOpportunityReport(referenceMonth = state.selectedReportMon
     <div class="savings-opportunity-list">
       <div class="savings-opportunity-row">
         <strong>Prime azioni</strong>
-        <span>Rivedi le spese marcate come risparmiabili e quelle rimandabili/superflue. Stima mensile: ${formatCurrency(totalEstimatedSaving)}.</span>
+        <span>${totalThresholdOverage > 0 ? `Le categorie oltre soglia potrebbero farti risparmiare fino a ${formatCurrency(totalThresholdOverage)}/mese se rientri nel budget.` : "Nessuna categoria oltre soglia questo mese: tutto sotto controllo."} Stima basata sulle spese marcate come risparmiabili: ${formatCurrency(taggedEstimatedSaving)}.</span>
       </div>
       <div class="savings-opportunity-row">
         <strong>Fornitori principali</strong>
@@ -4183,6 +4190,7 @@ function showView(viewId, options = {}) {
 
   if (viewId === "familyBudgetView") {
     renderFamilyBudget();
+    showIncomeReminderIfNeeded();
   }
 }
 
@@ -4728,6 +4736,47 @@ function closeDailyBackupReminder() {
   if (modal) modal.classList.add("hidden");
 }
 
+function shouldShowIncomeReminder() {
+  const currentMonth = getCurrentMonth();
+  const hasIncomeThisMonth = state.incomes.some(income => income.month === currentMonth);
+  return !hasIncomeThisMonth && state.lastIncomeReminderDismissedMonth !== currentMonth;
+}
+
+function showIncomeReminderIfNeeded() {
+  const modal = document.getElementById("incomeReminderModal");
+  if (!modal) return;
+
+  if (shouldShowIncomeReminder()) {
+    const label = document.getElementById("incomeReminderMonthLabel");
+    if (label) label.textContent = getMonthLabel(getCurrentMonth());
+    modal.classList.remove("hidden");
+  } else {
+    modal.classList.add("hidden");
+  }
+}
+
+function closeIncomeReminder() {
+  state.lastIncomeReminderDismissedMonth = getCurrentMonth();
+  saveState();
+  const modal = document.getElementById("incomeReminderModal");
+  if (modal) modal.classList.add("hidden");
+}
+
+function goToIncomeFormFromReminder() {
+  const modal = document.getElementById("incomeReminderModal");
+  if (modal) modal.classList.add("hidden");
+
+  const panel = document.querySelector(".family-income-panel");
+  if (panel) panel.open = true;
+
+  const monthInput = document.getElementById("incomeMonth");
+  if (monthInput) monthInput.value = getCurrentMonth();
+  renderMonthPickerButton("incomeMonthButton", getCurrentMonth());
+
+  const descriptionInput = document.getElementById("incomeDescription");
+  if (descriptionInput) descriptionInput.focus();
+}
+
 async function exportDailyBackupAndGoHome() {
   await exportJsonBackupLocalAndDrive({ goHome: true, showSuccess: false });
 }
@@ -4951,6 +5000,16 @@ if (dailyBackupExportButton) {
 const dailyBackupLaterButton = document.getElementById("dailyBackupLaterButton");
 if (dailyBackupLaterButton) {
   dailyBackupLaterButton.addEventListener("click", closeDailyBackupReminder);
+}
+
+const incomeReminderAddButton = document.getElementById("incomeReminderAddButton");
+if (incomeReminderAddButton) {
+  incomeReminderAddButton.addEventListener("click", goToIncomeFormFromReminder);
+}
+
+const incomeReminderLaterButton = document.getElementById("incomeReminderLaterButton");
+if (incomeReminderLaterButton) {
+  incomeReminderLaterButton.addEventListener("click", closeIncomeReminder);
 }
 const homeMonthSelect = document.getElementById("homeMonthSelect");
 if (homeMonthSelect) {

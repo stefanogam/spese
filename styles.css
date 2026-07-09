@@ -938,22 +938,6 @@ input[readonly] {
   border-bottom: 0;
 }
 
-.locked-field-hint {
-  color: #6b7280;
-  font-size: 0.82rem;
-  font-weight: 600;
-}
-
-.reimbursement-source-banner {
-  background: #ecfdf5;
-  border: 1px solid #a7f3d0;
-  color: #065f46;
-  border-radius: 14px;
-  padding: 10px 12px;
-  font-size: 0.9rem;
-  font-weight: 700;
-}
-
 .expense-category-filter {
   margin: 12px 0 14px;
   padding: 10px;
@@ -1812,10 +1796,6 @@ input[readonly] {
   flex-wrap: wrap;
 }
 
-.family-budget-summary {
-  margin-bottom: 12px;
-}
-
 .family-budget-table {
   overflow-x: auto;
 }
@@ -1845,12 +1825,6 @@ input[readonly] {
 
   .family-income-form .filter-actions button {
     width: 100%;
-  }
-
-  .family-budget-summary strong {
-    display: block;
-    margin-top: 4px;
-    line-height: 1.35;
   }
 }
 
@@ -2265,8 +2239,7 @@ button.small {
 .expense-main span,
 .payment-breakdown,
 .voucher-note,
-.multi-total-note,
-.locked-field-hint {
+.multi-total-note {
   line-height: 1.35;
 }
 

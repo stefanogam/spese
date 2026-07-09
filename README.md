@@ -1,5 +1,11 @@
 # Spese Mensili - PWA locale v16
 
+## Modifiche V.95
+
+- "Risparmio stimato" in Opportunità di risparmio è ora "Risparmio potenziale (oltre soglia)", calcolato sulle spese reali che superano soglia/obiettivo di categoria, invece che come 20% fisso di quasi ogni spesa (che dipendeva dal valore precompilato "Parzialmente", mai cambiato nel 98% dei casi). La vecchia stima resta visibile, etichettata come "spese marcate come risparmiabili".
+- Nuovo promemoria: aprendo "Bilancio familiare", se il mese corrente non ha ancora un'entrata registrata, un avviso propone di aggiungerla (con opzione "Più tardi", una volta al mese).
+- Rimossa CSS morta mai usata: `.locked-field-hint`, `.reimbursement-source-banner`, `.family-budget-summary`.
+
 ## Modifiche V.94
 
 - Corretto un altro bug di stile: le righe delle entrate nel Bilancio familiare (`.settings-row`) non avevano mai avuto una regola di layout, restando impilate invece che allineate su una riga.
