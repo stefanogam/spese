@@ -1,5 +1,15 @@
 # Spese Mensili - PWA locale v16
 
+## Modifiche V.92
+
+Rivista la sezione "Report" per renderla più leggibile. Nessuna funzionalità rimossa:
+
+- Corretto il riepilogo in cima a "Report per categoria" (Budget utilizzato / Totale registrato / Voucher / Rimborsi generici), che era privo di stile CSS: ora usa le stesse card già presenti nel Report plurimensile e nelle Opportunità di risparmio.
+- Corretta anche `.reimbursement-note`, un'altra classe CSS rimasta senza stile.
+- Le righe per categoria mostrano ora budget e totale registrato su un'unica riga, con voucher/rimborsi raggruppati in una riga secondaria, invece di 4-5 righe separate.
+- "Andamento categoria" è ora una card a sé stante invece di un pannello annidato dentro "Report per categoria".
+- Nella tabella del report plurimensile, la colonna "Mese" resta fissa durante lo scroll orizzontale quando sono selezionate molte categorie.
+
 ## Modifiche V.91
 
 Riorganizzata la sezione "Soglie e categorie", troppo dispersiva. Nessuna funzionalità rimossa:

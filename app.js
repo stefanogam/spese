@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.91";
+const APP_VERSION = "V.92";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
@@ -1951,13 +1951,23 @@ function renderReport() {
   }
 
   const summary = `
-    <div class="report-summary">
-      <span>Budget utilizzato ${getMonthLabel(selectedReportMonth)}</span>
-      <strong>${formatCurrency(total)}</strong>
-    </div>
-    <div class="report-summary">
-      <span>Totale registrato / Voucher / Rimborsi generici</span>
-      <strong>${formatCurrency(grossTotal)} / ${formatCurrency(voucherTotal)} / ${formatCurrency(genericReimbursementTotal)}</strong>
+    <div class="multi-report-summary">
+      <div class="multi-summary-item">
+        <span>Budget utilizzato</span>
+        <strong>${formatCurrency(total)}</strong>
+      </div>
+      <div class="multi-summary-item">
+        <span>Totale registrato</span>
+        <strong>${formatCurrency(grossTotal)}</strong>
+      </div>
+      <div class="multi-summary-item">
+        <span>Voucher</span>
+        <strong>${formatCurrency(voucherTotal)}</strong>
+      </div>
+      <div class="multi-summary-item">
+        <span>Rimborsi generici</span>
+        <strong>${formatCurrency(genericReimbursementTotal)}</strong>
+      </div>
     </div>
   `;
 
@@ -1993,11 +2003,14 @@ function renderReport() {
               </button>
               <span class="badge ${status.className}">${status.label}</span>
             </div>
-            <span>Budget: ${formatCurrency(spent)} su ${formatCurrency(limit)}</span>
-            <br>
-            <span>Totale registrato: ${formatCurrency(grossSpent)}</span>
-            ${voucherSpent > 0 ? `<br><span class="voucher-note">Voucher esclusi dal budget: ${formatCurrency(voucherSpent)}</span>` : ""}
-            ${genericReimbursementSpent > 0 ? `<br><span class="reimbursement-note">Rimborsi generici detratti: ${formatCurrency(genericReimbursementSpent)}</span>` : ""}
+            <div class="report-meta">Budget: ${formatCurrency(spent)} su ${formatCurrency(limit)} · Totale registrato: ${formatCurrency(grossSpent)}</div>
+            ${(voucherSpent > 0 || genericReimbursementSpent > 0) ? `
+              <div class="report-note">
+                ${voucherSpent > 0 ? `<span class="voucher-note">Voucher esclusi dal budget: ${formatCurrency(voucherSpent)}</span>` : ""}
+                ${voucherSpent > 0 && genericReimbursementSpent > 0 ? " · " : ""}
+                ${genericReimbursementSpent > 0 ? `<span class="reimbursement-note">Rimborsi generici detratti: ${formatCurrency(genericReimbursementSpent)}</span>` : ""}
+              </div>
+            ` : ""}
             <div class="report-bar">
               <div style="width: ${width}%"></div>
             </div>

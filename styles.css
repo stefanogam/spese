@@ -738,12 +738,6 @@ input[readonly] {
   margin-top: 14px;
 }
 
-.category-trend-panel {
-  border-top: 1px solid #e5e7eb;
-  margin-top: 18px;
-  padding-top: 16px;
-}
-
 .category-trend-wrapper {
   margin-top: 10px;
 }
@@ -827,6 +821,10 @@ input[readonly] {
 .multi-table th:first-child,
 .multi-table td:first-child {
   text-align: left;
+  position: sticky;
+  left: 0;
+  background: #ffffff;
+  box-shadow: 1px 0 0 #e5e7eb;
 }
 
 .budget-detail {
@@ -849,8 +847,25 @@ input[readonly] {
   white-space: nowrap;
 }
 
+.report-meta {
+  margin-top: 4px;
+  font-size: 0.86rem;
+  color: #374151;
+}
+
+.report-note {
+  margin-top: 2px;
+  font-size: 0.82rem;
+}
+
 .voucher-note {
   color: #2563eb;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.reimbursement-note {
+  color: #b45309;
   font-size: 0.82rem;
   font-weight: 700;
 }
