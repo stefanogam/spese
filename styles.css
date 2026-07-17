@@ -771,6 +771,15 @@ input[readonly] {
   background: #e2e8f0;
 }
 
+.legend-item-off {
+  color: #94a3b8;
+  text-decoration: line-through;
+}
+
+.legend-item-off .legend-color {
+  opacity: 0.35;
+}
+
 .month-detail-panel {
   margin-top: 10px;
   padding: 12px;

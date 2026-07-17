@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.101";
+const APP_VERSION = "V.102";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
@@ -3022,14 +3022,19 @@ function renderMultiReportLegend() {
 
   const selectedCategories = getSelectedMultiReportCategories();
 
-  const categoryItems = selectedCategories.map(category => {
-    const index = state.categories.indexOf(category);
+  // La legenda mostra SEMPRE tutte le categorie: quelle nascoste restano
+  // visibili in grigio barrato e un tocco le riattiva. In questo modo un
+  // tocco per errore non fa mai "sparire" nulla in modo irreversibile.
+  const categoryItems = state.categories.map((category, index) => {
+    const isActive = selectedCategories.includes(category);
     return `
       <button
         type="button"
-        class="legend-item legend-item-toggle"
-        onclick="toggleMultiReportCategoryFilter('${escapeAttribute(category)}', false)"
-        aria-label="Nascondi ${escapeAttributeForHtml(category)} dal grafico"
+        class="legend-item legend-item-toggle ${isActive ? "" : "legend-item-off"}"
+        onclick="toggleMultiReportCategoryFilter('${escapeAttribute(category)}', ${isActive ? "false" : "true"})"
+        aria-pressed="${isActive}"
+        aria-label="${isActive ? "Nascondi" : "Mostra"} ${escapeAttributeForHtml(category)} nel grafico"
+        title="${isActive ? "Tocca per nascondere" : "Tocca per mostrare"}"
       >
         <span class="legend-color" style="background:${getCategoryColor(index)}"></span>
         ${escapeHtml(category)}

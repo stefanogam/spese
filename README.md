@@ -1,5 +1,13 @@
 # Spese Mensili - PWA locale v16
 
+## Modifiche V.102
+
+Risolto in modo definitivo il problema delle categorie che "sparivano" nel Report:
+
+- La causa: toccare una categoria nella legenda sotto il grafico la nascondeva permanentemente dal report (comportamento introdotto in V.97), e una volta nascosta spariva anche dalla legenda, senza un modo evidente per riattivarla. Nel backup analizzato risultavano infatti già nascoste per errore Caffe, Svago e Pranzo Lavoro.
+- La legenda ora mostra sempre tutte le categorie: quelle nascoste restano visibili in grigio barrato e un tocco le riattiva. Nulla sparisce più in modo irreversibile.
+- Le categorie nascoste in precedenza per errore riappariranno automaticamente in legenda (barrate), pronte da riattivare con un tocco.
+
 ## Modifiche V.101
 
 - Corretto il caso in cui, cliccando una categoria senza spese nel mese, il pannello di dettaglio smetteva di rispondere e le voci sparivano ai click successivi. Ora il recupero dei dati del mese è a prova di errore: il pannello resta sempre visibile e navigabile, anche per categorie vuote o con il grafico in stati particolari.
