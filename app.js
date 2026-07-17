@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.102";
+const APP_VERSION = "V.103";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
@@ -2489,6 +2489,50 @@ function renderMultiReportRangeSelectors() {
   afterSelect.value = String(Number(state.selectedMultiReportMonthsAfter || 0));
 }
 
+function setMultiReportPreset(months) {
+  state.selectedMultiReportReferenceMonth = getCurrentMonth();
+  state.selectedMultiReportMonthsBefore = Math.max(0, months - 1);
+  state.selectedMultiReportMonthsAfter = 0;
+  saveState();
+  renderMultiReport();
+}
+
+function getActiveMultiReportPreset() {
+  const isCurrentReference = (state.selectedMultiReportReferenceMonth || getCurrentMonth()) === getCurrentMonth();
+  const after = Number(state.selectedMultiReportMonthsAfter || 0);
+  const before = Number(state.selectedMultiReportMonthsBefore || 0);
+  if (!isCurrentReference || after !== 0) return null;
+  if (before === 2) return 3;
+  if (before === 5) return 6;
+  if (before === 11) return 12;
+  if (before === 0) return 1; // "Mese corrente"
+  return null;
+}
+
+function renderMultiReportPresets() {
+  const active = getActiveMultiReportPreset();
+  document.querySelectorAll("[data-report-preset]").forEach(button => {
+    const value = Number(button.dataset.reportPreset);
+    button.classList.toggle("preset-active", active === value);
+  });
+  const currentButton = document.getElementById("multiReportCurrentButton");
+  if (currentButton) currentButton.classList.toggle("preset-active", active === 1);
+}
+
+function renderMultiReportOptionsSummary(data) {
+  const summary = document.getElementById("multiReportOptionsSummary");
+  if (!summary) return;
+
+  const period = !data.length
+    ? ""
+    : (data.length === 1
+      ? getMonthLabel(data[0].month)
+      : `${getMonthLabel(data[0].month)} – ${getMonthLabel(data[data.length - 1].month)}`);
+  const parts = [period, getMultiReportMetricLabel()];
+  if (state.multiReportPercentageView) parts.push("%");
+  summary.textContent = parts.filter(Boolean).join(" · ");
+}
+
 function renderMultiReport() {
   syncTotalLimitWithCategories();
 
@@ -2512,6 +2556,8 @@ function renderMultiReport() {
   const data = getMultiReportData();
   lastMultiReportData = data;
   lastMultiReportSelectedCategories = getSelectedMultiReportCategories();
+  renderMultiReportPresets();
+  renderMultiReportOptionsSummary(data);
   renderMultiReportSummary(data);
   renderMultiReportProjection(data);
   drawMultiReportChart(data);
@@ -2568,14 +2614,27 @@ function renderMultiReportSummary(data) {
   const total = roundToTwoDecimals(data.reduce((sum, item) => sum + Number(item.total || 0), 0));
   const average = roundToTwoDecimals(total / data.length);
   const peak = data.reduce((highest, item) => Number(item.total || 0) > Number(highest.total || 0) ? item : highest, data[0]);
-  const period = data.length === 1
-    ? getMonthLabel(data[0].month)
-    : `${getMonthLabel(data[0].month)} - ${getMonthLabel(data[data.length - 1].month)}`;
+
+  // Confronto del mese di riferimento con quello precedente (se nel periodo).
+  const referenceMonth = state.selectedMultiReportReferenceMonth || getCurrentMonth();
+  const referenceIndex = data.findIndex(item => item.month === referenceMonth);
+  let comparisonHtml = "–";
+  if (referenceIndex > 0) {
+    const current = Number(data[referenceIndex].total || 0);
+    const previous = Number(data[referenceIndex - 1].total || 0);
+    if (previous > 0) {
+      const delta = ((current - previous) / previous) * 100;
+      const cls = delta > 2 ? "variation-up" : (delta < -2 ? "variation-down" : "variation-flat");
+      comparisonHtml = `<span class="${cls}">${delta >= 0 ? "+" : ""}${Math.round(delta)}%</span> (${formatCurrency(current - previous)})`;
+    } else if (current > 0) {
+      comparisonHtml = `<span class="variation-up">nuove spese</span>`;
+    }
+  }
 
   container.innerHTML = `
     <div class="multi-summary-item">
-      <span>Periodo</span>
-      <strong>${escapeHtml(period)}</strong>
+      <span>Vs mese precedente</span>
+      <strong>${comparisonHtml}</strong>
     </div>
     <div class="multi-summary-item">
       <span>Totale budget</span>
@@ -2714,6 +2773,16 @@ function drawMultiReportChart(data) {
   bindMultiReportChartInteractions(canvas);
   const barWidth = Math.min(46, groupWidth * 0.52);
 
+  // Evidenzia il mese di riferimento con una banda leggera dietro la
+  // colonna, coerente con l'evidenziazione nella tabella sotto.
+  const referenceMonthForChart = state.selectedMultiReportReferenceMonth || getCurrentMonth();
+  const referenceIndexForChart = data.findIndex(item => item.month === referenceMonthForChart);
+  if (referenceIndexForChart >= 0) {
+    const bandX = padding.left + referenceIndexForChart * groupWidth;
+    ctx.fillStyle = "rgba(14, 165, 233, 0.10)";
+    ctx.fillRect(bandX + 2, padding.top - 6, groupWidth - 4, chartHeight + 30);
+  }
+
   data.forEach((item, index) => {
     const x = padding.left + index * groupWidth + (groupWidth - barWidth) / 2;
     let accumulated = 0;
@@ -2750,8 +2819,9 @@ function drawMultiReportChart(data) {
     }
 
     const label = item.month.slice(5, 7) + "/" + item.month.slice(2, 4);
-    ctx.fillStyle = "#334155";
-    ctx.font = "700 12px system-ui";
+    const isReferenceLabel = item.month === referenceMonthForChart;
+    ctx.fillStyle = isReferenceLabel ? "#0369a1" : "#334155";
+    ctx.font = isReferenceLabel ? "800 12px system-ui" : "700 12px system-ui";
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
     ctx.fillText(label, x + barWidth / 2, height - padding.bottom + 20);
@@ -3146,6 +3216,7 @@ function renderMultiReportTable(data) {
         </select>
       </label>
       <span class="table-metric-note">Valori: ${escapeHtml(metricLabel)}</span>
+      <button type="button" class="secondary small" onclick="exportMultiReportTableCsv()">Esporta CSV</button>
     </div>
     <div class="multi-table">
       <table>
@@ -3179,6 +3250,49 @@ function setMultiReportTableSort(mode) {
   renderMultiReportTable(getMultiReportData());
 }
 window.setMultiReportTableSort = setMultiReportTableSort;
+
+function exportMultiReportTableCsv() {
+  const data = lastMultiReportData.length ? lastMultiReportData : getMultiReportData();
+  const selectedCategories = lastMultiReportSelectedCategories.length
+    ? lastMultiReportSelectedCategories
+    : getSelectedMultiReportCategories();
+
+  if (!data.length || !selectedCategories.length) {
+    appAlert("Nessun dato da esportare per il periodo e le categorie selezionate.", "Esporta tabella");
+    return;
+  }
+
+  const header = ["Categoria", ...data.map(item => getMonthLabel(item.month)), "Totale periodo", "Media mensile"];
+  const rows = selectedCategories.map(category => {
+    const perMonth = data.map(item => getCategoryValueForMetric(item, category));
+    const periodTotal = roundToTwoDecimals(perMonth.reduce((sum, value) => sum + value, 0));
+    const average = roundToTwoDecimals(periodTotal / data.length);
+    return [category, ...perMonth.map(value => roundToTwoDecimals(value)), periodTotal, average];
+  });
+  const totalsRow = [
+    "Totale mese",
+    ...data.map(item => getMonthTotalForMetric(item, selectedCategories)),
+    roundToTwoDecimals(rows.reduce((sum, row) => sum + Number(row[row.length - 2] || 0), 0)),
+    ""
+  ];
+
+  const csv = [header, ...rows, totalsRow]
+    .map(row => row.map(value => `"${String(value ?? "").replaceAll('"', '""')}"`).join(";"))
+    .join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const firstMonth = data[0].month;
+  const lastMonth = data[data.length - 1].month;
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `report-categorie-${firstMonth}-${lastMonth}.csv`;
+  link.click();
+
+  URL.revokeObjectURL(url);
+}
+window.exportMultiReportTableCsv = exportMultiReportTableCsv;
 
 function renderThresholdForm() {
   syncTotalLimitWithCategories();
@@ -5391,13 +5505,15 @@ if (multiReportMonthsAfter) {
 const multiReportCurrentButton = document.getElementById("multiReportCurrentButton");
 if (multiReportCurrentButton) {
   multiReportCurrentButton.addEventListener("click", () => {
-    state.selectedMultiReportReferenceMonth = getCurrentMonth();
-    state.selectedMultiReportMonthsBefore = 0;
-    state.selectedMultiReportMonthsAfter = 0;
-    saveState();
-    renderMultiReport();
+    setMultiReportPreset(1);
   });
 }
+
+document.querySelectorAll("[data-report-preset]").forEach(button => {
+  button.addEventListener("click", () => {
+    setMultiReportPreset(Number(button.dataset.reportPreset));
+  });
+});
 
 const multiReportMonthDetail = document.getElementById("multiReportMonthDetail");
 if (multiReportMonthDetail) {

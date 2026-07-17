@@ -827,6 +827,25 @@ input[readonly] {
   margin: 12px 0;
 }
 
+.report-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 12px;
+}
+
+.report-presets button {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.report-presets .preset-active {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+}
+
 .report-mode-controls label {
   margin: 0;
 }

@@ -1,5 +1,15 @@
 # Spese Mensili - PWA locale v16
 
+## Modifiche V.103
+
+Migliorie UI e sostanziali alla sezione Report:
+
+- Nuovi preset rapidi di periodo sempre visibili: "3 mesi", "6 mesi", "12 mesi", "Mese corrente" (un tocco invece di due tendine); il preset attivo è evidenziato.
+- Tutti i controlli fini (mese di riferimento, mesi prima/dopo, valore mostrato, vista percentuale) sono ora raccolti nel pannello richiudibile "Periodo e opzioni", con un riepilogo della selezione corrente sempre visibile (es. "apr 2026 – lug 2026 · Budget netto"). Il grafico appare così molto prima, soprattutto su smartphone.
+- Nel riepilogo, la card "Periodo" (ridondante) è sostituita da "Vs mese precedente": variazione % e in euro del mese di riferimento rispetto al mese prima, colorata (rosso se in crescita, verde se in calo).
+- Il mese di riferimento è ora evidenziato anche nel grafico (banda azzurra dietro la colonna ed etichetta in risalto), coerentemente con la tabella.
+- Nuovo pulsante "Esporta CSV" sopra la tabella per scaricare la matrice categorie × mesi (con totali e medie), apribile in Excel.
+
 ## Modifiche V.102
 
 Risolto in modo definitivo il problema delle categorie che "sparivano" nel Report:
