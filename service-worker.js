@@ -1,4 +1,4 @@
-const CACHE_NAME = "spese-pwa-locale-v99";
+const CACHE_NAME = "spese-pwa-locale-v100b";
 
 const APP_SHELL = [
   "./",

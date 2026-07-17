@@ -1,5 +1,13 @@
 # Spese Mensili - PWA locale v16
 
+## Modifiche V.100
+
+Corretto il comportamento del dettaglio nel Report:
+
+- Toccando una voce dell'elenco sotto il grafico, il dettaglio spariva invece di aprirsi. La causa era che il dettaglio ricalcolava i dati a ogni tocco e, se il mese usciva dall'intervallo ricalcolato, otteneva un risultato vuoto e nascondeva il pannello. Ora il dettaglio usa i dati già in memoria e resta stabile.
+- Il tocco su grafico, celle della tabella ed elenco spese ora condividono la stessa logica affidabile (navigazione tramite attributi dei dati invece di chiamate inline fragili).
+- Toccando una barra o una cella si apre l'elenco delle singole spese; il pulsante "Tutte le categorie" riporta al riepilogo del mese senza far sparire nulla.
+
 ## Modifiche V.99
 
 Correzione del tocco sul grafico e ottimizzazione per smartphone:

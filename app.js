@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.99";
+const APP_VERSION = "V.100";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
@@ -2510,6 +2510,8 @@ function renderMultiReport() {
   if (percentageToggle) percentageToggle.checked = Boolean(state.multiReportPercentageView);
 
   const data = getMultiReportData();
+  lastMultiReportData = data;
+  lastMultiReportSelectedCategories = getSelectedMultiReportCategories();
   renderMultiReportSummary(data);
   renderMultiReportProjection(data);
   drawMultiReportChart(data);
@@ -2841,8 +2843,7 @@ function resolveMultiReportChartHit(canvas, clientX, clientY) {
 function handleMultiReportChartTap(canvas, clientX, clientY) {
   const hit = resolveMultiReportChartHit(canvas, clientX, clientY);
   if (!hit) return;
-  const layout = canvas._multiReportLayout;
-  renderMultiReportMonthDetail(hit.item, layout.selectedCategories, hit.category);
+  renderMultiReportMonthDetail(hit.item, lastMultiReportSelectedCategories, hit.category);
 
   // Porta in vista il pannello di dettaglio (utile su schermi piccoli).
   const detail = document.getElementById("multiReportMonthDetail");
@@ -2892,6 +2893,12 @@ function bindMultiReportChartInteractions(canvas) {
   });
 }
 
+// Ultimo dataset e categorie usati dal report, per il drill-down del
+// pannello di dettaglio senza doverli ricalcolare (ricalcolarli poteva
+// restituire null e far sparire il pannello).
+let lastMultiReportData = [];
+let lastMultiReportSelectedCategories = [];
+
 function renderMultiReportMonthDetail(item, selectedCategories, focusCategory = null) {
   const container = document.getElementById("multiReportMonthDetail");
   if (!container) return;
@@ -2919,11 +2926,11 @@ function renderMultiReportMonthDetail(item, selectedCategories, focusCategory = 
           <span class="legend-color" style="background:${getCategoryColor(categoryIndex)}"></span>
           ${escapeHtml(focusCategory)} · ${escapeHtml(getMonthLabel(item.month))}
         </strong>
-        <button type="button" class="secondary small" onclick="renderMultiReportMonthDetail(getMultiReportItemByMonth('${escapeAttribute(item.month)}'), getSelectedMultiReportCategories())">Tutte le categorie</button>
+        <button type="button" class="secondary small" data-detail-action="back" data-month="${escapeAttributeForHtml(item.month)}">Tutte le categorie</button>
       </div>
       <div class="month-detail-expenses">
         ${expenses.length ? expenses.map(expense => `
-          <button type="button" class="month-detail-expense" onclick="openExpenseEditorFromReport('${escapeAttribute(expense.id)}', '${escapeAttribute(item.month)}')">
+          <button type="button" class="month-detail-expense" data-detail-action="edit" data-expense-id="${escapeAttributeForHtml(String(expense.id))}" data-month="${escapeAttributeForHtml(item.month)}">
             <span class="detail-expense-date">${escapeHtml(expense.date || "")}</span>
             <span class="detail-expense-desc">${escapeHtml(expense.description || "(senza descrizione)")}</span>
             <span class="detail-expense-amount">${formatCurrency(Number(expense.amount || 0))}</span>
@@ -2949,7 +2956,7 @@ function renderMultiReportMonthDetail(item, selectedCategories, focusCategory = 
       ${rows.length ? rows.map(row => {
         const categoryIndex = state.categories.indexOf(row.category);
         return `
-          <button type="button" class="month-detail-row month-detail-row-button" onclick="renderMultiReportMonthDetail(getMultiReportItemByMonth('${escapeAttribute(item.month)}'), getSelectedMultiReportCategories(), '${escapeAttribute(row.category)}')">
+          <button type="button" class="month-detail-row month-detail-row-button" data-detail-action="category" data-month="${escapeAttributeForHtml(item.month)}" data-category="${escapeAttributeForHtml(row.category)}">
             <span class="legend-color" style="background:${getCategoryColor(categoryIndex)}"></span>
             <span class="month-detail-category">${escapeHtml(row.category)}</span>
             <span class="month-detail-amount">${formatCurrency(row.amount)}</span>
@@ -2960,13 +2967,28 @@ function renderMultiReportMonthDetail(item, selectedCategories, focusCategory = 
   `;
 }
 
-// Helper usati dagli onclick inline del pannello di dettaglio.
-function getMultiReportItemByMonth(month) {
-  return getMultiReportData().find(item => item.month === month) || null;
+// Delega dei click nel pannello di dettaglio, usando i dati già in memoria.
+function handleMultiReportDetailClick(event) {
+  const button = event.target.closest("[data-detail-action]");
+  if (!button) return;
+
+  const action = button.dataset.detailAction;
+  const month = button.dataset.month;
+  const item = lastMultiReportData.find(entry => entry.month === month);
+
+  if (action === "edit") {
+    openExpenseEditorFromReport(button.dataset.expenseId, month);
+    return;
+  }
+
+  if (!item) return;
+
+  if (action === "back") {
+    renderMultiReportMonthDetail(item, lastMultiReportSelectedCategories, null);
+  } else if (action === "category") {
+    renderMultiReportMonthDetail(item, lastMultiReportSelectedCategories, button.dataset.category);
+  }
 }
-window.getMultiReportItemByMonth = getMultiReportItemByMonth;
-window.renderMultiReportMonthDetail = renderMultiReportMonthDetail;
-window.getSelectedMultiReportCategories = getSelectedMultiReportCategories;
 
 function openExpenseEditorFromReport(expenseId, month) {
   state.selectedExpensesMonth = month;
@@ -2978,7 +3000,6 @@ function openExpenseEditorFromReport(expenseId, month) {
   showView("expensesView", { preserveExpenseFilters: true });
   setTimeout(() => startEditExpense(expenseId), 60);
 }
-window.openExpenseEditorFromReport = openExpenseEditorFromReport;
 
 function renderMultiReportLegend() {
   const container = document.getElementById("multiReportLegend");
@@ -3060,7 +3081,7 @@ function renderMultiReportTable(data) {
       }
       return `
         <td class="${isReference ? "reference-month" : ""}">
-          <button type="button" class="table-cell-button" onclick="renderMultiReportMonthDetail(getMultiReportItemByMonth('${escapeAttribute(item.month)}'), getSelectedMultiReportCategories(), '${escapeAttribute(row.category)}')">
+          <button type="button" class="table-cell-button" data-detail-action="category" data-month="${escapeAttributeForHtml(item.month)}" data-category="${escapeAttributeForHtml(row.category)}">
             ${formatCurrency(value)}
           </button>
         </td>
@@ -5355,6 +5376,24 @@ if (multiReportCurrentButton) {
     state.selectedMultiReportMonthsAfter = 0;
     saveState();
     renderMultiReport();
+  });
+}
+
+const multiReportMonthDetail = document.getElementById("multiReportMonthDetail");
+if (multiReportMonthDetail) {
+  multiReportMonthDetail.addEventListener("click", handleMultiReportDetailClick);
+}
+
+const multiReportTableContainer = document.getElementById("multiReportTable");
+if (multiReportTableContainer) {
+  multiReportTableContainer.addEventListener("click", event => {
+    const button = event.target.closest("[data-detail-action]");
+    if (!button) return;
+    handleMultiReportDetailClick(event);
+    const detail = document.getElementById("multiReportMonthDetail");
+    if (detail && typeof detail.scrollIntoView === "function") {
+      detail.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
   });
 }
 
