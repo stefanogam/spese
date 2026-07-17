@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.100";
+const APP_VERSION = "V.101";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
@@ -2899,6 +2899,20 @@ function bindMultiReportChartInteractions(canvas) {
 let lastMultiReportData = [];
 let lastMultiReportSelectedCategories = [];
 
+// Recupera l'item di un mese in modo sicuro: prima dalla cache, poi (se
+// mancante) ricostruendolo dai dati correnti. Non restituisce mai null
+// per un mese valido, così il pannello di dettaglio non sparisce.
+function getMultiReportItemSafe(month) {
+  let item = lastMultiReportData.find(entry => entry.month === month);
+  if (item) return item;
+
+  const fresh = getMultiReportData();
+  lastMultiReportData = fresh;
+  lastMultiReportSelectedCategories = getSelectedMultiReportCategories();
+  item = fresh.find(entry => entry.month === month);
+  return item || null;
+}
+
 function renderMultiReportMonthDetail(item, selectedCategories, focusCategory = null) {
   const container = document.getElementById("multiReportMonthDetail");
   if (!container) return;
@@ -2974,13 +2988,14 @@ function handleMultiReportDetailClick(event) {
 
   const action = button.dataset.detailAction;
   const month = button.dataset.month;
-  const item = lastMultiReportData.find(entry => entry.month === month);
 
   if (action === "edit") {
     openExpenseEditorFromReport(button.dataset.expenseId, month);
     return;
   }
 
+  // Recupero sicuro: non fa mai sparire il pannello per un mese valido.
+  const item = getMultiReportItemSafe(month);
   if (!item) return;
 
   if (action === "back") {

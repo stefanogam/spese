@@ -1,5 +1,9 @@
 # Spese Mensili - PWA locale v16
 
+## Modifiche V.101
+
+- Corretto il caso in cui, cliccando una categoria senza spese nel mese, il pannello di dettaglio smetteva di rispondere e le voci sparivano ai click successivi. Ora il recupero dei dati del mese è a prova di errore: il pannello resta sempre visibile e navigabile, anche per categorie vuote o con il grafico in stati particolari.
+
 ## Modifiche V.100
 
 Corretto il comportamento del dettaglio nel Report:
