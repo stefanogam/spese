@@ -353,46 +353,6 @@ button.small {
   color: #1e40af;
 }
 
-.report-line {
-  width: 100%;
-}
-
-.report-category-link {
-  width: auto;
-  min-height: 0;
-  border: 0;
-  border-radius: 6px;
-  padding: 3px 6px;
-  background: transparent;
-  color: var(--primary, #111827);
-  font: inherit;
-  font-weight: 800;
-  text-align: left;
-  text-decoration: underline;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 3px;
-}
-
-.report-category-link:hover {
-  background: var(--accent-soft, #ccfbf1);
-  box-shadow: none;
-  transform: none;
-}
-
-.report-bar {
-  height: 10px;
-  background: #e5e7eb;
-  border-radius: 999px;
-  overflow: hidden;
-  margin-top: 8px;
-}
-
-.report-bar div {
-  height: 100%;
-  background: #111827;
-  border-radius: 999px;
-}
-
 .empty {
   color: #6b7280;
   font-style: italic;
@@ -854,6 +814,180 @@ input[readonly] {
   color: #0f172a;
 }
 
+.report-mode-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  margin: 12px 0;
+}
+
+.report-mode-controls label {
+  margin: 0;
+}
+
+.report-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.report-toggle input {
+  width: auto;
+  min-height: 0;
+}
+
+.report-subtitle {
+  margin: 22px 0 4px;
+  font-size: 1.05rem;
+}
+
+.report-projection {
+  margin: 12px 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.projection-warning {
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.projection-ok {
+  color: #047857;
+  font-weight: 700;
+}
+
+.month-detail-row-button {
+  width: 100%;
+  border: none;
+  background: none;
+  text-align: left;
+  padding: 6px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.month-detail-row-button:hover,
+.month-detail-row-button:focus-visible {
+  background: #f1f5f9;
+}
+
+.month-detail-expenses {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.month-detail-expense {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  border: none;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.86rem;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.month-detail-expense:hover,
+.month-detail-expense:focus-visible {
+  background: #eef2f7;
+}
+
+.detail-expense-date {
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.detail-expense-desc {
+  color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail-expense-amount {
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+}
+
+.table-sort-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 6px 0 10px;
+}
+
+.table-sort-controls label {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.table-metric-note {
+  font-size: 0.82rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.table-cell-button {
+  border: none;
+  background: none;
+  padding: 2px 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: inherit;
+  color: #1d4ed8;
+  font-variant-numeric: tabular-nums;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.table-cell-button:hover,
+.table-cell-button:focus-visible {
+  background: #e2e8f0;
+}
+
+.multi-table th.category-cell {
+  text-align: left;
+  white-space: nowrap;
+}
+
+.multi-table td.reference-month,
+.multi-table th.reference-month {
+  background: #f0f9ff;
+}
+
+.variation-up {
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.variation-down {
+  color: #047857;
+  font-weight: 700;
+}
+
+.variation-flat {
+  color: #64748b;
+}
+
 .multi-table {
   margin-top: 14px;
   overflow-x: auto;
@@ -900,17 +1034,6 @@ input[readonly] {
 .budget-detail strong {
   color: #ffffff;
   white-space: nowrap;
-}
-
-.report-meta {
-  margin-top: 4px;
-  font-size: 0.86rem;
-  color: #374151;
-}
-
-.report-note {
-  margin-top: 2px;
-  font-size: 0.82rem;
 }
 
 .voucher-note {

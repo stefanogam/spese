@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.97";
+const APP_VERSION = "V.98";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
@@ -36,6 +36,9 @@ const initialState = {
   selectedMultiReportMonthsBefore: 0,
   selectedMultiReportMonthsAfter: 0,
   selectedMultiReportCategories: [],
+  selectedMultiReportMetric: "net",
+  multiReportPercentageView: false,
+  multiReportTableSort: "total",
   selectedFamilyBudgetReferenceMonth: getCurrentMonth(),
   selectedFamilyBudgetMonthsBefore: 0,
   selectedFamilyBudgetMonthsAfter: 12,
@@ -326,6 +329,9 @@ function migrateState(rawState) {
     selectedMultiReportMonthsBefore: Number(rawState.selectedMultiReportMonthsBefore || 0),
     selectedMultiReportMonthsAfter: Number(rawState.selectedMultiReportMonthsAfter || 0),
     selectedMultiReportCategories: Array.isArray(rawState.selectedMultiReportCategories) ? rawState.selectedMultiReportCategories : [],
+    selectedMultiReportMetric: rawState.selectedMultiReportMetric || "net",
+    multiReportPercentageView: Boolean(rawState.multiReportPercentageView),
+    multiReportTableSort: rawState.multiReportTableSort || "total",
     selectedFamilyBudgetReferenceMonth: rawState.selectedFamilyBudgetReferenceMonth || getCurrentMonth(),
     selectedFamilyBudgetMonthsBefore: Number(rawState.selectedFamilyBudgetMonthsBefore ?? 0),
     selectedFamilyBudgetMonthsAfter: Number(rawState.selectedFamilyBudgetMonthsAfter ?? 12),
@@ -1897,136 +1903,9 @@ function deleteGenericReimbursement(id) {
 }
 
 
-function renderReportMonthSelect() {
-  const select = document.getElementById("reportMonthSelect");
-  const months = getMonthsWithExpenses();
-
-  if (!select) return;
-
-  ensureSelectedReportMonth();
-
-  if (months.length === 0) {
-    select.innerHTML = `<option value="">Nessuna spesa registrata</option>`;
-    select.disabled = true;
-    renderMonthPickerButton("reportMonthPickerButton", "", "Nessuna spesa registrata");
-    return;
-  }
-
-  select.disabled = false;
-  select.innerHTML = months
-    .map(month => `
-      <option value="${month}" ${month === state.selectedReportMonth ? "selected" : ""}>
-        ${getMonthLabel(month)}
-      </option>
-    `)
-    .join("");
-  renderMonthPickerButton("reportMonthPickerButton", state.selectedReportMonth);
-}
-
 function renderReport() {
-  renderReportMonthSelect();
-
-  const container = document.getElementById("categoryReport");
-  const selectedReportMonth = state.selectedReportMonth;
-
-  if (!selectedReportMonth) {
-    container.innerHTML = `<p class="empty">Non ci sono ancora spese registrate.</p>`;
-    renderSavingsOpportunityReport(getCurrentMonth());
-    renderCategoryTrendPanel(getCurrentMonth());
-    renderMultiReport();
-    return;
-  }
-
-  const expenses = getMonthlyExpenses(selectedReportMonth);
-  const genericReimbursements = getGenericReimbursementsForMonth(selectedReportMonth);
-  const totalsByCategory = getNetBudgetTotalsByCategory(expenses, genericReimbursements);
-  const grossTotalsByCategory = getTotalsByCategory(expenses);
-  const voucherTotalsByCategory = getVoucherTotalsByCategory(expenses);
-  const genericReimbursementTotalsByCategory = getGenericReimbursementTotalsByCategory(genericReimbursements);
-  const total = getNetBudgetTotal(expenses, genericReimbursements);
-  const grossTotal = getTotal(expenses);
-  const voucherTotal = getVoucherTotal(expenses);
-  const genericReimbursementTotal = getGenericReimbursementTotal(genericReimbursements);
-
-  if (expenses.length === 0) {
-    container.innerHTML = `<p class="empty">Nessuna spesa presente per il mese selezionato.</p>`;
-    renderSavingsOpportunityReport(selectedReportMonth);
-    renderCategoryTrendPanel(selectedReportMonth);
-    renderMultiReport();
-    return;
-  }
-
-  const summary = `
-    <div class="multi-report-summary">
-      <div class="multi-summary-item">
-        <span>Budget utilizzato</span>
-        <strong>${formatCurrency(total)}</strong>
-      </div>
-      <div class="multi-summary-item">
-        <span>Totale registrato</span>
-        <strong>${formatCurrency(grossTotal)}</strong>
-      </div>
-      <div class="multi-summary-item">
-        <span>Voucher</span>
-        <strong>${formatCurrency(voucherTotal)}</strong>
-      </div>
-      <div class="multi-summary-item">
-        <span>Rimborsi generici</span>
-        <strong>${formatCurrency(genericReimbursementTotal)}</strong>
-      </div>
-    </div>
-  `;
-
-  const rows = state.categories
-    .filter(category => (totalsByCategory[category] || 0) > 0 || (state.thresholds.categoryLimits[category] || 0) > 0)
-    .map(category => {
-      const spent = totalsByCategory[category] || 0;
-      const grossSpent = grossTotalsByCategory[category] || 0;
-      const voucherSpent = voucherTotalsByCategory[category] || 0;
-      const genericReimbursementSpent = genericReimbursementTotalsByCategory[category] || 0;
-      const limit = Number(state.thresholds.categoryLimits[category] || 0);
-      const status = getThresholdStatus(spent, limit);
-      const width = limit > 0 ? Math.min((spent / limit) * 100, 100) : 0;
-
-      return `
-        <div class="report-row">
-          <div class="report-line">
-            <div class="section-title">
-              <button
-                class="report-category-link"
-                type="button"
-                onclick="openExpensesForReportCategory('${escapeAttribute(selectedReportMonth)}', '${escapeAttribute(category)}')"
-                aria-label="Apri le spese della categoria ${escapeAttributeForHtml(category)} per ${escapeAttributeForHtml(getMonthLabel(selectedReportMonth))}"
-              >
-                ${escapeHtml(category)}
-              </button>
-              <button
-                class="secondary small"
-                type="button"
-                onclick="selectCategoryTrend('${escapeAttribute(category)}')"
-              >
-                Andamento
-              </button>
-              <span class="badge ${status.className}">${status.label}</span>
-            </div>
-            <div class="report-meta">Budget: ${formatCurrency(spent)} su ${formatCurrency(limit)} · Totale registrato: ${formatCurrency(grossSpent)}</div>
-            ${(voucherSpent > 0 || genericReimbursementSpent > 0) ? `
-              <div class="report-note">
-                ${voucherSpent > 0 ? `<span class="voucher-note">Voucher esclusi dal budget: ${formatCurrency(voucherSpent)}</span>` : ""}
-                ${voucherSpent > 0 && genericReimbursementSpent > 0 ? " · " : ""}
-                ${genericReimbursementSpent > 0 ? `<span class="reimbursement-note">Rimborsi generici detratti: ${formatCurrency(genericReimbursementSpent)}</span>` : ""}
-              </div>
-            ` : ""}
-            <div class="report-bar">
-              <div style="width: ${width}%"></div>
-            </div>
-          </div>
-        </div>
-      `;
-    })
-    .join("");
-
-  container.innerHTML = summary + rows;
+  ensureSelectedReportMonth();
+  const selectedReportMonth = state.selectedReportMonth || getCurrentMonth();
   renderSavingsOpportunityReport(selectedReportMonth);
   renderCategoryTrendPanel(selectedReportMonth);
   renderMultiReport();
@@ -2538,6 +2417,54 @@ function getMultiReportData() {
   });
 }
 
+// Metrica attualmente impilata nel grafico/tabella: netto, lordo o voucher.
+function getMultiReportMetricKey() {
+  const metric = state.selectedMultiReportMetric;
+  if (metric === "gross") return "grossTotalsByCategory";
+  if (metric === "voucher") return "voucherTotalsByCategory";
+  return "totalsByCategory";
+}
+
+function getMultiReportMetricLabel() {
+  const metric = state.selectedMultiReportMetric;
+  if (metric === "gross") return "Totale registrato";
+  if (metric === "voucher") return "Voucher";
+  return "Budget netto";
+}
+
+function getCategoryValueForMetric(item, category) {
+  return Number(item[getMultiReportMetricKey()][category] || 0);
+}
+
+function getMonthTotalForMetric(item, selectedCategories) {
+  return roundToTwoDecimals(
+    selectedCategories.reduce((sum, category) => sum + getCategoryValueForMetric(item, category), 0)
+  );
+}
+
+// Media di una categoria sul periodo mostrato, usata per la variazione %.
+function getCategoryAverage(data, category) {
+  if (!data.length) return 0;
+  const sum = data.reduce((acc, item) => acc + getCategoryValueForMetric(item, category), 0);
+  return sum / data.length;
+}
+
+// Stima di fine mese per il mese in corso, in base al ritmo di spesa
+// (importo giornaliero medio finora, proiettato sui giorni totali del mese).
+function getCurrentMonthProjection(spentSoFar, month) {
+  if (month !== getCurrentMonth()) return null;
+
+  const [year, monthNumber] = month.split("-").map(Number);
+  const now = new Date();
+  const daysInMonth = new Date(year, monthNumber, 0).getDate();
+  const dayOfMonth = now.getDate();
+
+  if (dayOfMonth >= daysInMonth || dayOfMonth <= 0 || spentSoFar <= 0) return null;
+
+  const projected = roundToTwoDecimals((spentSoFar / dayOfMonth) * daysInMonth);
+  return { projected, dayOfMonth, daysInMonth };
+}
+
 function renderMultiReportRangeSelectors() {
   const beforeSelect = document.getElementById("multiReportMonthsBefore");
   const afterSelect = document.getElementById("multiReportMonthsAfter");
@@ -2570,12 +2497,54 @@ function renderMultiReport() {
   renderMultiReportRangeSelectors();
   renderMultiReportCategoryFilter();
 
+  const metricSelect = document.getElementById("multiReportMetricSelect");
+  if (metricSelect) metricSelect.value = state.selectedMultiReportMetric || "net";
+  const percentageToggle = document.getElementById("multiReportPercentageToggle");
+  if (percentageToggle) percentageToggle.checked = Boolean(state.multiReportPercentageView);
+
   const data = getMultiReportData();
   renderMultiReportSummary(data);
+  renderMultiReportProjection(data);
   drawMultiReportChart(data);
   renderMultiReportMonthDetail(null);
   renderMultiReportLegend();
   renderMultiReportTable(data);
+}
+
+function renderMultiReportProjection(data) {
+  const container = document.getElementById("multiReportProjection");
+  if (!container) return;
+
+  const selectedCategories = getSelectedMultiReportCategories();
+  const currentMonthItem = data.find(item => item.month === getCurrentMonth());
+
+  if (!currentMonthItem) {
+    container.classList.add("hidden");
+    container.innerHTML = "";
+    return;
+  }
+
+  const spentSoFar = getMonthTotalForMetric(currentMonthItem, selectedCategories);
+  const projection = getCurrentMonthProjection(spentSoFar, getCurrentMonth());
+
+  if (!projection) {
+    container.classList.add("hidden");
+    container.innerHTML = "";
+    return;
+  }
+
+  const totalLimit = Number(state.thresholds.totalLimit || 0);
+  const willExceed = totalLimit > 0 && projection.projected > totalLimit;
+
+  container.classList.remove("hidden");
+  container.innerHTML = `
+    <strong>Proiezione ${escapeHtml(getMonthLabel(getCurrentMonth()))}:</strong>
+    a questo ritmo (${formatCurrency(spentSoFar)} in ${projection.dayOfMonth} giorni)
+    arriverai a circa <strong>${formatCurrency(projection.projected)}</strong> a fine mese.
+    ${totalLimit > 0 ? (willExceed
+      ? `<span class="projection-warning">Oltre la soglia di ${formatCurrency(totalLimit)}.</span>`
+      : `<span class="projection-ok">Entro la soglia di ${formatCurrency(totalLimit)}.</span>`) : ""}
+  `;
 }
 
 function renderMultiReportSummary(data) {
@@ -2620,6 +2589,7 @@ function drawMultiReportChart(data) {
 
   const ctx = canvas.getContext("2d");
   const selectedCategories = getSelectedMultiReportCategories();
+  const isPercentage = Boolean(state.multiReportPercentageView);
   const monthCount = Math.max(data.length, 1);
   const cssWidth = Math.max(940, monthCount * 78 + 180);
   const cssHeight = 560;
@@ -2642,23 +2612,34 @@ function drawMultiReportChart(data) {
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
 
-  const maxStack = Math.max(
-    ...data.map(item => selectedCategories.reduce((sum, category) => sum + Number(item.totalsByCategory[category] || 0), 0)),
+  // Valore impilato per un mese, secondo la metrica scelta.
+  function stackValue(item, category) {
+    return getCategoryValueForMetric(item, category);
+  }
+  function monthStackTotal(item) {
+    return selectedCategories.reduce((sum, category) => sum + stackValue(item, category), 0);
+  }
+
+  const totalLimit = Number(state.thresholds.totalLimit || 0);
+
+  const maxStack = isPercentage ? 100 : Math.max(
+    ...data.map(item => monthStackTotal(item)),
     ...data.map(item => item.total),
-    Number(state.thresholds.totalLimit || 0),
+    totalLimit,
     1
   );
 
   const roughStep = maxStack / 5;
   const stepBase = Math.pow(10, Math.floor(Math.log10(roughStep || 1)));
-  const step = Math.ceil(roughStep / stepBase) * stepBase;
-  const niceMax = Math.max(step, Math.ceil(maxStack / step) * step);
+  const step = isPercentage ? 20 : Math.ceil(roughStep / stepBase) * stepBase;
+  const niceMax = isPercentage ? 100 : Math.max(step, Math.ceil(maxStack / step) * step);
 
   function yScale(value) {
     return padding.top + chartHeight - (value / niceMax) * chartHeight;
   }
 
   function shortCurrency(value) {
+    if (isPercentage) return `${Math.round(value)}%`;
     if (value >= 1000) return `${Math.round(value / 100) / 10}k €`.replace(".", ",");
     return `${Math.round(value)} €`;
   }
@@ -2686,8 +2667,7 @@ function drawMultiReportChart(data) {
     ctx.fillText(shortCurrency(value), padding.left - 12, y);
   }
 
-  const totalLimit = Number(state.thresholds.totalLimit || 0);
-  if (totalLimit > 0 && totalLimit <= niceMax) {
+  if (!isPercentage && totalLimit > 0 && totalLimit <= niceMax) {
     const y = yScale(totalLimit);
     ctx.save();
     ctx.setLineDash([7, 7]);
@@ -2708,7 +2688,8 @@ function drawMultiReportChart(data) {
 
   const groupWidth = chartWidth / data.length;
 
-  canvas._multiReportLayout = { data, selectedCategories, padding, groupWidth, cssWidth };
+  const segmentsByMonth = {};
+  canvas._multiReportLayout = { data, selectedCategories, padding, groupWidth, cssWidth, cssHeight, segmentsByMonth };
   if (!canvas._multiReportClickBound) {
     canvas.addEventListener("click", handleMultiReportChartClick);
     canvas._multiReportClickBound = true;
@@ -2719,14 +2700,21 @@ function drawMultiReportChart(data) {
     const x = padding.left + index * groupWidth + (groupWidth - barWidth) / 2;
     let accumulated = 0;
 
+    const rawTotal = monthStackTotal(item);
+    // In vista percentuale ogni colonna è normalizzata a 100.
+    const scaleFactor = isPercentage ? (rawTotal > 0 ? 100 / rawTotal : 0) : 1;
+    segmentsByMonth[item.month] = [];
+
     selectedCategories.forEach(category => {
       const categoryIndex = state.categories.indexOf(category);
-      const value = Number(item.totalsByCategory[category] || 0);
+      const value = stackValue(item, category) * scaleFactor;
       if (value <= 0) return;
 
       const yTop = yScale(accumulated + value);
       const yBottom = yScale(accumulated);
       const segmentHeight = yBottom - yTop;
+
+      segmentsByMonth[item.month].push({ category, yTop, yBottom });
 
       ctx.fillStyle = getCategoryColor(categoryIndex);
       if (typeof ctx.roundRect === "function") {
@@ -2751,51 +2739,65 @@ function drawMultiReportChart(data) {
     ctx.fillText(label, x + barWidth / 2, height - padding.bottom + 20);
   });
 
-  ctx.strokeStyle = "#0f172a";
-  ctx.lineWidth = 3;
-  ctx.lineJoin = "round";
-  ctx.lineCap = "round";
-  ctx.beginPath();
-
-  data.forEach((item, index) => {
-    const x = padding.left + index * groupWidth + groupWidth / 2;
-    const y = yScale(item.total);
-    if (index === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  });
-
-  ctx.stroke();
-
-  data.forEach((item, index) => {
-    const x = padding.left + index * groupWidth + groupWidth / 2;
-    const y = yScale(item.total);
-
-    ctx.fillStyle = "#ffffff";
+  if (!isPercentage) {
     ctx.strokeStyle = "#0f172a";
     ctx.lineWidth = 3;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
     ctx.beginPath();
-    ctx.arc(x, y, 5, 0, Math.PI * 2);
-    ctx.fill();
+
+    data.forEach((item, index) => {
+      const x = padding.left + index * groupWidth + groupWidth / 2;
+      const y = yScale(monthStackTotal(item));
+      if (index === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+
     ctx.stroke();
 
-    if (item.total > 0) {
-      ctx.fillStyle = "#0f172a";
-      ctx.font = "700 12px system-ui";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "bottom";
-      ctx.fillText(shortCurrency(item.total), x, y - 10);
-    }
-  });
+    data.forEach((item, index) => {
+      const x = padding.left + index * groupWidth + groupWidth / 2;
+      const monthTotal = monthStackTotal(item);
+      const y = yScale(monthTotal);
+
+      ctx.fillStyle = "#ffffff";
+      ctx.strokeStyle = "#0f172a";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(x, y, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      if (monthTotal > 0) {
+        ctx.fillStyle = "#0f172a";
+        ctx.font = "700 12px system-ui";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "bottom";
+        ctx.fillText(shortCurrency(monthTotal), x, y - 10);
+      }
+    });
+  }
 
   ctx.fillStyle = "#0f172a";
   ctx.font = "800 18px system-ui";
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
-  ctx.fillText("Budget per categoria e totale mensile", padding.left, 18);
+  const metricLabel = getMultiReportMetricLabel();
+  ctx.fillText(
+    isPercentage ? `Composizione ${metricLabel.toLowerCase()} per mese` : `${metricLabel} per categoria e totale mensile`,
+    padding.left,
+    18
+  );
 
   ctx.fillStyle = "#64748b";
   ctx.font = "600 12px system-ui";
-  ctx.fillText("Barre: categorie selezionate · Linea: totale budget · Linea rossa: soglia mensile", padding.left, 42);
+  ctx.fillText(
+    isPercentage
+      ? "Ogni colonna = 100%: quota di ciascuna categoria sul totale del mese"
+      : "Barre: categorie selezionate · Linea: totale del mese · Linea rossa: soglia",
+    padding.left,
+    42
+  );
 }
 
 function handleMultiReportChartClick(event) {
@@ -2805,17 +2807,25 @@ function handleMultiReportChartClick(event) {
 
   const rect = canvas.getBoundingClientRect();
   const scaleX = rect.width / layout.cssWidth;
+  const scaleY = rect.height / layout.cssHeight;
   const x = (event.clientX - rect.left) / (scaleX || 1);
+  const y = (event.clientY - rect.top) / (scaleY || 1);
   const relativeX = x - layout.padding.left;
   if (relativeX < 0) return;
 
   const index = Math.floor(relativeX / layout.groupWidth);
   if (index < 0 || index >= layout.data.length) return;
 
-  renderMultiReportMonthDetail(layout.data[index], layout.selectedCategories);
+  const item = layout.data[index];
+
+  // Cerca se il tocco è caduto su un segmento di categoria specifico.
+  const segments = layout.segmentsByMonth[item.month] || [];
+  const hitSegment = segments.find(seg => y >= seg.yTop && y <= seg.yBottom);
+
+  renderMultiReportMonthDetail(item, layout.selectedCategories, hitSegment ? hitSegment.category : null);
 }
 
-function renderMultiReportMonthDetail(item, selectedCategories) {
+function renderMultiReportMonthDetail(item, selectedCategories, focusCategory = null) {
   const container = document.getElementById("multiReportMonthDetail");
   if (!container) return;
 
@@ -2825,31 +2835,83 @@ function renderMultiReportMonthDetail(item, selectedCategories) {
     return;
   }
 
+  container.classList.remove("hidden");
+
+  // Vista dettaglio di UNA categoria: elenco delle singole spese reali.
+  if (focusCategory) {
+    const expenses = getMonthlyExpenses(item.month)
+      .filter(expense => expense.category === focusCategory)
+      .slice()
+      .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+
+    const categoryIndex = state.categories.indexOf(focusCategory);
+
+    container.innerHTML = `
+      <div class="month-detail-header">
+        <strong>
+          <span class="legend-color" style="background:${getCategoryColor(categoryIndex)}"></span>
+          ${escapeHtml(focusCategory)} · ${escapeHtml(getMonthLabel(item.month))}
+        </strong>
+        <button type="button" class="secondary small" onclick="renderMultiReportMonthDetail(getMultiReportItemByMonth('${escapeAttribute(item.month)}'), getSelectedMultiReportCategories())">Tutte le categorie</button>
+      </div>
+      <div class="month-detail-expenses">
+        ${expenses.length ? expenses.map(expense => `
+          <button type="button" class="month-detail-expense" onclick="openExpenseEditorFromReport('${escapeAttribute(expense.id)}', '${escapeAttribute(item.month)}')">
+            <span class="detail-expense-date">${escapeHtml(expense.date || "")}</span>
+            <span class="detail-expense-desc">${escapeHtml(expense.description || "(senza descrizione)")}</span>
+            <span class="detail-expense-amount">${formatCurrency(Number(expense.amount || 0))}</span>
+          </button>
+        `).join("") : `<p class="empty">Nessuna spesa in questa categoria per il mese.</p>`}
+      </div>
+    `;
+    return;
+  }
+
+  // Vista riepilogo del mese: totali per categoria, ognuno cliccabile.
   const rows = selectedCategories
-    .map(category => ({ category, amount: Number(item.totalsByCategory[category] || 0) }))
+    .map(category => ({ category, amount: getCategoryValueForMetric(item, category) }))
     .filter(row => row.amount > 0)
     .sort((a, b) => b.amount - a.amount);
 
-  container.classList.remove("hidden");
   container.innerHTML = `
     <div class="month-detail-header">
       <strong>${escapeHtml(getMonthLabel(item.month))}</strong>
-      <span>Totale: ${formatCurrency(item.total)}</span>
+      <span>Totale: ${formatCurrency(getMonthTotalForMetric(item, selectedCategories))}</span>
     </div>
     <div class="month-detail-rows">
       ${rows.length ? rows.map(row => {
         const categoryIndex = state.categories.indexOf(row.category);
         return `
-          <div class="month-detail-row">
+          <button type="button" class="month-detail-row month-detail-row-button" onclick="renderMultiReportMonthDetail(getMultiReportItemByMonth('${escapeAttribute(item.month)}'), getSelectedMultiReportCategories(), '${escapeAttribute(row.category)}')">
             <span class="legend-color" style="background:${getCategoryColor(categoryIndex)}"></span>
             <span class="month-detail-category">${escapeHtml(row.category)}</span>
             <span class="month-detail-amount">${formatCurrency(row.amount)}</span>
-          </div>
+          </button>
         `;
       }).join("") : `<p class="empty">Nessuna spesa nelle categorie selezionate per questo mese.</p>`}
     </div>
   `;
 }
+
+// Helper usati dagli onclick inline del pannello di dettaglio.
+function getMultiReportItemByMonth(month) {
+  return getMultiReportData().find(item => item.month === month) || null;
+}
+window.getMultiReportItemByMonth = getMultiReportItemByMonth;
+window.renderMultiReportMonthDetail = renderMultiReportMonthDetail;
+window.getSelectedMultiReportCategories = getSelectedMultiReportCategories;
+
+function openExpenseEditorFromReport(expenseId, month) {
+  state.selectedExpensesMonth = month;
+  state.selectedExpensesDateFrom = getMonthStartDate(month);
+  state.selectedExpensesDateTo = getMonthEndDate(month);
+  state.selectedExpenseCategories = [];
+  state.selectedExpenseDescriptionSearch = "";
+  saveState();
+  showView("expensesView", { preserveExpenseFilters: true });
+  setTimeout(() => startEditExpense(expenseId), 60);
+}
+window.openExpenseEditorFromReport = openExpenseEditorFromReport;
 
 function renderMultiReportLegend() {
   const container = document.getElementById("multiReportLegend");
@@ -2890,41 +2952,125 @@ function renderMultiReportTable(data) {
 
   const selectedCategories = getSelectedMultiReportCategories();
 
-  const rows = data.map(item => {
-    const categoryCells = selectedCategories.map(category => {
-      return `<td>${formatCurrency(item.totalsByCategory[category] || 0)}</td>`;
+  if (!data.length || !selectedCategories.length) {
+    container.innerHTML = `<p class="empty">Nessun dato da mostrare per le categorie e i mesi selezionati.</p>`;
+    return;
+  }
+
+  const referenceMonth = state.selectedMultiReportReferenceMonth || getCurrentMonth();
+  const metricLabel = getMultiReportMetricLabel();
+
+  // Una riga per categoria: totale periodo, media, valore del mese di
+  // riferimento e sua variazione % rispetto alla media del periodo.
+  const categoryRows = selectedCategories.map(category => {
+    const perMonth = data.map(item => getCategoryValueForMetric(item, category));
+    const periodTotal = roundToTwoDecimals(perMonth.reduce((sum, value) => sum + value, 0));
+    const average = data.length ? periodTotal / data.length : 0;
+    const referenceItem = data.find(item => item.month === referenceMonth);
+    const referenceValue = referenceItem ? getCategoryValueForMetric(referenceItem, category) : 0;
+    const variation = average > 0 ? ((referenceValue - average) / average) * 100 : 0;
+    return { category, perMonth, periodTotal, average, referenceValue, variation };
+  });
+
+  const sortMode = state.multiReportTableSort || "total";
+  categoryRows.sort((a, b) => {
+    if (sortMode === "variation") return b.variation - a.variation;
+    if (sortMode === "name") return a.category.localeCompare(b.category);
+    return b.periodTotal - a.periodTotal;
+  });
+
+  const monthHeaders = data.map(item =>
+    `<th class="${item.month === referenceMonth ? "reference-month" : ""}">${escapeHtml(getMonthLabel(item.month).replace(" ", "\u00A0"))}</th>`
+  ).join("");
+
+  const bodyRows = categoryRows.map(row => {
+    const categoryIndex = state.categories.indexOf(row.category);
+    const cells = data.map(item => {
+      const value = getCategoryValueForMetric(item, row.category);
+      const isReference = item.month === referenceMonth;
+      if (value <= 0) {
+        return `<td class="${isReference ? "reference-month" : ""}">–</td>`;
+      }
+      return `
+        <td class="${isReference ? "reference-month" : ""}">
+          <button type="button" class="table-cell-button" onclick="renderMultiReportMonthDetail(getMultiReportItemByMonth('${escapeAttribute(item.month)}'), getSelectedMultiReportCategories(), '${escapeAttribute(row.category)}')">
+            ${formatCurrency(value)}
+          </button>
+        </td>
+      `;
     }).join("");
+
+    const variationClass = row.variation > 5 ? "variation-up" : (row.variation < -5 ? "variation-down" : "variation-flat");
+    const variationText = row.average > 0
+      ? `${row.variation >= 0 ? "+" : ""}${Math.round(row.variation)}%`
+      : "–";
 
     return `
       <tr>
-        <td>${getMonthLabel(item.month)}</td>
-        ${categoryCells}
-        <td><strong>${formatCurrency(item.total)}</strong></td>
-        <td>${formatCurrency(item.grossTotal || 0)}</td>
-        <td>${formatCurrency(item.voucherTotal || 0)}</td>
-        <td>${formatCurrency(item.genericReimbursementTotal || 0)}</td>
+        <th class="category-cell">
+          <span class="legend-color" style="background:${getCategoryColor(categoryIndex)}"></span>
+          ${escapeHtml(row.category)}
+        </th>
+        ${cells}
+        <td><strong>${formatCurrency(row.periodTotal)}</strong></td>
+        <td>${formatCurrency(row.average)}</td>
+        <td class="${variationClass}">${variationText}</td>
       </tr>
     `;
   }).join("");
 
+  // Riga totale per mese in fondo.
+  const totalCells = data.map(item => {
+    const monthTotal = getMonthTotalForMetric(item, selectedCategories);
+    const isReference = item.month === referenceMonth;
+    return `<td class="${isReference ? "reference-month" : ""}"><strong>${formatCurrency(monthTotal)}</strong></td>`;
+  }).join("");
+  const grandTotal = roundToTwoDecimals(categoryRows.reduce((sum, row) => sum + row.periodTotal, 0));
+
   container.innerHTML = `
+    <div class="table-sort-controls">
+      <label>
+        Ordina per
+        <select id="multiReportTableSortSelect" onchange="setMultiReportTableSort(this.value)">
+          <option value="total" ${sortMode === "total" ? "selected" : ""}>Spesa totale</option>
+          <option value="variation" ${sortMode === "variation" ? "selected" : ""}>Variazione %</option>
+          <option value="name" ${sortMode === "name" ? "selected" : ""}>Nome categoria</option>
+        </select>
+      </label>
+      <span class="table-metric-note">Valori: ${escapeHtml(metricLabel)}</span>
+    </div>
     <div class="multi-table">
       <table>
         <thead>
           <tr>
-            <th>Mese</th>
-            ${selectedCategories.map(category => `<th>${escapeHtml(category)} budget</th>`).join("")}
-            <th>Totale budget</th>
-            <th>Totale registrato</th>
-            <th>Voucher</th>
-            <th>Rimborsi generici</th>
+            <th class="category-cell">Categoria</th>
+            ${monthHeaders}
+            <th>Totale</th>
+            <th>Media</th>
+            <th>Var. vs media</th>
           </tr>
         </thead>
-        <tbody>${rows}</tbody>
+        <tbody>${bodyRows}</tbody>
+        <tfoot>
+          <tr>
+            <th class="category-cell">Totale mese</th>
+            ${totalCells}
+            <td><strong>${formatCurrency(grandTotal)}</strong></td>
+            <td>–</td>
+            <td>–</td>
+          </tr>
+        </tfoot>
       </table>
     </div>
   `;
 }
+
+function setMultiReportTableSort(mode) {
+  state.multiReportTableSort = mode;
+  saveState();
+  renderMultiReportTable(getMultiReportData());
+}
+window.setMultiReportTableSort = setMultiReportTableSort;
 
 function renderThresholdForm() {
   syncTotalLimitWithCategories();
@@ -5144,6 +5290,24 @@ if (multiReportCurrentButton) {
     renderMultiReport();
   });
 }
+
+const multiReportMetricSelect = document.getElementById("multiReportMetricSelect");
+if (multiReportMetricSelect) {
+  multiReportMetricSelect.addEventListener("change", event => {
+    state.selectedMultiReportMetric = event.target.value;
+    saveState();
+    renderMultiReport();
+  });
+}
+
+const multiReportPercentageToggle = document.getElementById("multiReportPercentageToggle");
+if (multiReportPercentageToggle) {
+  multiReportPercentageToggle.addEventListener("change", event => {
+    state.multiReportPercentageView = event.target.checked;
+    saveState();
+    renderMultiReport();
+  });
+}
 const expensesMonthSelect = document.getElementById("expensesMonthSelect");
 if (expensesMonthSelect) {
   expensesMonthSelect.addEventListener("change", event => {
@@ -5305,26 +5469,6 @@ if (familyBudgetCurrentButton) {
     saveState();
     resetFamilyIncomeForm();
     renderFamilyBudget();
-  });
-}
-
-document.getElementById("reportMonthSelect").addEventListener("change", event => {
-  state.selectedReportMonth = event.target.value;
-  saveState();
-  renderReport();
-});
-const reportMonthPickerButton = document.getElementById("reportMonthPickerButton");
-if (reportMonthPickerButton) {
-  reportMonthPickerButton.addEventListener("click", () => {
-    showMonthPicker({
-      title: "Mese da visualizzare",
-      selectedMonth: state.selectedReportMonth || getCurrentMonth(),
-      onSelect: month => {
-        state.selectedReportMonth = month;
-        saveState();
-        renderReport();
-      }
-    });
   });
 }
 

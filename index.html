@@ -13,7 +13,7 @@
     <header class="app-header">
       <div class="app-title">
         <h1>Spese Mensili</h1>
-        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.97</span></p>
+        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.98</span></p>
       </div>
       <button id="installButton" class="secondary hidden">Installa</button>
     </header>
@@ -30,7 +30,7 @@
 
         <div class="card compact version-card">
           <span>Versione app</span>
-          <strong>V.97</strong>
+          <strong>V.98</strong>
         </div>
 
         <div class="card hero">
@@ -302,32 +302,7 @@
 
       <section id="reportView" class="view">
         <div class="card">
-          <h2>Report per categoria</h2>
-
-          <label class="report-month-selector">
-            Mese da visualizzare
-            <button id="reportMonthPickerButton" class="month-picker-trigger secondary" type="button">Seleziona mese</button>
-            <select id="reportMonthSelect" class="month-picker-hidden" aria-hidden="true" tabindex="-1"></select>
-          </label>
-
-          <div id="categoryReport"></div>
-        </div>
-
-        <div class="card">
-          <h2>Andamento categoria</h2>
-          <label class="report-month-selector">
-            Categoria da analizzare
-            <select id="categoryTrendSelect"></select>
-          </label>
-          <div id="categoryTrendSummary" class="multi-report-summary"></div>
-          <div class="chart-wrapper category-trend-wrapper" aria-label="Grafico andamento categoria">
-            <canvas id="categoryTrendChart" width="760" height="360"></canvas>
-          </div>
-        </div>
-
-
-        <div class="card">
-          <h2>Report plurimensile</h2>
+          <h2>Report spese</h2>
 
           <div class="multi-report-controls">
             <label>
@@ -351,6 +326,21 @@
             <button id="multiReportCurrentButton" type="button" class="secondary">Torna al mese corrente</button>
           </div>
 
+          <div class="report-mode-controls">
+            <label>
+              Valore mostrato
+              <select id="multiReportMetricSelect">
+                <option value="net">Budget netto</option>
+                <option value="gross">Totale registrato</option>
+                <option value="voucher">Voucher</option>
+              </select>
+            </label>
+            <label class="report-toggle">
+              <input type="checkbox" id="multiReportPercentageToggle" />
+              <span>Vista percentuale (composizione)</span>
+            </label>
+          </div>
+
           <details class="expense-category-filter" id="multiReportCategoryFilterPanel">
             <summary class="filter-header">
               <strong>Categorie</strong>
@@ -365,21 +355,30 @@
             <div id="multiReportCategoryFilter" class="category-filter-options"></div>
           </details>
 
-          <p class="hint">
-            Puoi scegliere quanti mesi visualizzare prima e dopo il mese di riferimento, da 0 a 12.
-            Gli istogrammi rappresentano le spese per categoria/soglia; la linea rappresenta il totale mensile.
-          </p>
-
           <div id="multiReportSummary" class="multi-report-summary"></div>
+          <div id="multiReportProjection" class="report-projection hidden"></div>
 
-          <div class="chart-wrapper" aria-label="Grafico report plurimensile">
+          <div class="chart-wrapper" aria-label="Grafico report spese">
             <canvas id="multiReportChart" width="900" height="520"></canvas>
           </div>
-          <p class="hint">Tocca una colonna per vedere il dettaglio per categoria di quel mese.</p>
+          <p class="hint">Tocca una pila o una colonna per vedere le singole spese di quella categoria/mese.</p>
           <div id="multiReportMonthDetail" class="month-detail-panel hidden"></div>
 
           <div id="multiReportLegend" class="chart-legend"></div>
+
+          <h3 class="report-subtitle">Totali per categoria</h3>
+          <p class="hint">Tocca una cella per vedere le spese. La variazione confronta ogni mese con la media del periodo.</p>
           <div id="multiReportTable"></div>
+
+          <h3 class="report-subtitle">Categoria in evidenza</h3>
+          <label class="report-month-selector">
+            Categoria da analizzare
+            <select id="categoryTrendSelect"></select>
+          </label>
+          <div id="categoryTrendSummary" class="multi-report-summary"></div>
+          <div class="chart-wrapper category-trend-wrapper" aria-label="Grafico andamento categoria">
+            <canvas id="categoryTrendChart" width="760" height="360"></canvas>
+          </div>
         </div>
 
         <div class="card">

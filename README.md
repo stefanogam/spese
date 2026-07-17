@@ -1,5 +1,18 @@
 # Spese Mensili - PWA locale v16
 
+## Modifiche V.98
+
+Ridisegnata completamente la sezione Report, ora in un'unica card (grafico sopra, tabella sotto) invece di quattro card separate:
+
+- Grafico e tabella condividono lo stesso periodo e le stesse categorie selezionate.
+- Tocca una pila di categoria (o una cella della tabella) per vedere l'elenco delle singole spese di quella categoria in quel mese; tocca una spesa per aprirla in modifica.
+- Nuovo selettore "Valore mostrato": Budget netto / Totale registrato / Voucher.
+- Nuova vista percentuale: ogni colonna diventa 100% e mostra la composizione della spesa per capire quali categorie pesano di più.
+- Tabella riorganizzata per categoria (una riga per categoria, una colonna per mese) con totale periodo, media e variazione % rispetto alla media (in rosso se in crescita, verde se in calo). Ordinabile per spesa, variazione o nome.
+- Nuova proiezione di fine mese per il mese in corso, con avviso se si supererà la soglia totale.
+- "Andamento categoria" è confluito nel blocco "Categoria in evidenza" nella stessa card.
+- Rimossa CSS morta dalle vecchie card del report.
+
 ## Modifiche V.97
 
 Migliorato il grafico del Report plurimensile:
