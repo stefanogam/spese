@@ -1,5 +1,17 @@
 # Spese Mensili - PWA locale v16
 
+## Modifiche V.99
+
+Correzione del tocco sul grafico e ottimizzazione per smartphone:
+
+- Corretto il tap sulle colonne del grafico su smartphone: prima il tocco veniva interpretato come scorrimento e non apriva il dettaglio. Ora un vero tap apre il dettaglio, mentre lo scorrimento orizzontale continua a funzionare.
+- Corretta la formula delle coordinate del tocco, che era invertita e sballava il punto rilevato quando il grafico era scalato sullo schermo.
+- Il grafico si adatta ora alla larghezza dello schermo: con pochi mesi ci sta tutto senza scorrimento orizzontale; con molti mesi resta scorrevole.
+- Su schermi stretti il grafico usa margini, altezza e font ridotti per essere più leggibile.
+- Il grafico si ridisegna al cambio di orientamento/dimensione dello schermo.
+- Controlli della sezione (selettori, ordinamento tabella) a piena larghezza su mobile; celle della tabella e righe di dettaglio più compatte e con aree di tocco più comode.
+- Toccando una colonna, il pannello di dettaglio viene portato in vista automaticamente.
+
 ## Modifiche V.98
 
 Ridisegnata completamente la sezione Report, ora in un'unica card (grafico sopra, tabella sotto) invece di quattro card separate:

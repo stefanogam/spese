@@ -704,20 +704,16 @@ input[readonly] {
 }
 
 #categoryTrendChart {
-  width: 760px;
-  max-width: none;
-  height: 360px;
   display: block;
   border-radius: 8px;
+  touch-action: pan-x pan-y;
 }
 
 #multiReportChart {
-  width: 940px;
-  max-width: none;
-  height: 560px;
   display: block;
   border-radius: 8px;
   cursor: pointer;
+  touch-action: pan-x pan-y;
 }
 
 .chart-legend {
@@ -2181,6 +2177,45 @@ input[readonly] {
 
   .chart-wrapper {
     padding: 8px;
+  }
+
+  .report-mode-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .report-mode-controls select {
+    width: 100%;
+  }
+
+  .table-sort-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .table-sort-controls select {
+    width: 100%;
+  }
+
+  .multi-table th,
+  .multi-table td {
+    padding: 6px;
+    font-size: 0.78rem;
+  }
+
+  .month-detail-expense {
+    grid-template-columns: auto 1fr auto;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .detail-expense-date {
+    font-size: 0.78rem;
+  }
+
+  .report-subtitle {
+    font-size: 1rem;
   }
 
   .modal-card {

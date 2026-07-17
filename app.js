@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.98";
+const APP_VERSION = "V.99";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
@@ -2129,8 +2129,13 @@ function drawCategoryTrendChart(data, category) {
   if (!canvas) return;
 
   const ctx = canvas.getContext("2d");
-  const cssWidth = Math.max(760, data.length * 68 + 120);
-  const cssHeight = 360;
+  const wrapper = canvas.parentElement;
+  const availableWidth = wrapper ? Math.max(280, wrapper.clientWidth - 20) : 760;
+  const isNarrow = availableWidth < 560;
+  const perPoint = isNarrow ? 52 : 68;
+  const idealWidth = data.length * perPoint + (isNarrow ? 90 : 120);
+  const cssWidth = idealWidth <= availableWidth ? availableWidth : idealWidth;
+  const cssHeight = isNarrow ? 300 : 360;
   const pixelRatio = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
 
   canvas.style.width = `${cssWidth}px`;
@@ -2141,7 +2146,9 @@ function drawCategoryTrendChart(data, category) {
 
   const width = cssWidth;
   const height = cssHeight;
-  const padding = { top: 54, right: 28, bottom: 70, left: 82 };
+  const padding = isNarrow
+    ? { top: 46, right: 14, bottom: 62, left: 56 }
+    : { top: 54, right: 28, bottom: 70, left: 82 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
   const maxValue = Math.max(...data.map(item => item.amount), Number(state.thresholds.categoryLimits[category] || 0), 1);
@@ -2591,8 +2598,18 @@ function drawMultiReportChart(data) {
   const selectedCategories = getSelectedMultiReportCategories();
   const isPercentage = Boolean(state.multiReportPercentageView);
   const monthCount = Math.max(data.length, 1);
-  const cssWidth = Math.max(940, monthCount * 78 + 180);
-  const cssHeight = 560;
+
+  // Larghezza disponibile nel contenitore (schermo), per adattarsi al mobile.
+  const wrapper = canvas.parentElement;
+  const availableWidth = wrapper ? Math.max(280, wrapper.clientWidth - 20) : 900;
+  const isNarrow = availableWidth < 560;
+
+  // Larghezza ideale in base ai mesi; se ci sta nello schermo, niente scroll.
+  const perMonth = isNarrow ? 58 : 78;
+  const sidePadding = isNarrow ? 132 : 180;
+  const idealWidth = monthCount * perMonth + sidePadding;
+  const cssWidth = idealWidth <= availableWidth ? availableWidth : idealWidth;
+  const cssHeight = isNarrow ? 420 : 560;
   const pixelRatio = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
 
   canvas.style.width = `${cssWidth}px`;
@@ -2608,7 +2625,9 @@ function drawMultiReportChart(data) {
   ctx.fillStyle = "#f8fafc";
   ctx.fillRect(0, 0, width, height);
 
-  const padding = { top: 62, right: 34, bottom: 96, left: 92 };
+  const padding = isNarrow
+    ? { top: 54, right: 16, bottom: 84, left: 60 }
+    : { top: 62, right: 34, bottom: 96, left: 92 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
 
@@ -2690,10 +2709,7 @@ function drawMultiReportChart(data) {
 
   const segmentsByMonth = {};
   canvas._multiReportLayout = { data, selectedCategories, padding, groupWidth, cssWidth, cssHeight, segmentsByMonth };
-  if (!canvas._multiReportClickBound) {
-    canvas.addEventListener("click", handleMultiReportChartClick);
-    canvas._multiReportClickBound = true;
-  }
+  bindMultiReportChartInteractions(canvas);
   const barWidth = Math.min(46, groupWidth * 0.52);
 
   data.forEach((item, index) => {
@@ -2800,29 +2816,80 @@ function drawMultiReportChart(data) {
   );
 }
 
-function handleMultiReportChartClick(event) {
-  const canvas = event.currentTarget;
+function resolveMultiReportChartHit(canvas, clientX, clientY) {
   const layout = canvas._multiReportLayout;
-  if (!layout || !layout.data.length) return;
+  if (!layout || !layout.data.length) return null;
 
   const rect = canvas.getBoundingClientRect();
-  const scaleX = rect.width / layout.cssWidth;
-  const scaleY = rect.height / layout.cssHeight;
-  const x = (event.clientX - rect.left) / (scaleX || 1);
-  const y = (event.clientY - rect.top) / (scaleY || 1);
+  const scaleX = layout.cssWidth / rect.width;
+  const scaleY = layout.cssHeight / rect.height;
+  const x = (clientX - rect.left) * scaleX;
+  const y = (clientY - rect.top) * scaleY;
   const relativeX = x - layout.padding.left;
-  if (relativeX < 0) return;
+  if (relativeX < 0) return null;
 
   const index = Math.floor(relativeX / layout.groupWidth);
-  if (index < 0 || index >= layout.data.length) return;
+  if (index < 0 || index >= layout.data.length) return null;
 
   const item = layout.data[index];
-
-  // Cerca se il tocco è caduto su un segmento di categoria specifico.
   const segments = layout.segmentsByMonth[item.month] || [];
   const hitSegment = segments.find(seg => y >= seg.yTop && y <= seg.yBottom);
 
-  renderMultiReportMonthDetail(item, layout.selectedCategories, hitSegment ? hitSegment.category : null);
+  return { item, category: hitSegment ? hitSegment.category : null };
+}
+
+function handleMultiReportChartTap(canvas, clientX, clientY) {
+  const hit = resolveMultiReportChartHit(canvas, clientX, clientY);
+  if (!hit) return;
+  const layout = canvas._multiReportLayout;
+  renderMultiReportMonthDetail(hit.item, layout.selectedCategories, hit.category);
+
+  // Porta in vista il pannello di dettaglio (utile su schermi piccoli).
+  const detail = document.getElementById("multiReportMonthDetail");
+  if (detail && typeof detail.scrollIntoView === "function") {
+    detail.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+}
+
+function bindMultiReportChartInteractions(canvas) {
+  if (canvas._multiReportInteractionsBound) return;
+  canvas._multiReportInteractionsBound = true;
+
+  // Mouse / trackpad.
+  canvas.addEventListener("click", event => {
+    // Ignora i click sintetici generati dopo un touch (li gestisce touchend).
+    if (canvas._suppressNextClick) {
+      canvas._suppressNextClick = false;
+      return;
+    }
+    handleMultiReportChartTap(canvas, event.clientX, event.clientY);
+  });
+
+  // Touch: distingue un tap da uno scroll orizzontale.
+  let startX = 0;
+  let startY = 0;
+  let moved = false;
+
+  canvas.addEventListener("touchstart", event => {
+    const touch = event.changedTouches[0];
+    startX = touch.clientX;
+    startY = touch.clientY;
+    moved = false;
+  }, { passive: true });
+
+  canvas.addEventListener("touchmove", event => {
+    const touch = event.changedTouches[0];
+    if (Math.abs(touch.clientX - startX) > 10 || Math.abs(touch.clientY - startY) > 10) {
+      moved = true;
+    }
+  }, { passive: true });
+
+  canvas.addEventListener("touchend", event => {
+    if (moved) return; // era uno scroll, non un tap
+    const touch = event.changedTouches[0];
+    canvas._suppressNextClick = true;
+    handleMultiReportChartTap(canvas, touch.clientX, touch.clientY);
+  });
 }
 
 function renderMultiReportMonthDetail(item, selectedCategories, focusCategory = null) {
@@ -5524,6 +5591,17 @@ if (isGenericReimbursement) {
     updateGenericReimbursementMode();
   });
 }
+
+let multiReportResizeTimer = null;
+window.addEventListener("resize", () => {
+  if (getActiveViewId() !== "reportView") return;
+  clearTimeout(multiReportResizeTimer);
+  multiReportResizeTimer = setTimeout(() => {
+    const data = getMultiReportData();
+    drawMultiReportChart(data);
+    renderCategoryTrendPanel(state.selectedReportMonth || getCurrentMonth());
+  }, 200);
+});
 
 
 try {
