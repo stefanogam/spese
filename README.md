@@ -1,5 +1,14 @@
 # Spese Mensili - PWA locale v16
 
+## Modifiche V.104
+
+Unificati i due menu delle categorie nel Report (pannello di dettaglio + legenda):
+
+- Il pannello "Tutte le categorie" (toccando il grafico) ora mostra tutte le categorie, non solo quelle con spese: le nascoste appaiono barrate in grigio e restano cliccabili.
+- Nel dettaglio di una categoria, accanto al pulsante "Tutte le categorie" c'è ora l'icona 👁️ per nascondere/mostrare quella categoria nel grafico; quando è nascosta, intestazione e icona appaiono attenuate/barrate.
+- Il pannello di dettaglio non si chiude più quando si usa il toggle (o si cambia metrica/ordinamento): viene ripristinato sullo stesso mese e categoria dopo ogni aggiornamento.
+- La legenda sotto il grafico non gestisce più le categorie (menu eliminato, come richiesto): spiega solo la linea del totale e la soglia.
+
 ## Modifiche V.103
 
 Migliorie UI e sostanziali alla sezione Report:

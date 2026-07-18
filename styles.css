@@ -757,26 +757,32 @@ input[readonly] {
   display: inline-block;
 }
 
-.legend-item-toggle {
-  border: none;
-  background: none;
-  padding: 4px 6px;
-  border-radius: 6px;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
+.month-detail-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
-.legend-item-toggle:hover,
-.legend-item-toggle:focus-visible {
-  background: #e2e8f0;
-}
-
-.legend-item-off {
+.detail-category-off {
+  text-decoration: line-through;
   color: #94a3b8;
+}
+
+.icon-button.visibility-off {
+  opacity: 0.4;
+}
+
+.month-detail-row-off {
   text-decoration: line-through;
 }
 
-.legend-item-off .legend-color {
+.month-detail-row-off .month-detail-category,
+.month-detail-row-off .month-detail-amount {
+  color: #94a3b8;
+}
+
+.month-detail-row-off .legend-color {
   opacity: 0.35;
 }
 

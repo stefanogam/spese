@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.103";
+const APP_VERSION = "V.104";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
@@ -2561,7 +2561,18 @@ function renderMultiReport() {
   renderMultiReportSummary(data);
   renderMultiReportProjection(data);
   drawMultiReportChart(data);
-  renderMultiReportMonthDetail(null);
+
+  // Ripristina il pannello di dettaglio se il mese è ancora nel periodo,
+  // altrimenti chiudilo (es. dopo un cambio di intervallo).
+  const restoredItem = currentDetailMonth
+    ? data.find(entry => entry.month === currentDetailMonth) || null
+    : null;
+  renderMultiReportMonthDetail(
+    restoredItem,
+    lastMultiReportSelectedCategories,
+    restoredItem ? currentDetailFocusCategory : null
+  );
+
   renderMultiReportLegend();
   renderMultiReportTable(data);
 }
@@ -2969,6 +2980,11 @@ function bindMultiReportChartInteractions(canvas) {
 let lastMultiReportData = [];
 let lastMultiReportSelectedCategories = [];
 
+// Stato corrente del pannello di dettaglio, per ripristinarlo dopo un
+// re-render (es. quando si nasconde/mostra una categoria dal pannello).
+let currentDetailMonth = null;
+let currentDetailFocusCategory = null;
+
 // Recupera l'item di un mese in modo sicuro: prima dalla cache, poi (se
 // mancante) ricostruendolo dai dati correnti. Non restituisce mai null
 // per un mese valido, così il pannello di dettaglio non sparisce.
@@ -2988,11 +3004,15 @@ function renderMultiReportMonthDetail(item, selectedCategories, focusCategory = 
   if (!container) return;
 
   if (!item) {
+    currentDetailMonth = null;
+    currentDetailFocusCategory = null;
     container.classList.add("hidden");
     container.innerHTML = "";
     return;
   }
 
+  currentDetailMonth = item.month;
+  currentDetailFocusCategory = focusCategory || null;
   container.classList.remove("hidden");
 
   // Vista dettaglio di UNA categoria: elenco delle singole spese reali.
@@ -3003,14 +3023,27 @@ function renderMultiReportMonthDetail(item, selectedCategories, focusCategory = 
       .sort((a, b) => String(b.date).localeCompare(String(a.date)));
 
     const categoryIndex = state.categories.indexOf(focusCategory);
+    const isVisible = selectedCategories.includes(focusCategory);
 
     container.innerHTML = `
       <div class="month-detail-header">
-        <strong>
+        <strong class="${isVisible ? "" : "detail-category-off"}">
           <span class="legend-color" style="background:${getCategoryColor(categoryIndex)}"></span>
           ${escapeHtml(focusCategory)} · ${escapeHtml(getMonthLabel(item.month))}
         </strong>
-        <button type="button" class="secondary small" data-detail-action="back" data-month="${escapeAttributeForHtml(item.month)}">Tutte le categorie</button>
+        <span class="month-detail-header-actions">
+          <button
+            type="button"
+            class="icon-button ${isVisible ? "" : "visibility-off"}"
+            data-detail-action="toggle-visibility"
+            data-month="${escapeAttributeForHtml(item.month)}"
+            data-category="${escapeAttributeForHtml(focusCategory)}"
+            title="${isVisible ? "Nascondi dal grafico" : "Mostra nel grafico"}"
+            aria-label="${isVisible ? "Nascondi" : "Mostra"} ${escapeAttributeForHtml(focusCategory)} nel grafico"
+            aria-pressed="${isVisible}"
+          >👁️</button>
+          <button type="button" class="secondary small" data-detail-action="back" data-month="${escapeAttributeForHtml(item.month)}">Tutte le categorie</button>
+        </span>
       </div>
       <div class="month-detail-expenses">
         ${expenses.length ? expenses.map(expense => `
@@ -3025,11 +3058,17 @@ function renderMultiReportMonthDetail(item, selectedCategories, focusCategory = 
     return;
   }
 
-  // Vista riepilogo del mese: totali per categoria, ognuno cliccabile.
-  const rows = selectedCategories
-    .map(category => ({ category, amount: getCategoryValueForMetric(item, category) }))
-    .filter(row => row.amount > 0)
-    .sort((a, b) => b.amount - a.amount);
+  // Vista riepilogo del mese: TUTTE le categorie (le nascoste barrate),
+  // ognuna cliccabile per aprirne il dettaglio. Prima le visibili per
+  // importo decrescente, poi le nascoste.
+  const selectedSet = new Set(selectedCategories);
+  const rows = state.categories
+    .map(category => ({
+      category,
+      amount: getCategoryValueForMetric(item, category),
+      active: selectedSet.has(category)
+    }))
+    .sort((a, b) => (Number(b.active) - Number(a.active)) || (b.amount - a.amount));
 
   container.innerHTML = `
     <div class="month-detail-header">
@@ -3037,17 +3076,18 @@ function renderMultiReportMonthDetail(item, selectedCategories, focusCategory = 
       <span>Totale: ${formatCurrency(getMonthTotalForMetric(item, selectedCategories))}</span>
     </div>
     <div class="month-detail-rows">
-      ${rows.length ? rows.map(row => {
+      ${rows.map(row => {
         const categoryIndex = state.categories.indexOf(row.category);
         return `
-          <button type="button" class="month-detail-row month-detail-row-button" data-detail-action="category" data-month="${escapeAttributeForHtml(item.month)}" data-category="${escapeAttributeForHtml(row.category)}">
+          <button type="button" class="month-detail-row month-detail-row-button ${row.active ? "" : "month-detail-row-off"}" data-detail-action="category" data-month="${escapeAttributeForHtml(item.month)}" data-category="${escapeAttributeForHtml(row.category)}">
             <span class="legend-color" style="background:${getCategoryColor(categoryIndex)}"></span>
             <span class="month-detail-category">${escapeHtml(row.category)}</span>
-            <span class="month-detail-amount">${formatCurrency(row.amount)}</span>
+            <span class="month-detail-amount">${row.amount > 0 ? formatCurrency(row.amount) : "–"}</span>
           </button>
         `;
-      }).join("") : `<p class="empty">Nessuna spesa nelle categorie selezionate per questo mese.</p>`}
+      }).join("")}
     </div>
+    <p class="hint">Le categorie barrate sono nascoste dal grafico: tocca una categoria e usa 👁️ per mostrarla o nasconderla.</p>
   `;
 }
 
@@ -3072,6 +3112,12 @@ function handleMultiReportDetailClick(event) {
     renderMultiReportMonthDetail(item, lastMultiReportSelectedCategories, null);
   } else if (action === "category") {
     renderMultiReportMonthDetail(item, lastMultiReportSelectedCategories, button.dataset.category);
+  } else if (action === "toggle-visibility") {
+    const category = button.dataset.category;
+    const isVisible = lastMultiReportSelectedCategories.includes(category);
+    // Il re-render di renderMultiReport ripristinerà il pannello sullo
+    // stesso mese/categoria grazie a currentDetailMonth/FocusCategory.
+    toggleMultiReportCategoryFilter(category, !isVisible);
   }
 }
 
@@ -3090,29 +3136,9 @@ function renderMultiReportLegend() {
   const container = document.getElementById("multiReportLegend");
   if (!container) return;
 
-  const selectedCategories = getSelectedMultiReportCategories();
-
-  // La legenda mostra SEMPRE tutte le categorie: quelle nascoste restano
-  // visibili in grigio barrato e un tocco le riattiva. In questo modo un
-  // tocco per errore non fa mai "sparire" nulla in modo irreversibile.
-  const categoryItems = state.categories.map((category, index) => {
-    const isActive = selectedCategories.includes(category);
-    return `
-      <button
-        type="button"
-        class="legend-item legend-item-toggle ${isActive ? "" : "legend-item-off"}"
-        onclick="toggleMultiReportCategoryFilter('${escapeAttribute(category)}', ${isActive ? "false" : "true"})"
-        aria-pressed="${isActive}"
-        aria-label="${isActive ? "Nascondi" : "Mostra"} ${escapeAttributeForHtml(category)} nel grafico"
-        title="${isActive ? "Tocca per nascondere" : "Tocca per mostrare"}"
-      >
-        <span class="legend-color" style="background:${getCategoryColor(index)}"></span>
-        ${escapeHtml(category)}
-      </button>
-    `;
-  }).join("");
-
-  container.innerHTML = categoryItems + `
+  // La gestione mostra/nascondi delle categorie vive ora nel pannello di
+  // dettaglio (tocca il grafico); la legenda spiega solo linea e soglia.
+  container.innerHTML = `
     <span class="legend-item">
       <span class="legend-line"></span>
       Totale budget mensile
