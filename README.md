@@ -1,5 +1,13 @@
 # Spese Mensili - PWA locale v16
 
+## Modifiche V.105
+
+Corretto l'avvio senza connessione internet:
+
+- Prima l'app usava la strategia "prima la rete, poi la cache" senza limite di tempo: in assenza di connettività reale (Wi-Fi senza internet, segnale senza dati, DNS non raggiungibile) la richiesta di rete restava appesa a lungo per ogni file e l'app sembrava "attendere la connessione". Ora la rete ha un timeout di 3 secondi: se non risponde in tempo, l'app parte subito dalla copia in cache. Online non cambia nulla (si riceve sempre l'ultima versione).
+- La cache viene aggiornata solo con risposte valide del server: un errore temporaneo (404/500) durante una pubblicazione non può più sovrascrivere la copia buona dell'app.
+- Lo script Google (per il backup su Drive) non viene più intercettato dal service worker: offline fallisce da solo senza rallentare l'avvio, e le funzioni Drive mostrano il loro consueto messaggio d'errore solo quando le usi.
+
 ## Modifiche V.104
 
 Unificati i due menu delle categorie nel Report (pannello di dettaglio + legenda):
