@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.105";
+const APP_VERSION = "V.106";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
@@ -1410,41 +1410,78 @@ function getExpenseInsertedAt(expense) {
   return Number.isFinite(dateValue) ? dateValue : 0;
 }
 
+// Timestamp di INSERIMENTO della spesa (createdAt), distinto dalla data di
+// competenza (expense.date) e dalla data di ultima attività/modifica.
+function getExpenseCreatedAtTime(expense) {
+  const raw = expense?.createdAt || expense?.insertedAt || expense?.activityAt || expense?.date;
+  const value = raw ? new Date(raw).getTime() : 0;
+  return Number.isFinite(value) ? value : 0;
+}
+
+// Giorno LOCALE di inserimento in formato YYYY-MM-DD, coerente con
+// getTodayDateString (i timestamp sono in UTC, il giorno va calcolato
+// nel fuso locale per non sbagliare le spese inserite vicino a mezzanotte).
+function getExpenseCreatedDateString(expense) {
+  const time = getExpenseCreatedAtTime(expense);
+  if (!time) return "";
+  const created = new Date(time);
+  const year = created.getFullYear();
+  const month = String(created.getMonth() + 1).padStart(2, "0");
+  const day = String(created.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function renderLatestExpenses() {
   const container = document.getElementById("latestExpenses");
   const today = getTodayDateString();
-  const sortedExpenses = [...state.expenses]
-    .sort((a, b) => getExpenseInsertedAt(b) - getExpenseInsertedAt(a) || new Date(b.date) - new Date(a.date));
-  const todayExpenses = sortedExpenses.filter(expense => expense.date === today);
-  const otherLatestExpenses = sortedExpenses
-    .filter(expense => expense.date !== today)
-    .slice(0, 8);
 
-  if (todayExpenses.length === 0 && otherLatestExpenses.length === 0) {
+  // Cronologia di INSERIMENTO: si ordina e si raggruppa per quando la
+  // spesa è stata registrata nell'app, non per la data di competenza.
+  // Le rate future generate automaticamente (plurimensili/ricorrenti)
+  // hanno una data di inserimento sintetica nel futuro: si escludono,
+  // compariranno in cronologia quando arriva il loro giorno.
+  const sortedByInsertion = [...state.expenses]
+    .filter(expense => {
+      const createdDate = getExpenseCreatedDateString(expense);
+      return createdDate && createdDate <= today;
+    })
+    .sort((a, b) => getExpenseCreatedAtTime(b) - getExpenseCreatedAtTime(a));
+
+  const insertedTodayAll = sortedByInsertion.filter(expense => getExpenseCreatedDateString(expense) === today);
+  const insertedOtherAll = sortedByInsertion.filter(expense => getExpenseCreatedDateString(expense) !== today);
+
+  const insertedToday = insertedTodayAll.slice(0, 10);
+  const insertedOther = insertedOtherAll.slice(0, 10);
+
+  if (insertedToday.length === 0 && insertedOther.length === 0) {
     container.innerHTML = `<p class="empty">Non hai ancora inserito spese.</p>`;
     return;
   }
 
+  const todayCountLabel = insertedTodayAll.length > insertedToday.length
+    ? `${insertedToday.length} di ${insertedTodayAll.length}`
+    : `${insertedToday.length}`;
+
   const todaySection = `
     <div class="latest-expense-section today-expense-section">
       <div class="latest-expense-heading">
-        <strong>Spese di oggi</strong>
-        <span>${todayExpenses.length}</span>
+        <strong>Inserite oggi</strong>
+        <span>${todayCountLabel}</span>
       </div>
-      ${todayExpenses.length > 0
-        ? todayExpenses.map(expense => renderExpenseRow(expense, true, { markToday: true })).join("")
-        : `<p class="empty">Nessuna spesa con competenza oggi.</p>`}
+      ${insertedToday.length > 0
+        ? insertedToday.map(expense => renderExpenseRow(expense, true, { markToday: true })).join("")
+        : `<p class="empty">Nessuna spesa inserita oggi.</p>`}
     </div>
   `;
 
-  const otherSection = otherLatestExpenses.length > 0
+  const otherSection = insertedOther.length > 0
     ? `
       <div class="latest-expense-section">
         <div class="latest-expense-heading">
-          <strong>Altre ultime spese</strong>
-          <span>${otherLatestExpenses.length}</span>
+          <strong>Giorni precedenti</strong>
+          <span>${insertedOther.length}</span>
         </div>
-        ${otherLatestExpenses.map(expense => renderExpenseRow(expense, true)).join("")}
+        ${insertedOther.map(expense => renderExpenseRow(expense, true)).join("")}
       </div>
     `
     : "";

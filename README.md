@@ -1,5 +1,14 @@
 # Spese Mensili - PWA locale v16
 
+## Modifiche V.106
+
+Rivista la sezione "Ultime spese" in Home come cronologia di inserimento:
+
+- Le spese sono ora raggruppate per data di INSERIMENTO nell'app (non più per data di competenza): "Inserite oggi" (massimo 10) e "Giorni precedenti" (massimo 10), ordinate dall'inserimento più recente.
+- Una spesa registrata oggi con competenza di ieri ora compare correttamente tra quelle di oggi.
+- Le rate future generate automaticamente (spese plurimensili/ricorrenti), che hanno una data di inserimento sintetica nel futuro, sono escluse dalla cronologia: compariranno quando arriva il loro giorno.
+- Se le spese inserite oggi sono più di 10, l'intestazione mostra "10 di N".
+
 ## Modifiche V.105
 
 Corretto l'avvio senza connessione internet:
