@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.106";
+const APP_VERSION = "V.107";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
@@ -1275,20 +1275,7 @@ function renderCategoryOptions() {
 }
 
 function renderInputSuggestions() {
-  const descriptionList = document.getElementById("descriptionSuggestions");
   const merchantList = document.getElementById("merchantSuggestions");
-
-  if (descriptionList) {
-    const descriptions = [...new Set(state.expenses
-      .map(expense => String(expense.description || "").trim())
-      .filter(Boolean))]
-      .sort((a, b) => a.localeCompare(b, "it"))
-      .slice(0, 40);
-
-    descriptionList.innerHTML = descriptions
-      .map(description => `<option value="${escapeAttributeForHtml(description)}"></option>`)
-      .join("");
-  }
 
   if (merchantList) {
     const merchants = [...new Set(state.expenses
@@ -1301,6 +1288,154 @@ function renderInputSuggestions() {
       .map(merchant => `<option value="${escapeAttributeForHtml(merchant)}"></option>`)
       .join("");
   }
+}
+
+// ---------------------------------------------------------------------------
+// Autocompletamento non vincolante per Descrizione e Tag: suggerisce i
+// valori già usati che iniziano con o contengono il testo digitato
+// (ignorando maiuscole e accenti), ordinati per frequenza d'uso e recenza.
+// Il testo libero resta sempre permesso: i suggerimenti sono solo scorciatoie.
+// ---------------------------------------------------------------------------
+
+function normalizeForSearch(value) {
+  return String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+// Valori distinti con conteggio d'uso e ultimo utilizzo, deduplicati in modo
+// case-insensitive mantenendo la forma più usata.
+function collectRankedValues(extractValues) {
+  const stats = new Map();
+  state.expenses.forEach(expense => {
+    extractValues(expense).forEach(rawValue => {
+      const value = String(rawValue || "").trim();
+      if (!value) return;
+      const key = normalizeForSearch(value);
+      const entry = stats.get(key) || { value, count: 0, last: 0 };
+      entry.count += 1;
+      entry.last = Math.max(entry.last, getExpenseCreatedAtTime(expense));
+      if (value !== entry.value && entry.count === 1) entry.value = value;
+      stats.set(key, entry);
+    });
+  });
+  return [...stats.values()]
+    .sort((a, b) => b.count - a.count || b.last - a.last)
+    .map(entry => entry.value);
+}
+
+function getDescriptionSuggestionValues() {
+  return collectRankedValues(expense => [expense.description]);
+}
+
+function getTagSuggestionValues() {
+  return collectRankedValues(expense => normalizeExpenseAnalytics(expense).tags || []);
+}
+
+function setupAutocomplete({ inputId, getValues, tokenized = false }) {
+  const input = document.getElementById(inputId);
+  if (!input || input._autocompleteBound) return;
+  input._autocompleteBound = true;
+  input.setAttribute("autocomplete", "off");
+
+  const anchor = input.closest("label") || input.parentElement;
+  anchor.classList.add("autocomplete-anchor");
+
+  const panel = document.createElement("div");
+  panel.className = "autocomplete-panel hidden";
+  input.insertAdjacentElement("afterend", panel);
+
+  let matches = [];
+  let activeIndex = -1;
+
+  function currentToken() {
+    if (!tokenized) return input.value.trim();
+    const parts = input.value.split(",");
+    return parts[parts.length - 1].trim();
+  }
+
+  function applyValue(value) {
+    if (!tokenized) {
+      input.value = value;
+    } else {
+      const parts = input.value.split(",");
+      parts[parts.length - 1] = value;
+      input.value = parts.map(part => part.trim()).filter(Boolean).join(", ");
+    }
+    closePanel();
+    input.focus();
+  }
+
+  function closePanel() {
+    panel.classList.add("hidden");
+    panel.innerHTML = "";
+    matches = [];
+    activeIndex = -1;
+  }
+
+  function updatePanel() {
+    const query = normalizeForSearch(currentToken());
+    if (!query) { closePanel(); return; }
+
+    const values = getValues();
+    const starts = [];
+    const contains = [];
+    values.forEach(value => {
+      const normalized = normalizeForSearch(value);
+      if (normalized === query) return; // già scritto per intero
+      if (normalized.startsWith(query)) starts.push(value);
+      else if (normalized.includes(query)) contains.push(value);
+    });
+    matches = [...starts, ...contains].slice(0, 8);
+
+    if (!matches.length) { closePanel(); return; }
+
+    activeIndex = -1;
+    panel.innerHTML = matches
+      .map((value, index) => `<button type="button" class="autocomplete-item" data-suggestion-index="${index}">${escapeHtml(value)}</button>`)
+      .join("");
+    panel.classList.remove("hidden");
+  }
+
+  function highlight(index) {
+    activeIndex = index;
+    panel.querySelectorAll(".autocomplete-item").forEach((item, itemIndex) => {
+      item.classList.toggle("active", itemIndex === activeIndex);
+    });
+  }
+
+  input.addEventListener("input", updatePanel);
+
+  input.addEventListener("keydown", event => {
+    if (panel.classList.contains("hidden")) return;
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      highlight(Math.min(activeIndex + 1, matches.length - 1));
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      highlight(Math.max(activeIndex - 1, 0));
+    } else if (event.key === "Enter") {
+      if (activeIndex >= 0) {
+        event.preventDefault(); // non inviare il form: applica il suggerimento
+        applyValue(matches[activeIndex]);
+      } else {
+        closePanel(); // Enter senza selezione: comportamento normale del form
+      }
+    } else if (event.key === "Escape") {
+      closePanel();
+    }
+  });
+
+  // pointerdown + preventDefault: applica il suggerimento prima che
+  // l'input perda il focus (necessario per il tocco su mobile).
+  panel.addEventListener("pointerdown", event => {
+    const item = event.target.closest("[data-suggestion-index]");
+    if (!item) return;
+    event.preventDefault();
+    applyValue(matches[Number(item.dataset.suggestionIndex)]);
+  });
+
+  input.addEventListener("blur", () => {
+    window.setTimeout(closePanel, 150);
+  });
 }
 
 function renderHomeMonthSelect() {
@@ -5844,6 +5979,8 @@ window.addEventListener("resize", () => {
 
 try {
   document.getElementById("appVersion").textContent = APP_VERSION;
+  setupAutocomplete({ inputId: "description", getValues: getDescriptionSuggestionValues });
+  setupAutocomplete({ inputId: "expenseTags", getValues: getTagSuggestionValues, tokenized: true });
   syncTotalLimitWithCategories();
   state.selectedMonth = getCurrentMonth();
   setDefaultDate();

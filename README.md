@@ -1,5 +1,14 @@
 # Spese Mensili - PWA locale v16
 
+## Modifiche V.107
+
+Suggerimenti "standard" e non vincolanti per Descrizione e Tag nel form Aggiungi spesa:
+
+- Digitando in Descrizione, l'app propone in una tendina i valori già usati che iniziano con o contengono il testo digitato (es. "benz" -> Benzina, Benzina moto), ignorando maiuscole e accenti, ordinati per frequenza d'uso. Toccando un suggerimento si compila il campo; scrivere testo libero resta sempre possibile, nessuna scelta è obbligata.
+- Lo stesso vale per il campo Tag, che suggerisce i singoli tag già usati completando solo l'ultimo elemento dopo la virgola.
+- Da tastiera: frecce su/giù per scorrere, Invio per applicare il suggerimento evidenziato (senza selezione, Invio si comporta normalmente), Esc per chiudere.
+- Sostituito il vecchio meccanismo a datalist del browser, inaffidabile su smartphone (spesso non compariva o suggeriva solo per prefisso).
+
 ## Modifiche V.106
 
 Rivista la sezione "Ultime spese" in Home come cronologia di inserimento:
