@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.107";
+const APP_VERSION = "V.108";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
@@ -1424,12 +1424,35 @@ function setupAutocomplete({ inputId, getValues, tokenized = false }) {
     }
   });
 
-  // pointerdown + preventDefault: applica il suggerimento prima che
-  // l'input perda il focus (necessario per il tocco su mobile).
+  // Inghiotte il "click fantasma" che il browser genera a fine tocco:
+  // quando il pannello si chiude, quel click atterrerebbe su ciò che sta
+  // sotto (es. il pulsante "Salva spesa"), inviando il form senza volerlo.
+  function swallowNextClick() {
+    const swallow = clickEvent => {
+      clickEvent.preventDefault();
+      clickEvent.stopPropagation();
+    };
+    document.addEventListener("click", swallow, { capture: true, once: true });
+    // Se il click fantasma non arriva, rimuovi la guardia per non
+    // mangiare il prossimo tocco reale dell'utente.
+    window.setTimeout(() => {
+      document.removeEventListener("click", swallow, { capture: true });
+    }, 400);
+  }
+
+  // pointerdown: solo preventDefault, per non far perdere il focus
+  // all'input (il blur chiuderebbe il pannello prima della scelta).
   panel.addEventListener("pointerdown", event => {
+    event.preventDefault();
+  });
+
+  // La scelta si applica a fine tocco (pointerup), col pannello ancora
+  // presente, e il click successivo viene neutralizzato.
+  panel.addEventListener("pointerup", event => {
     const item = event.target.closest("[data-suggestion-index]");
     if (!item) return;
     event.preventDefault();
+    swallowNextClick();
     applyValue(matches[Number(item.dataset.suggestionIndex)]);
   });
 

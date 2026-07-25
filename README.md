@@ -1,5 +1,9 @@
 # Spese Mensili - PWA locale v16
 
+## Modifiche V.108
+
+- Corretto il "tocco fantasma" sui suggerimenti di Descrizione/Tag: toccando un suggerimento, il browser generava a fine tocco un click aggiuntivo che, con la tendina ormai chiusa, atterrava sul pulsante "Salva spesa" sottostante, salvando la spesa senza volerlo. Ora la scelta si applica a fine tocco e il click successivo viene neutralizzato: selezionare un suggerimento compila solo il campo.
+
 ## Modifiche V.107
 
 Suggerimenti "standard" e non vincolanti per Descrizione e Tag nel form Aggiungi spesa:
