@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.108";
+const APP_VERSION = "V.109";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
@@ -46,6 +46,7 @@ const initialState = {
   lastIncomeReminderDismissedMonth: "",
   lastCategoryAutoOrderDate: "",
   migrations: {},
+  smsBasket: [],
   incomes: [],
   categories: [...defaultCategories],
   categorySettings: {},
@@ -340,6 +341,7 @@ function migrateState(rawState) {
     lastCategoryAutoOrderDate: rawState.lastCategoryAutoOrderDate || "",
     migrations: rawState.migrations && typeof rawState.migrations === "object" ? rawState.migrations : {},
     incomes: Array.isArray(rawState.incomes) ? rawState.incomes : [],
+    smsBasket: Array.isArray(rawState.smsBasket) ? rawState.smsBasket : [],
     categories: rawState.categories || [...defaultCategories],
     categorySettings: rawState.categorySettings && typeof rawState.categorySettings === "object" ? rawState.categorySettings : {},
     expenses: Array.isArray(rawState.expenses) ? rawState.expenses : [],
@@ -1290,6 +1292,208 @@ function renderInputSuggestions() {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Movimenti banca da SMS: basket, estrazione dati e proposta di spesa.
+// I messaggi entrano da tre porte: URL #sms=... (es. da MacroDroid),
+// condivisione verso la PWA (Web Share Target), o pulsante "Incolla".
+// Formato di riferimento: "Xxx Bank - La informiamo che e' stato eseguito
+// un acquisto di EUR 20,40 il 05/08/26 ore 21:30 con la sua carta *****xxx"
+// ---------------------------------------------------------------------------
+
+function parseBankSms(text) {
+  const message = String(text || "").replace(/\s+/g, " ").trim();
+  if (!message) return null;
+
+  // Importo: "EUR 20,40" oppure "20,40 EUR" oppure "€ 20,40" (virgola o
+  // punto decimale, con eventuali separatori delle migliaia: 1.234,56).
+  const amountMatch = message.match(/(?:EUR|€)\s*([\d.]+,\d{1,2}|\d+(?:[.,]\d{1,2})?)/i)
+    || message.match(/([\d.]+,\d{1,2}|\d+(?:[.,]\d{1,2})?)\s*(?:EUR|€)/i);
+  let amount = null;
+  if (amountMatch) {
+    let raw = amountMatch[1];
+    if (raw.includes(",")) raw = raw.replace(/\./g, "").replace(",", ".");
+    const value = Number(raw);
+    if (Number.isFinite(value) && value > 0) amount = Math.round(value * 100) / 100;
+  }
+
+  // Data: "il 05/08/26" o "05/08/2026" (giorno/mese/anno).
+  const dateMatch = message.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+  let date = "";
+  if (dateMatch) {
+    const day = dateMatch[1].padStart(2, "0");
+    const month = dateMatch[2].padStart(2, "0");
+    const year = dateMatch[3].length === 2 ? `20${dateMatch[3]}` : dateMatch[3];
+    const candidate = `${year}-${month}-${day}`;
+    if (!Number.isNaN(new Date(candidate).getTime())) date = candidate;
+  }
+
+  const timeMatch = message.match(/ore\s+(\d{1,2}[:.]\d{2})/i);
+  const operationMatch = message.match(/\b(acquisto|pagamento|prelievo|addebito|bonifico)\b/i);
+  // Alcune banche indicano l'esercente con "presso NOME": se c'è lo usiamo.
+  const merchantMatch = message.match(/presso\s+([A-Za-z0-9ÀÈÉÌÒÙàèéìòù' .&-]{2,40}?)(?=\s+(?:il|in data|con|alle|ore)\b|[.,]|$)/i);
+
+  return {
+    amount,
+    date,
+    time: timeMatch ? timeMatch[1].replace(".", ":") : "",
+    operation: operationMatch ? operationMatch[1].toLowerCase() : "",
+    merchant: merchantMatch ? merchantMatch[1].trim() : "",
+    hasData: amount !== null || Boolean(date)
+  };
+}
+
+function normalizeSmsForDedup(text) {
+  return String(text || "").replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+function addSmsToBasket(text, source) {
+  const message = String(text || "").trim();
+  if (!message) return false;
+
+  const normalized = normalizeSmsForDedup(message);
+  const alreadyPresent = state.smsBasket.some(entry => normalizeSmsForDedup(entry.text) === normalized);
+  if (alreadyPresent) return false;
+
+  state.smsBasket.push({
+    id: `sms-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    text: message,
+    source: source || "manuale",
+    receivedAt: new Date().toISOString()
+  });
+  // Il basket non cresce all'infinito: si tengono gli ultimi 30 messaggi.
+  if (state.smsBasket.length > 30) {
+    state.smsBasket = state.smsBasket.slice(-30);
+  }
+  saveState();
+  return true;
+}
+
+// Legge eventuali messaggi in arrivo dall'URL: #sms=... (MacroDroid) oppure
+// ?text=... / ?title=... (condivisione verso la PWA), poi pulisce l'URL.
+function ingestSmsFromUrl() {
+  let added = 0;
+
+  const hash = window.location.hash || "";
+  const hashMatch = hash.match(/#sms=(.+)/);
+  if (hashMatch) {
+    try {
+      if (addSmsToBasket(decodeURIComponent(hashMatch[1]), "macrodroid")) added += 1;
+    } catch {
+      if (addSmsToBasket(hashMatch[1], "macrodroid")) added += 1;
+    }
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const sharedText = [params.get("title"), params.get("text")].filter(Boolean).join(" ").trim();
+  if (sharedText) {
+    if (addSmsToBasket(sharedText, "condivisione")) added += 1;
+  }
+
+  if (hashMatch || sharedText) {
+    // Rimuove il messaggio dall'URL per non re-importarlo a ogni refresh.
+    window.history.replaceState(null, "", window.location.pathname);
+  }
+
+  return added;
+}
+
+async function pasteSmsFromClipboard() {
+  try {
+    const text = await navigator.clipboard.readText();
+    if (!text || !text.trim()) {
+      appAlert("Gli appunti sono vuoti: copia prima il testo dell'SMS della banca.", "Incolla da SMS");
+      return;
+    }
+    if (addSmsToBasket(text, "appunti")) {
+      renderSmsBasket();
+    } else {
+      appAlert("Questo messaggio è già presente tra i movimenti in attesa.", "Incolla da SMS");
+    }
+  } catch {
+    appAlert("Non riesco a leggere gli appunti su questo dispositivo. In alternativa puoi condividere l'SMS verso questa app dal menu Condividi di Messaggi.", "Incolla da SMS");
+  }
+}
+window.pasteSmsFromClipboard = pasteSmsFromClipboard;
+
+function useSmsFromBasket(entryId) {
+  const entry = state.smsBasket.find(item => item.id === entryId);
+  if (!entry) return;
+
+  const parsed = parseBankSms(entry.text);
+
+  const amountInput = document.getElementById("amount");
+  if (amountInput && parsed && parsed.amount !== null) amountInput.value = parsed.amount;
+
+  const dateInput = document.getElementById("date");
+  if (dateInput && parsed && parsed.date) dateInput.value = parsed.date;
+
+  const paidDateInput = document.getElementById("paidDate");
+  if (paidDateInput && parsed && parsed.date) paidDateInput.value = parsed.date;
+
+  const descriptionInput = document.getElementById("description");
+  if (descriptionInput && !descriptionInput.value) {
+    const operation = parsed && parsed.operation ? parsed.operation : "acquisto";
+    const merchant = parsed && parsed.merchant ? ` ${parsed.merchant}` : " carta";
+    descriptionInput.value = `${operation.charAt(0).toUpperCase()}${operation.slice(1)}${merchant}`;
+  }
+
+  discardSmsFromBasket(entryId);
+
+  const form = document.getElementById("expenseForm");
+  if (form && typeof form.scrollIntoView === "function") {
+    form.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  if (amountInput) amountInput.focus();
+}
+window.useSmsFromBasket = useSmsFromBasket;
+
+function discardSmsFromBasket(entryId) {
+  state.smsBasket = state.smsBasket.filter(item => item.id !== entryId);
+  saveState();
+  renderSmsBasket();
+}
+window.discardSmsFromBasket = discardSmsFromBasket;
+
+function renderSmsBasket() {
+  const container = document.getElementById("smsBasket");
+  if (!container) return;
+
+  if (!state.smsBasket.length) {
+    container.classList.add("hidden");
+    container.innerHTML = "";
+    return;
+  }
+
+  container.classList.remove("hidden");
+  container.innerHTML = `
+    <div class="sms-basket-heading">
+      <strong>📩 Movimenti banca in attesa</strong>
+      <span>${state.smsBasket.length}</span>
+    </div>
+    ${state.smsBasket.map(entry => {
+      const parsed = parseBankSms(entry.text);
+      const summaryParts = [];
+      if (parsed && parsed.amount !== null) summaryParts.push(formatCurrency(parsed.amount));
+      if (parsed && parsed.date) summaryParts.push(parsed.date);
+      if (parsed && parsed.time) summaryParts.push(`ore ${parsed.time}`);
+      const summary = summaryParts.length ? summaryParts.join(" · ") : "Dati non riconosciuti";
+      return `
+        <div class="sms-basket-item">
+          <div class="sms-basket-info">
+            <strong>${escapeHtml(summary)}</strong>
+            <span class="sms-basket-text">${escapeHtml(entry.text.length > 110 ? `${entry.text.slice(0, 110)}…` : entry.text)}</span>
+          </div>
+          <div class="sms-basket-actions">
+            <button type="button" class="secondary small" onclick="useSmsFromBasket('${escapeAttribute(entry.id)}')">Usa</button>
+            <button type="button" class="danger small" onclick="discardSmsFromBasket('${escapeAttribute(entry.id)}')">Scarta</button>
+          </div>
+        </div>
+      `;
+    }).join("")}
+  `;
+}
+
+// ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
 // Autocompletamento non vincolante per Descrizione e Tag: suggerisce i
 // valori già usati che iniziano con o contengono il testo digitato
@@ -6004,6 +6208,13 @@ try {
   document.getElementById("appVersion").textContent = APP_VERSION;
   setupAutocomplete({ inputId: "description", getValues: getDescriptionSuggestionValues });
   setupAutocomplete({ inputId: "expenseTags", getValues: getTagSuggestionValues, tokenized: true });
+  const ingestedSmsCount = ingestSmsFromUrl();
+  renderSmsBasket();
+  if (ingestedSmsCount > 0) {
+    // Un movimento è appena arrivato (MacroDroid/condivisione): porta
+    // l'utente direttamente alla sezione Aggiungi con il basket in vista.
+    showView("addView");
+  }
   syncTotalLimitWithCategories();
   state.selectedMonth = getCurrentMonth();
   setDefaultDate();

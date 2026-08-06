@@ -13,7 +13,7 @@
     <header class="app-header">
       <div class="app-title">
         <h1>Spese Mensili</h1>
-        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.108</span></p>
+        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.109</span></p>
       </div>
       <button id="installButton" class="secondary hidden">Installa</button>
     </header>
@@ -30,7 +30,7 @@
 
         <div class="card compact version-card">
           <span>Versione app</span>
-          <strong>V.108</strong>
+          <strong>V.109</strong>
         </div>
 
         <div class="card hero">
@@ -78,6 +78,9 @@
         <div class="card">
           <h2>Aggiungi spesa</h2>
           <form id="expenseForm">
+            <div id="smsBasket" class="sms-basket hidden"></div>
+            <button type="button" class="secondary small sms-paste-button" onclick="pasteSmsFromClipboard()">📋 Incolla da SMS banca</button>
+
             <details class="optional-fields">
               <summary>Rimborso generico</summary>
               <label class="checkbox-row">

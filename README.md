@@ -1,5 +1,14 @@
 # Spese Mensili - PWA locale v16
 
+## Modifiche V.109
+
+Nuova funzione: movimenti banca da SMS con basket di proposta (Crea/Scarta):
+
+- I messaggi della banca possono entrare nell'app in tre modi: 1) automaticamente via MacroDroid, che apre l'app con il testo nel link (#sms=...); 2) condividendo l'SMS verso questa app dal menu Condividi di Messaggi (la PWA è ora registrata come destinazione di condivisione); 3) col nuovo pulsante "Incolla da SMS banca" nella sezione Aggiungi.
+- I messaggi finiscono in un basket "Movimenti banca in attesa" (salvato in locale, incluso nei backup, max 30 voci, con deduplica automatica): per ciascuno l'app mostra importo/data riconosciuti e i pulsanti Usa e Scarta.
+- "Usa" precompila il form (importo, data competenza e pagamento, descrizione es. "Acquisto carta"); categoria e resto restano a scelta. Il riconoscimento gestisce EUR/€, virgola/punto decimale, migliaia, date gg/mm/aa e gg/mm/aaaa, acquisto/pagamento/prelievo/addebito, ed eventuale esercente "presso NOME".
+- Se l'app viene aperta da MacroDroid o da una condivisione, va direttamente alla sezione Aggiungi col basket in vista. Il testo passa solo in locale (frammento #, mai inviato al server).
+
 ## Modifiche V.108
 
 - Corretto il "tocco fantasma" sui suggerimenti di Descrizione/Tag: toccando un suggerimento, il browser generava a fine tocco un click aggiuntivo che, con la tendina ormai chiusa, atterrava sul pulsante "Salva spesa" sottostante, salvando la spesa senza volerlo. Ora la scelta si applica a fine tocco e il click successivo viene neutralizzato: selezionare un suggerimento compila solo il campo.
