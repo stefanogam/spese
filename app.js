@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.109";
+const APP_VERSION = "V.111";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
@@ -1430,11 +1430,12 @@ function useSmsFromBasket(entryId) {
   const paidDateInput = document.getElementById("paidDate");
   if (paidDateInput && parsed && parsed.date) paidDateInput.value = parsed.date;
 
+  // La descrizione resta vuota: la compila l'utente (con l'aiuto
+  // dell'autocompletamento). Se il messaggio contiene l'esercente
+  // ("presso NOME"), solo quello viene proposto.
   const descriptionInput = document.getElementById("description");
-  if (descriptionInput && !descriptionInput.value) {
-    const operation = parsed && parsed.operation ? parsed.operation : "acquisto";
-    const merchant = parsed && parsed.merchant ? ` ${parsed.merchant}` : " carta";
-    descriptionInput.value = `${operation.charAt(0).toUpperCase()}${operation.slice(1)}${merchant}`;
+  if (descriptionInput && !descriptionInput.value && parsed && parsed.merchant) {
+    descriptionInput.value = parsed.merchant;
   }
 
   discardSmsFromBasket(entryId);
@@ -1477,10 +1478,12 @@ function renderSmsBasket() {
       if (parsed && parsed.date) summaryParts.push(parsed.date);
       if (parsed && parsed.time) summaryParts.push(`ore ${parsed.time}`);
       const summary = summaryParts.length ? summaryParts.join(" · ") : "Dati non riconosciuti";
+      const sourceLabels = { macrodroid: "da link automatico", condivisione: "da condivisione", appunti: "incollato" };
+      const sourceLabel = sourceLabels[entry.source] || "manuale";
       return `
         <div class="sms-basket-item">
           <div class="sms-basket-info">
-            <strong>${escapeHtml(summary)}</strong>
+            <strong>${escapeHtml(summary)} <span class="sms-basket-source">· ${escapeHtml(sourceLabel)}</span></strong>
             <span class="sms-basket-text">${escapeHtml(entry.text.length > 110 ? `${entry.text.slice(0, 110)}…` : entry.text)}</span>
           </div>
           <div class="sms-basket-actions">
@@ -1807,7 +1810,10 @@ function renderLatestExpenses() {
       const createdDate = getExpenseCreatedDateString(expense);
       return createdDate && createdDate <= today;
     })
-    .sort((a, b) => getExpenseCreatedAtTime(b) - getExpenseCreatedAtTime(a));
+    .sort((a, b) =>
+      getExpenseCreatedAtTime(b) - getExpenseCreatedAtTime(a)
+      || new Date(b.date) - new Date(a.date)
+    );
 
   const insertedTodayAll = sortedByInsertion.filter(expense => getExpenseCreatedDateString(expense) === today);
   const insertedOtherAll = sortedByInsertion.filter(expense => getExpenseCreatedDateString(expense) !== today);
@@ -2137,7 +2143,13 @@ function renderExpensesList() {
 
   const expenses = filterByExpenseDescriptionSearch(filterBySelectedExpenseCategories(
     getExpensesForDateRange(state.selectedExpensesDateFrom, state.selectedExpensesDateTo)
-  )).sort((a, b) => new Date(b.date) - new Date(a.date));
+  // Ordinamento per data e ora di INSERIMENTO: l'ultima spesa registrata
+  // appare per prima. A parità (vecchi record senza orario) vale la
+  // data di competenza più recente.
+  )).sort((a, b) =>
+    getExpenseCreatedAtTime(b) - getExpenseCreatedAtTime(a)
+    || new Date(b.date) - new Date(a.date)
+  );
 
   const visibleExpensesTotal = document.getElementById("visibleExpensesTotal");
   if (visibleExpensesTotal) {
@@ -2166,7 +2178,10 @@ function renderGenericReimbursementsList() {
   const periodLabel = getExpensesPeriodLabel();
   const reimbursements = filterByExpenseDescriptionSearch(filterBySelectedExpenseCategories(
     getGenericReimbursementsForDateRange(state.selectedExpensesDateFrom, state.selectedExpensesDateTo)
-  )).sort((a, b) => new Date(b.date) - new Date(a.date));
+  )).sort((a, b) =>
+    getExpenseCreatedAtTime(b) - getExpenseCreatedAtTime(a)
+    || new Date(b.date) - new Date(a.date)
+  );
 
   const visibleReimbursementsTotal = document.getElementById("visibleReimbursementsTotal");
   if (visibleReimbursementsTotal) {
@@ -5752,10 +5767,18 @@ function escapeAttributeForHtml(value) {
     .replaceAll('"', "&quot;");
 }
 
+// Escape per valori inseriti in stringhe JS dentro attributi HTML, es.
+// onclick="fn('VALORE')". Servono ENTRAMBI i livelli: prima l'escape della
+// stringa JS (backslash, apici, a-capo), poi l'escape dell'attributo HTML
+// (&, <, >, ") — senza il secondo, un valore contenente " chiuderebbe
+// l'attributo e permetterebbe di iniettare altri attributi/handler.
 function escapeAttribute(value) {
-  return String(value)
+  const jsEscaped = String(value)
     .replaceAll("\\", "\\\\")
-    .replaceAll("'", "\\'");
+    .replaceAll("'", "\\'")
+    .replaceAll("\n", "\\n")
+    .replaceAll("\r", "\\r");
+  return escapeAttributeForHtml(jsEscaped);
 }
 
 function cssEscape(value) {

@@ -1,4 +1,4 @@
-const CACHE_NAME = "spese-pwa-locale-v109";
+const CACHE_NAME = "spese-pwa-locale-v111";
 
 // Tempo massimo di attesa della rete prima di servire la cache.
 // Senza questo limite, in assenza di connettività reale (Wi-Fi senza

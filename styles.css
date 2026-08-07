@@ -2798,3 +2798,9 @@ button.small {
     padding: 12px;
   }
 }
+
+.sms-basket-source {
+  font-weight: 600;
+  font-size: 0.78rem;
+  color: #64748b;
+}

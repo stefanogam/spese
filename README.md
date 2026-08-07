@@ -1,5 +1,19 @@
 # Spese Mensili - PWA locale v16
 
+## Modifiche V.111
+
+Verifica di sicurezza dell'app (inclusa la registrazione come destinazione di condivisione):
+
+- Corretta una falla di escape negli attributi onclick: un valore contenente virgolette (es. un nome categoria proveniente da un backup manomesso) poteva uscire dall'attributo e iniettare codice. Ora l'escape copre entrambi i contesti (stringa JS + attributo HTML); fix verificato contro payload di attacco.
+- Ogni voce del basket "Movimenti banca" mostra ora la provenienza (da link automatico / da condivisione / incollato), per riconoscere eventuali voci arrivate da link esterni non richiesti.
+- Verifiche superate senza problemi: tutti i campi utente (descrizioni, categorie, esercenti, testi SMS) passano dall'escape HTML nel rendering; il token Google Drive non viene salvato su disco; i link esterni non espongono window.opener; le espressioni regolari del parser SMS non sono soggette a ReDoS; l'URL con il testo SMS viene ripulito subito (niente residui nella cronologia).
+
+## Modifiche V.110
+
+- Importazione da SMS banca: la descrizione non viene più precompilata con "Acquisto carta" e resta vuota (se il messaggio contiene l'esercente "presso NOME", viene proposto solo quello).
+- Elenco Spese (e rimborsi generici): ordinamento per data e ora di INSERIMENTO, con l'ultimo inserimento temporale mostrato per primo; a parità (vecchi record senza orario), vale la data di competenza più recente. Stesso criterio rifinito anche in "Ultime spese" in Home.
+- Verificato che tutti i percorsi di creazione (spesa singola, plurimensile, rimborso, duplicazione) registrano già data e ora esatte del momento di creazione: i nuovi inserimenti si ordinano quindi al minuto.
+
 ## Modifiche V.109
 
 Nuova funzione: movimenti banca da SMS con basket di proposta (Crea/Scarta):
