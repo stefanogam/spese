@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.111";
+const APP_VERSION = "V.112";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
@@ -1348,14 +1348,15 @@ function normalizeSmsForDedup(text) {
 
 function addSmsToBasket(text, source) {
   const message = String(text || "").trim();
-  if (!message) return false;
+  if (!message) return null;
 
   const normalized = normalizeSmsForDedup(message);
   const alreadyPresent = state.smsBasket.some(entry => normalizeSmsForDedup(entry.text) === normalized);
-  if (alreadyPresent) return false;
+  if (alreadyPresent) return null;
 
+  const entryId = `sms-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   state.smsBasket.push({
-    id: `sms-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    id: entryId,
     text: message,
     source: source || "manuale",
     receivedAt: new Date().toISOString()
@@ -1365,28 +1366,29 @@ function addSmsToBasket(text, source) {
     state.smsBasket = state.smsBasket.slice(-30);
   }
   saveState();
-  return true;
+  return entryId;
 }
 
 // Legge eventuali messaggi in arrivo dall'URL: #sms=... (MacroDroid) oppure
 // ?text=... / ?title=... (condivisione verso la PWA), poi pulisce l'URL.
+// Restituisce gli id delle voci aggiunte (l'ultima è la più recente).
 function ingestSmsFromUrl() {
-  let added = 0;
+  const addedIds = [];
 
   const hash = window.location.hash || "";
   const hashMatch = hash.match(/#sms=(.+)/);
   if (hashMatch) {
-    try {
-      if (addSmsToBasket(decodeURIComponent(hashMatch[1]), "macrodroid")) added += 1;
-    } catch {
-      if (addSmsToBasket(hashMatch[1], "macrodroid")) added += 1;
-    }
+    let decoded = hashMatch[1];
+    try { decoded = decodeURIComponent(hashMatch[1]); } catch { /* testo non codificato */ }
+    const entryId = addSmsToBasket(decoded, "macrodroid");
+    if (entryId) addedIds.push(entryId);
   }
 
   const params = new URLSearchParams(window.location.search);
   const sharedText = [params.get("title"), params.get("text")].filter(Boolean).join(" ").trim();
   if (sharedText) {
-    if (addSmsToBasket(sharedText, "condivisione")) added += 1;
+    const entryId = addSmsToBasket(sharedText, "condivisione");
+    if (entryId) addedIds.push(entryId);
   }
 
   if (hashMatch || sharedText) {
@@ -1394,7 +1396,18 @@ function ingestSmsFromUrl() {
     window.history.replaceState(null, "", window.location.pathname);
   }
 
-  return added;
+  return addedIds;
+}
+
+// Compila automaticamente il form con un messaggio appena arrivato, ma solo
+// se il form è ancora "libero" (importo vuoto): non si sovrascrive mai una
+// spesa che l'utente sta già inserendo — in quel caso la voce resta nel
+// basket, pronta con il pulsante Usa.
+function autoApplySmsIfFormFree(entryId) {
+  const amountInput = document.getElementById("amount");
+  if (!amountInput || String(amountInput.value).trim() !== "") return false;
+  useSmsFromBasket(entryId);
+  return true;
 }
 
 async function pasteSmsFromClipboard() {
@@ -1404,8 +1417,10 @@ async function pasteSmsFromClipboard() {
       appAlert("Gli appunti sono vuoti: copia prima il testo dell'SMS della banca.", "Incolla da SMS");
       return;
     }
-    if (addSmsToBasket(text, "appunti")) {
-      renderSmsBasket();
+    const entryId = addSmsToBasket(text, "appunti");
+    if (entryId) {
+      // Il messaggio incollato compila subito il form (se libero).
+      if (!autoApplySmsIfFormFree(entryId)) renderSmsBasket();
     } else {
       appAlert("Questo messaggio è già presente tra i movimenti in attesa.", "Incolla da SMS");
     }
@@ -6231,20 +6246,24 @@ try {
   document.getElementById("appVersion").textContent = APP_VERSION;
   setupAutocomplete({ inputId: "description", getValues: getDescriptionSuggestionValues });
   setupAutocomplete({ inputId: "expenseTags", getValues: getTagSuggestionValues, tokenized: true });
-  const ingestedSmsCount = ingestSmsFromUrl();
-  renderSmsBasket();
-  if (ingestedSmsCount > 0) {
-    // Un movimento è appena arrivato (MacroDroid/condivisione): porta
-    // l'utente direttamente alla sezione Aggiungi con il basket in vista.
-    showView("addView");
-  }
+  const ingestedSmsIds = ingestSmsFromUrl();
   syncTotalLimitWithCategories();
   state.selectedMonth = getCurrentMonth();
   setDefaultDate();
   renderAll();
   renderMultiReport();
   renderFamilyBudget();
-  showDailyBackupReminderIfNeeded();
+  renderSmsBasket();
+  if (ingestedSmsIds.length > 0) {
+    // Un movimento è appena arrivato (MacroDroid/condivisione): si apre
+    // la sezione Aggiungi e il form viene compilato subito con l'ultimo
+    // messaggio, senza passare dal basket. Eventuali altri messaggi
+    // restano nel basket; se il form fosse già occupato, la voce resta lì.
+    showView("addView");
+    autoApplySmsIfFormFree(ingestedSmsIds[ingestedSmsIds.length - 1]);
+  } else {
+    showDailyBackupReminderIfNeeded();
+  }
   registerServiceWorker();
 } catch (error) {
   console.error("Errore avvio app", error);

@@ -1,5 +1,13 @@
 # Spese Mensili - PWA locale v16
 
+## Modifiche V.112
+
+Importazione SMS banca: il form viene compilato automaticamente, senza passare dal basket:
+
+- Quando l'app si apre da MacroDroid o da una condivisione, il messaggio appena arrivato compila subito il form di inserimento (importo, data competenza e pagamento) nella sezione Aggiungi, senza dover toccare "Usa". Anche il pulsante "Incolla da SMS banca" ora compila direttamente il form.
+- Protezione: se il form contiene già un importo (una spesa a metà inserimento), il nuovo messaggio NON lo sovrascrive e resta nel basket con il pulsante Usa. Se arrivano più messaggi insieme, si compila l'ultimo e gli altri restano nel basket.
+- Quando l'app si apre per un movimento in arrivo, il promemoria del backup giornaliero non compare sopra il form (riappare alla prossima apertura normale).
+
 ## Modifiche V.111
 
 Verifica di sicurezza dell'app (inclusa la registrazione come destinazione di condivisione):
