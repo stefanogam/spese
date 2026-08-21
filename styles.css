@@ -2943,3 +2943,59 @@ button.small {
 
 .reclassify-option:hover { filter: brightness(0.97); }
 .reclassify-skip { width: 100%; }
+
+/* ---------- Stato del mese: pannello richiudibile ---------- */
+.month-status-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  list-style: none;
+  padding: 2px 0;
+}
+
+.month-status-summary::-webkit-details-marker {
+  display: none;
+}
+
+.month-status-summary strong {
+  font-size: 1.05rem;
+}
+
+.month-status-summary::after {
+  content: "▾";
+  color: #64748b;
+  font-size: 0.8rem;
+  transition: transform 0.15s ease;
+}
+
+#monthStatusPanel[open] .month-status-summary::after {
+  transform: rotate(180deg);
+}
+
+.month-status-badge {
+  margin-left: auto;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #334155;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 62%;
+}
+
+.month-status-badge.pace-green { background: #ecfdf5; border-color: #a7f3d0; color: #047857; }
+.month-status-badge.pace-yellow { background: #fffbeb; border-color: #fde68a; color: #b45309; }
+.month-status-badge.pace-red { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+.month-status-badge.pace-none { background: #f8fafc; border-color: #e2e8f0; color: #64748b; }
+
+#monthStatusPanel[open] .month-status-summary {
+  margin-bottom: 12px;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 10px;
+}

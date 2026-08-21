@@ -13,7 +13,7 @@
     <header class="app-header">
       <div class="app-title">
         <h1>Spese Mensili</h1>
-        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.113</span></p>
+        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.114</span></p>
       </div>
       <button id="installButton" class="secondary hidden">Installa</button>
     </header>
@@ -29,13 +29,18 @@
         </div>
 
         <div class="card month-status-card">
-          <h2>Stato del mese</h2>
-          <div id="monthStatus"></div>
+          <details id="monthStatusPanel">
+            <summary class="month-status-summary">
+              <strong>Stato del mese</strong>
+              <span id="monthStatusBadge" class="month-status-badge">—</span>
+            </summary>
+            <div id="monthStatus"></div>
+          </details>
         </div>
 
         <div class="card compact version-card">
           <span>Versione app</span>
-          <strong>V.113</strong>
+          <strong>V.114</strong>
         </div>
 
         <div class="card hero">

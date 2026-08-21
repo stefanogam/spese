@@ -1,5 +1,9 @@
 # Spese Mensili - PWA locale v16
 
+## Modifiche V.114
+
+- La card "Stato del mese" in Home è ora un pannello richiudibile, chiuso di default: non occupa più spazio all'apertura dell'app. A pannello chiuso resta comunque visibile un riepilogo compatto con il semaforo e il suo significato (es. "🟢 in linea con lo storico"), così il segnale proattivo si coglie a colpo d'occhio; un tocco espande i dettagli completi.
+
 ## Modifiche V.113
 
 Analisi proattiva delle spese: semaforo del mese, retrospettiva e riclassifica rapida.

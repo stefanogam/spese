@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.113";
+const APP_VERSION = "V.114";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
@@ -1813,14 +1813,25 @@ function renderMonthStatus() {
   const container = document.getElementById("monthStatus");
   if (!container) return;
 
+  const badge = document.getElementById("monthStatusBadge");
+
   const pacing = getMonthPacing();
   if (!pacing) {
+    if (badge) {
+      badge.textContent = "⚪ storico insufficiente";
+      badge.className = "month-status-badge pace-none";
+    }
     container.innerHTML = `<p class="empty">Il semaforo si attiva quando c'è almeno un mese di storico con cui confrontarsi.</p>`;
     return;
   }
 
   const totalLimit = Number(state.thresholds.totalLimit || 0);
   const status = pacingStatus(pacing, totalLimit);
+  // Riepilogo compatto visibile anche a pannello chiuso.
+  if (badge) {
+    badge.textContent = `${status.icon} ${status.label}`;
+    badge.className = `month-status-badge ${status.className}`;
+  }
   const income = getExpectedMonthlyIncome(pacing.month);
   const projectedSaving = income > 0 ? roundToTwoDecimals(income - pacing.projection) : null;
   const deltaVsRef = roundToTwoDecimals(pacing.currentCum - pacing.refCumAtDay);
