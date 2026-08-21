@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.112";
+const APP_VERSION = "V.113";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
@@ -1703,9 +1703,183 @@ function renderHomeMonthSelect() {
   renderMonthPickerButton("homeMonthPickerButton", state.selectedMonth);
 }
 
+
+// ---------------------------------------------------------------------------
+// Stato del mese (Home): confronto proattivo del ritmo di spesa del mese
+// corrente con lo storico, tramite "pacing cumulato": il cumulato di oggi
+// (giorno D) si confronta con il cumulato storico allo STESSO giorno D.
+// Questo rende il confronto robusto rispetto alle spese fisse di inizio
+// mese (es. affitto il giorno 1), che una proiezione lineare distorcerebbe.
+// ---------------------------------------------------------------------------
+
+function getDayFromDateString(dateString) {
+  const day = Number(String(dateString || "").slice(8, 10));
+  return Number.isFinite(day) ? day : 0;
+}
+
+// Cumulato lordo del mese fino al giorno indicato (opzionale: una categoria).
+function getMonthCumulativeAtDay(month, day, category = null) {
+  return roundToTwoDecimals(state.expenses
+    .filter(e => e.month === month
+      && (!category || e.category === category)
+      && getDayFromDateString(e.date) <= day)
+    .reduce((sum, e) => sum + Number(e.amount || 0), 0));
+}
+
+function getMonthGrossTotal(month, category = null) {
+  return getMonthCumulativeAtDay(month, 31, category);
+}
+
+// Mesi di storico utilizzabili come riferimento: solo quelli precedenti al
+// mese corrente in cui l'app è stata realmente usata. Un mese che contiene
+// soltanto rate generate automaticamente (plurimensili/ricorrenti) non
+// rappresenta le abitudini di spesa e falserebbe il confronto, quindi
+// richiediamo un minimo di spese registrate manualmente.
+const PACING_MIN_MANUAL_EXPENSES = 5;
+
+function getPacingHistoryMonths(currentMonth) {
+  const monthly = {};
+  state.expenses.forEach(e => {
+    if (!e.month || e.month >= currentMonth) return;
+    monthly[e.month] = monthly[e.month] || { manual: 0 };
+    // Le rate auto-generate hanno type "multi" o una ricorrenza impostata:
+    // non contano come segnale di utilizzo reale in quel mese.
+    const isGenerated = e.type === "multi" || (e.recurrenceType && e.recurrenceType !== "Una tantum");
+    if (!isGenerated) monthly[e.month].manual += 1;
+  });
+
+  return Object.keys(monthly)
+    .filter(month => monthly[month].manual >= PACING_MIN_MANUAL_EXPENSES)
+    .sort()
+    .slice(-6);
+}
+
+function medianOf(values) {
+  if (!values.length) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+// Riferimento storico: media con pochi mesi, mediana da 4 in su (così un
+// mese eccezionale, es. una vacanza, non inquina il riferimento).
+function pacingReference(values) {
+  if (!values.length) return 0;
+  return values.length >= 4 ? medianOf(values) : values.reduce((s, v) => s + v, 0) / values.length;
+}
+
+function getMonthPacing(category = null) {
+  const currentMonth = getCurrentMonth();
+  const day = new Date().getDate();
+  const historyMonths = getPacingHistoryMonths(currentMonth);
+  if (!historyMonths.length) return null;
+
+  const currentCum = getMonthCumulativeAtDay(currentMonth, day, category);
+  const refCumAtDay = pacingReference(historyMonths.map(m => getMonthCumulativeAtDay(m, day, category)));
+  const refTotal = pacingReference(historyMonths.map(m => getMonthGrossTotal(m, category)));
+
+  const ratio = refCumAtDay > 0 ? currentCum / refCumAtDay : (currentCum > 0 ? Infinity : 1);
+  // Proiezione "a ritmo": totale storico riscalato sul ritmo attuale.
+  const projection = refCumAtDay > 0
+    ? roundToTwoDecimals(refTotal * ratio)
+    : roundToTwoDecimals(currentCum);
+
+  return {
+    month: currentMonth, day, historyCount: historyMonths.length,
+    currentCum, refCumAtDay: roundToTwoDecimals(refCumAtDay),
+    refTotal: roundToTwoDecimals(refTotal), ratio, projection
+  };
+}
+
+function pacingStatus(pacing, limitForRed = 0) {
+  if (!pacing) return { icon: "⚪", label: "storico insufficiente", className: "pace-none" };
+  const overLimit = limitForRed > 0 && pacing.projection > limitForRed;
+  if (pacing.ratio > 1.25 || overLimit) return { icon: "🔴", label: "sopra il ritmo abituale", className: "pace-red" };
+  if (pacing.ratio > 1.10) return { icon: "🟡", label: "leggermente sopra il ritmo", className: "pace-yellow" };
+  return { icon: "🟢", label: "in linea con lo storico", className: "pace-green" };
+}
+
+function getExpectedMonthlyIncome(month) {
+  const current = (state.incomes || []).filter(i => i.month === month)
+    .reduce((s, i) => s + Number(i.amount || 0), 0);
+  if (current > 0) return roundToTwoDecimals(current);
+  const byMonth = {};
+  (state.incomes || []).forEach(i => { if (i.month < month) byMonth[i.month] = (byMonth[i.month] || 0) + Number(i.amount || 0); });
+  const values = Object.values(byMonth);
+  return values.length ? roundToTwoDecimals(pacingReference(values)) : 0;
+}
+
+function renderMonthStatus() {
+  const container = document.getElementById("monthStatus");
+  if (!container) return;
+
+  const pacing = getMonthPacing();
+  if (!pacing) {
+    container.innerHTML = `<p class="empty">Il semaforo si attiva quando c'è almeno un mese di storico con cui confrontarsi.</p>`;
+    return;
+  }
+
+  const totalLimit = Number(state.thresholds.totalLimit || 0);
+  const status = pacingStatus(pacing, totalLimit);
+  const income = getExpectedMonthlyIncome(pacing.month);
+  const projectedSaving = income > 0 ? roundToTwoDecimals(income - pacing.projection) : null;
+  const deltaVsRef = roundToTwoDecimals(pacing.currentCum - pacing.refCumAtDay);
+
+  // Categorie con il ritmo più anomalo: solo quelle con storico e importi
+  // significativi, ordinate per eccedenza in euro rispetto al riferimento.
+  const anomalies = state.categories
+    .map(category => {
+      const p = getMonthPacing(category);
+      if (!p || p.refTotal < 30 || p.refCumAtDay < 10) return null;
+      return { category, p, excess: roundToTwoDecimals(p.currentCum - p.refCumAtDay) };
+    })
+    .filter(item => item && item.p.ratio > 1.10 && item.excess >= 10)
+    .sort((a, b) => b.excess - a.excess)
+    .slice(0, 3);
+
+  container.innerHTML = `
+    <div class="month-status-head ${status.className}">
+      <span class="pace-icon">${status.icon}</span>
+      <div>
+        <strong>${escapeHtml(getMonthLabel(pacing.month))}: ${escapeHtml(status.label)}</strong>
+        <div class="pace-sub">Al giorno ${pacing.day}: ${formatCurrency(pacing.currentCum)} spesi · di solito a questo punto: ${formatCurrency(pacing.refCumAtDay)} (${deltaVsRef >= 0 ? "+" : ""}${formatCurrency(deltaVsRef)})</div>
+      </div>
+    </div>
+    <div class="month-status-grid">
+      <div class="multi-summary-item">
+        <span>Proiezione fine mese</span>
+        <strong>${formatCurrency(pacing.projection)}</strong>
+      </div>
+      <div class="multi-summary-item">
+        <span>Mese tipico</span>
+        <strong>${formatCurrency(pacing.refTotal)}</strong>
+      </div>
+      ${totalLimit > 0 ? `
+      <div class="multi-summary-item">
+        <span>Vs soglia (${formatCurrency(totalLimit)})</span>
+        <strong class="${pacing.projection > totalLimit ? "pace-red-text" : "pace-green-text"}">${pacing.projection > totalLimit ? "+" : ""}${formatCurrency(roundToTwoDecimals(pacing.projection - totalLimit))}</strong>
+      </div>` : ""}
+      ${projectedSaving !== null ? `
+      <div class="multi-summary-item">
+        <span>Risparmio previsto</span>
+        <strong class="${projectedSaving >= 0 ? "pace-green-text" : "pace-red-text"}">${formatCurrency(projectedSaving)}</strong>
+      </div>` : ""}
+    </div>
+    ${anomalies.length ? `
+      <div class="pace-anomalies">
+        <strong>Categorie sopra il ritmo:</strong>
+        ${anomalies.map(a => `
+          <span class="pace-anomaly">${escapeHtml(a.category)} +${formatCurrency(a.excess)} <em>(${Math.round((a.p.ratio - 1) * 100)}% oltre)</em></span>
+        `).join("")}
+      </div>` : `<div class="pace-anomalies pace-all-ok">Nessuna categoria fuori ritmo in modo significativo.</div>`}
+    <p class="hint">Confronto sul ritmo cumulato: la spesa di oggi è paragonata a quanto avevi speso, in media, allo stesso giorno nei mesi passati (${pacing.historyCount} mesi di storico${pacing.historyCount >= 4 ? ", mediana" : ", media"}).</p>
+  `;
+}
+
 function renderDashboard() {
   syncTotalLimitWithCategories();
   renderHomeMonthSelect();
+  renderMonthStatus();
 
   const month = state.selectedMonth;
   const expenses = getMonthlyExpenses(month);
@@ -2425,36 +2599,89 @@ function renderSavingsOpportunityReport(referenceMonth = state.selectedReportMon
   }
 
   const rows = getAnalysisRows(expenses);
-  const taggedEstimatedSaving = roundToTwoDecimals(rows.reduce((sum, row) => sum + Number(row.estimatedSaving || 0), 0));
-  const superfluous = rows.filter(row => ["Superflua", "Rimandabile"].includes(row.needType));
-  const recurring = rows.filter(row => ["Ricorrente", "Abbonamento"].includes(row.recurrenceType));
-  const merchantTotals = Object.entries(sumAnalysisBy(rows, "merchant"))
-    .filter(([merchant]) => merchant && merchant !== "Non indicato")
-    .sort((a, b) => b[1].amount - a[1].amount)
-    .slice(0, 5);
-  const categoryOverage = state.categories.map(category => {
-    const spent = rows
+  const findings = [];
+
+  // 1) Spese che TU hai marcato come rimandabili o superflue: il segnale
+  // più affidabile, perché è il tuo giudizio al momento dell'inserimento.
+  const superfluous = rows
+    .filter(row => ["Superflua", "Rimandabile"].includes(row.needType))
+    .sort((a, b) => Number(b.budgetAmount || 0) - Number(a.budgetAmount || 0));
+  const superfluousTotal = roundToTwoDecimals(superfluous.reduce((s, r) => s + Number(r.budgetAmount || 0), 0));
+  if (superfluous.length) {
+    findings.push({
+      amount: superfluousTotal,
+      title: "Spese che avevi marcato come rimandabili o superflue",
+      detail: `${superfluous.length} spese · ${superfluous.slice(0, 3).map(r => `${escapeHtml(r.description || r.category)} ${formatCurrency(r.budgetAmount)}`).join(" · ")}`,
+      action: "È il risparmio più immediato: sono spese che tu stesso avevi giudicato non necessarie."
+    });
+  }
+
+  // 2) Eccedenza oltre le soglie di categoria che hai impostato.
+  const overCategories = state.categories.map(category => {
+    const spent = roundToTwoDecimals(rows
       .filter(row => row.category === category)
-      .reduce((sum, row) => roundToTwoDecimals(sum + Number(row.budgetAmount || 0)), 0);
-    const settings = getCategorySettings(category);
-    const target = Number(settings.targetLimit || 0);
+      .reduce((sum, row) => sum + Number(row.budgetAmount || 0), 0));
     const limit = Number(state.thresholds.categoryLimits[category] || 0);
-    const baseline = target > 0 ? target : limit;
-    return {
-      category,
-      spent,
-      baseline,
-      over: baseline > 0 ? roundToTwoDecimals(spent - baseline) : 0,
-      reductionGoal: Number(settings.reductionGoal || 0)
-    };
-  });
-  const totalThresholdOverage = roundToTwoDecimals(
-    categoryOverage.reduce((sum, item) => sum + Math.max(0, item.over), 0)
-  );
-  const categoryOverTargets = categoryOverage
-    .filter(item => item.over > 0 || item.reductionGoal > 0)
-    .sort((a, b) => b.over - a.over)
-    .slice(0, 5);
+    return { category, spent, limit, over: limit > 0 ? roundToTwoDecimals(spent - limit) : 0 };
+  }).filter(item => item.over > 0).sort((a, b) => b.over - a.over);
+  const overTotal = roundToTwoDecimals(overCategories.reduce((s, i) => s + i.over, 0));
+  if (overCategories.length) {
+    findings.push({
+      amount: overTotal,
+      title: "Sforamento delle soglie di categoria",
+      detail: overCategories.slice(0, 4).map(i => `${escapeHtml(i.category)} +${formatCurrency(i.over)} (su ${formatCurrency(i.limit)})`).join(" · "),
+      action: "Rientrare nelle soglie che hai impostato libererebbe questa cifra."
+    });
+  }
+
+  // 3) Categorie molto sopra la loro media storica in questo mese:
+  // l'anomalia indica spesa occasionale comprimibile.
+  const historyMonths = [...new Set(state.expenses.map(e => e.month).filter(m => m && m < referenceMonth))].sort().slice(-6);
+  const aboveAverage = historyMonths.length >= 2 ? state.categories.map(category => {
+    const spent = getMonthGrossTotal(referenceMonth, category);
+    const reference = pacingReference(historyMonths.map(m => getMonthGrossTotal(m, category)));
+    return { category, spent, reference: roundToTwoDecimals(reference), excess: roundToTwoDecimals(spent - reference) };
+  }).filter(i => i.reference >= 20 && i.excess >= 15 && i.spent > i.reference * 1.25)
+    .sort((a, b) => b.excess - a.excess) : [];
+  const aboveTotal = roundToTwoDecimals(aboveAverage.reduce((s, i) => s + i.excess, 0));
+  if (aboveAverage.length) {
+    findings.push({
+      amount: aboveTotal,
+      title: "Categorie sopra la loro abitudine",
+      detail: aboveAverage.slice(0, 4).map(i => `${escapeHtml(i.category)} ${formatCurrency(i.spent)} vs ${formatCurrency(i.reference)} abituali`).join(" · "),
+      action: "Tornare al livello abituale di questi mesi vale la differenza indicata."
+    });
+  }
+
+  // 4) Micro-spese ripetute: singolarmente trascurabili, in totale no.
+  const smallRepeated = {};
+  rows.filter(row => Number(row.budgetAmount || 0) > 0 && Number(row.budgetAmount || 0) <= 10)
+    .forEach(row => {
+      const key = row.category;
+      smallRepeated[key] = smallRepeated[key] || { count: 0, amount: 0 };
+      smallRepeated[key].count += 1;
+      smallRepeated[key].amount = roundToTwoDecimals(smallRepeated[key].amount + Number(row.budgetAmount || 0));
+    });
+  const microTop = Object.entries(smallRepeated)
+    .filter(([, v]) => v.count >= 5)
+    .sort((a, b) => b[1].amount - a[1].amount)
+    .slice(0, 3);
+  const microTotal = roundToTwoDecimals(microTop.reduce((s, [, v]) => s + v.amount, 0));
+  if (microTop.length) {
+    findings.push({
+      amount: microTotal,
+      title: "Piccole spese ripetute (sotto 10 €)",
+      detail: microTop.map(([cat, v]) => `${escapeHtml(cat)}: ${v.count} volte per ${formatCurrency(v.amount)}`).join(" · "),
+      action: "Poco alla volta, ma sommate pesano: qui basta ridurre la frequenza, non rinunciare."
+    });
+  }
+
+  findings.sort((a, b) => b.amount - a.amount);
+  const headline = roundToTwoDecimals(Math.max(superfluousTotal, overTotal, aboveTotal));
+
+  // Spese del mese ancora senza classificazione: invito a completarle,
+  // perché migliorano proprio l'analisi qui sopra.
+  const unclassified = expenses.filter(e => !e.needType || e.needType === "Non indicato").length;
 
   container.innerHTML = `
     <div class="multi-report-summary">
@@ -2463,33 +2690,156 @@ function renderSavingsOpportunityReport(referenceMonth = state.selectedReportMon
         <strong>${escapeHtml(getMonthLabel(referenceMonth))}</strong>
       </div>
       <div class="multi-summary-item">
-        <span>Risparmio potenziale (oltre soglia)</span>
-        <strong>${formatCurrency(totalThresholdOverage)}</strong>
+        <span>Risparmio realistico</span>
+        <strong>${formatCurrency(headline)}</strong>
       </div>
       <div class="multi-summary-item">
-        <span>Spese rimandabili/superflue</span>
-        <strong>${superfluous.length}</strong>
-      </div>
-      <div class="multi-summary-item">
-        <span>Ricorrenti/abbonamenti</span>
-        <strong>${recurring.length}</strong>
+        <span>Spese analizzate</span>
+        <strong>${expenses.length}</strong>
       </div>
     </div>
 
-    <div class="savings-opportunity-list">
-      <div class="savings-opportunity-row">
-        <strong>Prime azioni</strong>
-        <span>${totalThresholdOverage > 0 ? `Le categorie oltre soglia potrebbero farti risparmiare fino a ${formatCurrency(totalThresholdOverage)}/mese se rientri nel budget.` : "Nessuna categoria oltre soglia questo mese: tutto sotto controllo."} Stima basata sulle spese marcate come risparmiabili: ${formatCurrency(taggedEstimatedSaving)}.</span>
+    ${findings.length ? `
+      <div class="savings-findings">
+        ${findings.map(f => `
+          <div class="savings-finding">
+            <div class="finding-head">
+              <strong>${f.title}</strong>
+              <span class="finding-amount">${formatCurrency(f.amount)}</span>
+            </div>
+            <div class="finding-detail">${f.detail}</div>
+            <div class="finding-action">${escapeHtml(f.action)}</div>
+          </div>
+        `).join("")}
       </div>
-      <div class="savings-opportunity-row">
-        <strong>Fornitori principali</strong>
-        <span>${merchantTotals.length ? merchantTotals.map(([merchant, item]) => `${escapeHtml(merchant)} ${formatCurrency(item.amount)}`).join(" · ") : "Aggiungi il fornitore alle spese per abilitare questa analisi."}</span>
-      </div>
-      <div class="savings-opportunity-row">
-        <strong>Soglie e obiettivi</strong>
-        <span>${categoryOverTargets.length ? categoryOverTargets.map(item => `${escapeHtml(item.category)} ${item.over > 0 ? `+${formatCurrency(item.over)}` : `riduzione ${item.reductionGoal}%`}`).join(" · ") : "Nessuna categoria oltre soglia/obiettivo nel mese."}</span>
-      </div>
+    ` : `<p class="empty">Nessuna area di risparmio evidente in questo mese: spese in linea con soglie e abitudini.</p>`}
+
+    ${unclassified > 0 ? `
+      <div class="savings-hint-box">
+        ${unclassified} spese di questo mese non hanno il tipo (Necessaria/Utile/Rimandabile/Superflua).
+        <button type="button" class="secondary small" onclick="openReclassifyModal('${escapeAttribute(referenceMonth)}')">Classificale ora</button>
+      </div>` : ""}
+  `;
+}
+
+
+// ---------------------------------------------------------------------------
+// Riclassifica rapida: assegna il tipo (Necessaria/Utile/Rimandabile/
+// Superflua) alle spese che ne sono prive, una alla volta. Alimenta le
+// analisi di risparmio, che si basano proprio su questa classificazione.
+// ---------------------------------------------------------------------------
+
+let reclassifyMonth = null;
+
+function getUnclassifiedExpenses(month) {
+  return getMonthlyExpenses(month)
+    .filter(e => !e.needType || e.needType === "Non indicato")
+    .sort((a, b) => Number(b.amount || 0) - Number(a.amount || 0));
+}
+
+function openReclassifyModal(month) {
+  reclassifyMonth = month || getCurrentMonth();
+  renderReclassifyModal();
+  document.getElementById("reclassifyModal")?.classList.remove("hidden");
+}
+window.openReclassifyModal = openReclassifyModal;
+
+function closeReclassifyModal() {
+  document.getElementById("reclassifyModal")?.classList.add("hidden");
+  reclassifyMonth = null;
+  renderAll();
+}
+
+function renderReclassifyModal() {
+  const body = document.getElementById("reclassifyBody");
+  const progress = document.getElementById("reclassifyProgress");
+  if (!body || !reclassifyMonth) return;
+
+  const pending = getUnclassifiedExpenses(reclassifyMonth);
+  const total = getMonthlyExpenses(reclassifyMonth).length;
+
+  if (!pending.length) {
+    progress.textContent = "";
+    body.innerHTML = `<p class="empty">Tutte le spese di ${escapeHtml(getMonthLabel(reclassifyMonth))} sono classificate. Le analisi di risparmio ora sono complete.</p>`;
+    return;
+  }
+
+  const expense = pending[0];
+  progress.textContent = `${total - pending.length + 1} di ${total} · ${pending.length} da classificare`;
+  body.innerHTML = `
+    <div class="reclassify-expense">
+      <strong>${formatCurrency(Number(expense.amount || 0))}</strong>
+      <span>${escapeHtml(expense.description || "(senza descrizione)")}</span>
+      <span class="reclassify-meta">${escapeHtml(expense.category)} · ${escapeHtml(expense.date || "")}</span>
     </div>
+    <div class="reclassify-buttons">
+      ${["Necessaria", "Utile", "Rimandabile", "Superflua"].map(type => `
+        <button type="button" class="reclassify-option reclassify-${type.toLowerCase()}" data-reclassify="${escapeAttributeForHtml(type)}" data-expense="${escapeAttributeForHtml(String(expense.id))}">${type}</button>
+      `).join("")}
+    </div>
+    <button type="button" class="secondary small reclassify-skip" data-reclassify="__skip__" data-expense="${escapeAttributeForHtml(String(expense.id))}">Salta questa</button>
+  `;
+}
+
+let reclassifySkipped = new Set();
+
+function handleReclassifyClick(event) {
+  const button = event.target.closest("[data-reclassify]");
+  if (!button) return;
+  const type = button.dataset.reclassify;
+  const expenseId = button.dataset.expense;
+
+  if (type === "__skip__") {
+    // Salta: sposta la spesa in fondo alla coda per questa sessione.
+    const expense = state.expenses.find(e => String(e.id) === expenseId);
+    if (expense) {
+      expense.needType = "Non indicato";
+      reclassifySkipped.add(expenseId);
+    }
+    const pending = getUnclassifiedExpenses(reclassifyMonth).filter(e => !reclassifySkipped.has(String(e.id)));
+    if (!pending.length) {
+      document.getElementById("reclassifyBody").innerHTML = `<p class="empty">Non ci sono altre spese da classificare in questa sessione.</p>`;
+      document.getElementById("reclassifyProgress").textContent = "";
+      return;
+    }
+    renderReclassifySpecific(pending[0]);
+    return;
+  }
+
+  const expense = state.expenses.find(e => String(e.id) === expenseId);
+  if (expense) {
+    expense.needType = type;
+    saveState();
+  }
+  const pending = getUnclassifiedExpenses(reclassifyMonth).filter(e => !reclassifySkipped.has(String(e.id)));
+  if (!pending.length) {
+    renderReclassifyModal();
+    return;
+  }
+  renderReclassifySpecific(pending[0]);
+}
+
+// Mostra una spesa specifica (usata dopo un salto, per non ripescare
+// sempre la stessa in cima alla lista).
+function renderReclassifySpecific(expense) {
+  const body = document.getElementById("reclassifyBody");
+  const progress = document.getElementById("reclassifyProgress");
+  if (!body || !expense) return;
+  const pending = getUnclassifiedExpenses(reclassifyMonth).filter(e => !reclassifySkipped.has(String(e.id)));
+  const total = getMonthlyExpenses(reclassifyMonth).length;
+  progress.textContent = `${total - pending.length + 1} di ${total} · ${pending.length} da classificare`;
+  body.innerHTML = `
+    <div class="reclassify-expense">
+      <strong>${formatCurrency(Number(expense.amount || 0))}</strong>
+      <span>${escapeHtml(expense.description || "(senza descrizione)")}</span>
+      <span class="reclassify-meta">${escapeHtml(expense.category)} · ${escapeHtml(expense.date || "")}</span>
+    </div>
+    <div class="reclassify-buttons">
+      ${["Necessaria", "Utile", "Rimandabile", "Superflua"].map(type => `
+        <button type="button" class="reclassify-option reclassify-${type.toLowerCase()}" data-reclassify="${escapeAttributeForHtml(type)}" data-expense="${escapeAttributeForHtml(String(expense.id))}">${type}</button>
+      `).join("")}
+    </div>
+    <button type="button" class="secondary small reclassify-skip" data-reclassify="__skip__" data-expense="${escapeAttributeForHtml(String(expense.id))}">Salta questa</button>
   `;
 }
 
@@ -6219,6 +6569,15 @@ document.getElementById("isMultiMonth").addEventListener("change", event => {
   }
   syncRecurrenceWithMultiMonth();
 });
+
+const reclassifyBody = document.getElementById("reclassifyBody");
+if (reclassifyBody) {
+  reclassifyBody.addEventListener("click", handleReclassifyClick);
+}
+const reclassifyCloseButton = document.getElementById("reclassifyClose");
+if (reclassifyCloseButton) {
+  reclassifyCloseButton.addEventListener("click", closeReclassifyModal);
+}
 
 const isGenericReimbursement = document.getElementById("isGenericReimbursement");
 if (isGenericReimbursement) {

@@ -13,7 +13,7 @@
     <header class="app-header">
       <div class="app-title">
         <h1>Spese Mensili</h1>
-        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.112</span></p>
+        <p><span id="currentMonthLabel"></span> · <span id="appVersion">V.113</span></p>
       </div>
       <button id="installButton" class="secondary hidden">Installa</button>
     </header>
@@ -28,9 +28,14 @@
           </label>
         </div>
 
+        <div class="card month-status-card">
+          <h2>Stato del mese</h2>
+          <div id="monthStatus"></div>
+        </div>
+
         <div class="card compact version-card">
           <span>Versione app</span>
-          <strong>V.112</strong>
+          <strong>V.113</strong>
         </div>
 
         <div class="card hero">
@@ -541,6 +546,17 @@
         <div class="modal-actions">
           <button id="dailyBackupExportButton" type="button">Backup JSON + Google Drive</button>
           <button id="dailyBackupLaterButton" class="secondary" type="button">Più tardi</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="reclassifyModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="reclassifyTitle">
+      <div class="modal-card reclassify-card">
+        <h3 id="reclassifyTitle">Classifica le spese</h3>
+        <p id="reclassifyProgress" class="hint"></p>
+        <div id="reclassifyBody"></div>
+        <div class="modal-actions">
+          <button type="button" class="secondary" id="reclassifyClose">Chiudi</button>
         </div>
       </div>
     </div>

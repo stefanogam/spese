@@ -1,5 +1,14 @@
 # Spese Mensili - PWA locale v16
 
+## Modifiche V.113
+
+Analisi proattiva delle spese: semaforo del mese, retrospettiva e riclassifica rapida.
+
+- **Home, nuova card "Stato del mese"**: semaforo verde/giallo/rosso che confronta il ritmo di spesa del mese corrente con lo storico. Il confronto usa il "ritmo cumulato": quanto hai speso finora si paragona a quanto avevi speso, di solito, allo stesso giorno del mese nei mesi passati — così le spese fisse di inizio mese (affitto, bollette) non falsano il giudizio come farebbe una proiezione lineare. Mostra proiezione di fine mese, mese tipico, distanza dalla soglia, risparmio previsto e le categorie fuori ritmo con l'eccedenza in euro.
+- Il riferimento storico usa la mediana da 4 mesi in su (un mese eccezionale, es. una vacanza, non inquina il confronto) e la media con meno storico. Vengono considerati solo i mesi in cui l'app è stata realmente usata: i mesi che contengono soltanto rate generate automaticamente sono esclusi, perché falserebbero completamente il riferimento.
+- **Report, card "Opportunità di risparmio" riscritta** come retrospettiva concreta: elenca aree di risparmio quantificate in euro e ordinate per importo — spese che avevi marcato come rimandabili/superflue, sforamento delle soglie di categoria, categorie sopra la loro abitudine storica, e micro-spese ripetute sotto i 10 € (singolarmente trascurabili, sommate no). Ogni voce spiega l'azione possibile.
+- **Riclassifica rapida**: se ci sono spese senza tipo (Necessaria/Utile/Rimandabile/Superflua), un pulsante apre una finestra che le propone una alla volta, dalla più costosa, con quattro pulsanti grandi e l'opzione "Salta". Serve a migliorare la qualità delle analisi di risparmio, che si basano su questa classificazione.
+
 ## Modifiche V.112
 
 Importazione SMS banca: il form viene compilato automaticamente, senza passare dal basket:

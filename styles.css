@@ -213,23 +213,7 @@ button.small {
   font-size: 0.7rem;
 }
 
-.savings-opportunity-list {
-  display: grid;
-  gap: 10px;
-  margin-top: 12px;
-}
 
-.savings-opportunity-row {
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 10px;
-  background: #f8fafc;
-}
-
-.savings-opportunity-row strong {
-  display: block;
-  margin-bottom: 4px;
-}
 
 .hint {
   color: #6b7280;
@@ -2804,3 +2788,158 @@ button.small {
   font-size: 0.78rem;
   color: #64748b;
 }
+
+/* ---------- Stato del mese (semaforo pacing) ---------- */
+.month-status-card h2 {
+  margin-bottom: 10px;
+}
+
+.month-status-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+}
+
+.month-status-head.pace-green { background: #ecfdf5; border: 1px solid #a7f3d0; }
+.month-status-head.pace-yellow { background: #fffbeb; border: 1px solid #fde68a; }
+.month-status-head.pace-red { background: #fef2f2; border: 1px solid #fecaca; }
+.month-status-head.pace-none { background: #f8fafc; border: 1px solid #e2e8f0; }
+
+.pace-icon { font-size: 1.3rem; line-height: 1.2; }
+
+.pace-sub {
+  font-size: 0.82rem;
+  color: #475569;
+  margin-top: 3px;
+}
+
+.month-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.pace-red-text { color: #b91c1c; }
+.pace-green-text { color: #047857; }
+
+.pace-anomalies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.85rem;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border-radius: 10px;
+}
+
+.pace-anomaly {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-weight: 600;
+}
+
+.pace-anomaly em { font-style: normal; color: #64748b; font-weight: 500; font-size: 0.8rem; }
+.pace-all-ok { color: #047857; }
+
+/* ---------- Retrospettiva risparmio ---------- */
+.savings-findings {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.savings-finding {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #ffffff;
+}
+
+.finding-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 5px;
+}
+
+.finding-amount {
+  font-weight: 800;
+  color: #0f172a;
+  white-space: nowrap;
+}
+
+.finding-detail {
+  font-size: 0.85rem;
+  color: #334155;
+  margin-bottom: 4px;
+}
+
+.finding-action {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.savings-hint-box {
+  margin-top: 12px;
+  padding: 11px 13px;
+  border-radius: 11px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  font-size: 0.86rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ---------- Riclassifica rapida ---------- */
+.reclassify-card { max-width: 440px; }
+
+.reclassify-expense {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 14px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 14px;
+}
+
+.reclassify-expense strong { font-size: 1.4rem; }
+.reclassify-meta { font-size: 0.8rem; color: #64748b; }
+
+.reclassify-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.reclassify-option {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 8px;
+  background: #fff;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.reclassify-necessaria { border-color: #a7f3d0; color: #047857; }
+.reclassify-utile { border-color: #bae6fd; color: #0369a1; }
+.reclassify-rimandabile { border-color: #fde68a; color: #b45309; }
+.reclassify-superflua { border-color: #fecaca; color: #b91c1c; }
+
+.reclassify-option:hover { filter: brightness(0.97); }
+.reclassify-skip { width: 100%; }
