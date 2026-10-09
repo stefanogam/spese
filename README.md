@@ -1,5 +1,14 @@
 # Spese Mensili - PWA locale v16
 
+## Modifiche V.115
+
+Gestione della quota voucher nel Report:
+
+- Nuova opzione "Escludi la quota voucher" nel pannello "Periodo e opzioni": sottrae dai conteggi la parte pagata con i voucher.
+- Dove la quota voucher è presente, il valore viene mostrato come totale seguito, tra parentesi, dall'importo al netto dei voucher (es. "226,66 € (136,66 €)"). Vale per le celle della tabella, i totali di mese e il pannello di dettaglio.
+- Con l'opzione attiva resta il solo importo senza voucher, e il riepilogo delle opzioni lo segnala con "no voucher".
+- Chiarimento nelle etichette: la metrica "Budget netto" è ora indicata come "Budget netto (già senza voucher)", perché per costruzione esclude già i voucher; l'opzione si applica quindi al "Totale registrato" e resta disattivata sulle altre metriche.
+
 ## Modifiche V.114
 
 - La card "Stato del mese" in Home è ora un pannello richiudibile, chiuso di default: non occupa più spazio all'apertura dell'app. A pannello chiuso resta comunque visibile un riepilogo compatto con il semaforo e il suo significato (es. "🟢 in linea con lo storico"), così il segnale proattivo si coglie a colpo d'occhio; un tocco espande i dettagli completi.

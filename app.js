@@ -1,5 +1,5 @@
 const STORAGE_KEY = "spese-pwa-locale-v66";
-const APP_VERSION = "V.114";
+const APP_VERSION = "V.115";
 const GOOGLE_CLIENT_ID = "307678452072-ggt9vfsaamel3i0lma1sb8vjug6p33so.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DRIVE_BACKUP_FILE_NAME = "spese-pwa-backup.json";
@@ -37,6 +37,7 @@ const initialState = {
   selectedMultiReportMonthsAfter: 0,
   selectedMultiReportCategories: [],
   selectedMultiReportMetric: "net",
+  multiReportExcludeVoucher: false,
   multiReportPercentageView: false,
   multiReportTableSort: "total",
   selectedFamilyBudgetReferenceMonth: getCurrentMonth(),
@@ -331,6 +332,7 @@ function migrateState(rawState) {
     selectedMultiReportMonthsAfter: Number(rawState.selectedMultiReportMonthsAfter || 0),
     selectedMultiReportCategories: Array.isArray(rawState.selectedMultiReportCategories) ? rawState.selectedMultiReportCategories : [],
     selectedMultiReportMetric: rawState.selectedMultiReportMetric || "net",
+    multiReportExcludeVoucher: Boolean(rawState.multiReportExcludeVoucher),
     multiReportPercentageView: Boolean(rawState.multiReportPercentageView),
     multiReportTableSort: rawState.multiReportTableSort || "total",
     selectedFamilyBudgetReferenceMonth: rawState.selectedFamilyBudgetReferenceMonth || getCurrentMonth(),
@@ -3224,13 +3226,51 @@ function getMultiReportMetricKey() {
 
 function getMultiReportMetricLabel() {
   const metric = state.selectedMultiReportMetric;
-  if (metric === "gross") return "Totale registrato";
+  if (metric === "gross") {
+    return state.multiReportExcludeVoucher ? "Totale registrato senza voucher" : "Totale registrato";
+  }
   if (metric === "voucher") return "Voucher";
-  return "Budget netto";
+  return "Budget netto (già senza voucher)";
+}
+
+// Quota pagata con voucher per categoria nel mese.
+function getCategoryVoucherValue(item, category) {
+  return Number((item.voucherTotalsByCategory || {})[category] || 0);
+}
+
+// Il "Budget netto" esclude già i voucher per costruzione; l'opzione
+// "escludi voucher" agisce quindi sul "Totale registrato", che invece
+// li comprende.
+function metricIncludesVoucher() {
+  return state.selectedMultiReportMetric === "gross";
 }
 
 function getCategoryValueForMetric(item, category) {
-  return Number(item[getMultiReportMetricKey()][category] || 0);
+  const value = Number(item[getMultiReportMetricKey()][category] || 0);
+  if (state.multiReportExcludeVoucher && metricIncludesVoucher()) {
+    return roundToTwoDecimals(Math.max(0, value - getCategoryVoucherValue(item, category)));
+  }
+  return value;
+}
+
+// Formattazione con la quota senza voucher tra parentesi, mostrata solo
+// quando esiste davvero una quota voucher e la metrica la comprende.
+function formatValueWithVoucher(item, category, value) {
+  const voucher = getCategoryVoucherValue(item, category);
+  if (voucher <= 0 || !metricIncludesVoucher() || state.multiReportExcludeVoucher) {
+    return formatCurrency(value);
+  }
+  const withoutVoucher = roundToTwoDecimals(Math.max(0, value - voucher));
+  return `${formatCurrency(value)} <span class="voucher-net">(${formatCurrency(withoutVoucher)})</span>`;
+}
+
+function formatMonthTotalWithVoucher(item, selectedCategories, total) {
+  const voucher = roundToTwoDecimals(selectedCategories
+    .reduce((sum, category) => sum + getCategoryVoucherValue(item, category), 0));
+  if (voucher <= 0 || !metricIncludesVoucher() || state.multiReportExcludeVoucher) {
+    return formatCurrency(total);
+  }
+  return `${formatCurrency(total)} <span class="voucher-net">(${formatCurrency(roundToTwoDecimals(Math.max(0, total - voucher)))})</span>`;
 }
 
 function getMonthTotalForMetric(item, selectedCategories) {
@@ -3320,6 +3360,7 @@ function renderMultiReportOptionsSummary(data) {
       : `${getMonthLabel(data[0].month)} – ${getMonthLabel(data[data.length - 1].month)}`);
   const parts = [period, getMultiReportMetricLabel()];
   if (state.multiReportPercentageView) parts.push("%");
+  if (state.multiReportExcludeVoucher && metricIncludesVoucher()) parts.push("no voucher");
   summary.textContent = parts.filter(Boolean).join(" · ");
 }
 
@@ -3342,6 +3383,14 @@ function renderMultiReport() {
   if (metricSelect) metricSelect.value = state.selectedMultiReportMetric || "net";
   const percentageToggle = document.getElementById("multiReportPercentageToggle");
   if (percentageToggle) percentageToggle.checked = Boolean(state.multiReportPercentageView);
+  const voucherToggle = document.getElementById("multiReportExcludeVoucherToggle");
+  if (voucherToggle) {
+    voucherToggle.checked = Boolean(state.multiReportExcludeVoucher);
+    // Sul "Budget netto" i voucher sono già esclusi: l'opzione non si applica.
+    voucherToggle.disabled = !metricIncludesVoucher();
+    const wrapper = voucherToggle.closest("label");
+    if (wrapper) wrapper.classList.toggle("toggle-disabled", voucherToggle.disabled);
+  }
 
   const data = getMultiReportData();
   lastMultiReportData = data;
@@ -3863,7 +3912,7 @@ function renderMultiReportMonthDetail(item, selectedCategories, focusCategory = 
   container.innerHTML = `
     <div class="month-detail-header">
       <strong>${escapeHtml(getMonthLabel(item.month))}</strong>
-      <span>Totale: ${formatCurrency(getMonthTotalForMetric(item, selectedCategories))}</span>
+      <span>Totale: ${formatMonthTotalWithVoucher(item, selectedCategories, getMonthTotalForMetric(item, selectedCategories))}</span>
     </div>
     <div class="month-detail-rows">
       ${rows.map(row => {
@@ -3872,7 +3921,7 @@ function renderMultiReportMonthDetail(item, selectedCategories, focusCategory = 
           <button type="button" class="month-detail-row month-detail-row-button ${row.active ? "" : "month-detail-row-off"}" data-detail-action="category" data-month="${escapeAttributeForHtml(item.month)}" data-category="${escapeAttributeForHtml(row.category)}">
             <span class="legend-color" style="background:${getCategoryColor(categoryIndex)}"></span>
             <span class="month-detail-category">${escapeHtml(row.category)}</span>
-            <span class="month-detail-amount">${row.amount > 0 ? formatCurrency(row.amount) : "–"}</span>
+            <span class="month-detail-amount">${row.amount > 0 ? formatValueWithVoucher(item, row.category, row.amount) : "–"}</span>
           </button>
         `;
       }).join("")}
@@ -3988,7 +4037,7 @@ function renderMultiReportTable(data) {
       return `
         <td class="${isReference ? "reference-month" : ""}">
           <button type="button" class="table-cell-button" data-detail-action="category" data-month="${escapeAttributeForHtml(item.month)}" data-category="${escapeAttributeForHtml(row.category)}">
-            ${formatCurrency(value)}
+            ${formatValueWithVoucher(item, row.category, value)}
           </button>
         </td>
       `;
@@ -4017,7 +4066,7 @@ function renderMultiReportTable(data) {
   const totalCells = data.map(item => {
     const monthTotal = getMonthTotalForMetric(item, selectedCategories);
     const isReference = item.month === referenceMonth;
-    return `<td class="${isReference ? "reference-month" : ""}"><strong>${formatCurrency(monthTotal)}</strong></td>`;
+    return `<td class="${isReference ? "reference-month" : ""}"><strong>${formatMonthTotalWithVoucher(item, selectedCategories, monthTotal)}</strong></td>`;
   }).join("");
   const grandTotal = roundToTwoDecimals(categoryRows.reduce((sum, row) => sum + row.periodTotal, 0));
 
@@ -6361,6 +6410,15 @@ const multiReportMetricSelect = document.getElementById("multiReportMetricSelect
 if (multiReportMetricSelect) {
   multiReportMetricSelect.addEventListener("change", event => {
     state.selectedMultiReportMetric = event.target.value;
+    saveState();
+    renderMultiReport();
+  });
+}
+
+const multiReportExcludeVoucherToggle = document.getElementById("multiReportExcludeVoucherToggle");
+if (multiReportExcludeVoucherToggle) {
+  multiReportExcludeVoucherToggle.addEventListener("change", event => {
+    state.multiReportExcludeVoucher = event.target.checked;
     saveState();
     renderMultiReport();
   });

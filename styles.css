@@ -2999,3 +2999,14 @@ button.small {
   border-bottom: 1px solid #e5e7eb;
   padding-bottom: 10px;
 }
+
+.voucher-net {
+  font-weight: 600;
+  font-size: 0.82em;
+  color: #0891b2;
+  white-space: nowrap;
+}
+
+.report-toggle.toggle-disabled {
+  opacity: 0.5;
+}
